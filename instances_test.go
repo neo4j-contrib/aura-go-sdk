@@ -341,7 +341,7 @@ func TestInstanceService_Overwrite_Success(t *testing.T) {
 // TestInstanceService_Overwrite_WithSnapshot verifies overwrite with snapshot
 func TestInstanceService_Overwrite_WithSnapshot(t *testing.T) {
 	instanceID := "aaaa5678"
-	snapshotID := "snapshot-123"
+	snapshotID := "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
 	responseBody, _ := json.Marshal(OverwriteInstanceResponse{Data: "overwrite-job-456"})
 	mock := &mockAPIService{
 		response: &api.Response{StatusCode: 200, Body: responseBody},
@@ -418,8 +418,7 @@ func TestInstanceService_OverwriteFromInstance_Validation(t *testing.T) {
 }
 
 // TestInstanceService_OverwriteFromSnapshot_Validation verifies OverwriteFromSnapshot validation.
-// The method takes exactly one source — sourceSnapshotID — so the only validation
-// cases are: empty and valid (snapshot IDs are opaque strings; no format check).
+// The method validates that sourceSnapshotID is non-empty and a valid UUID.
 func TestInstanceService_OverwriteFromSnapshot_Validation(t *testing.T) {
 	tests := []struct {
 		name             string
@@ -432,6 +431,11 @@ func TestInstanceService_OverwriteFromSnapshot_Validation(t *testing.T) {
 			name: "empty source snapshot ID", instanceID: "aaaa1234",
 			sourceSnapshotID: "",
 			expectError: true, errorContains: "must provide sourceSnapshotID",
+		},
+		{
+			name: "malformed source snapshot ID", instanceID: "aaaa1234",
+			sourceSnapshotID: "snapshot-123",
+			expectError: true, errorContains: "invalid source snapshot ID",
 		},
 		{
 			name: "valid source snapshot ID", instanceID: "aaaa1234",

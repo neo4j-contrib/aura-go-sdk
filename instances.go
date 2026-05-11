@@ -469,6 +469,10 @@ func (i *instanceService) OverwriteFromSnapshot(ctx context.Context, instanceID 
 		return nil, fmt.Errorf("must provide sourceSnapshotID")
 	}
 
+	if err := utils.ValidateSnapshotID(sourceSnapshotID); err != nil {
+		return nil, fmt.Errorf("invalid source snapshot ID: %w", err)
+	}
+
 	requestBody := overwriteInstanceRequest{
 		SourceSnapshotID: sourceSnapshotID,
 	}

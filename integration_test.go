@@ -723,7 +723,7 @@ func TestInstances_Overwrite_WithSourceInstance(t *testing.T) {
 
 func TestInstances_Overwrite_WithSourceSnapshot(t *testing.T) {
 	instanceID := "cccc1234"
-	snapshotID := "snap-abc-001"
+	snapshotID := "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
 	payload := map[string]any{"data": "overwrite-job-abc"}
 
 	var gotBody map[string]string

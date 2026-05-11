@@ -26,13 +26,13 @@ tasks:
       call utils.ValidateSnapshotID to enforce the UUID format. Add the validation call
       after the empty-string check, consistent with how OverwriteFromInstance validates
       its source instance ID.
-    status: pending
+    status: completed
     dependencies: []
     acceptance_criteria:
       - "OverwriteFromSnapshot returns an error for a non-UUID sourceSnapshotID"
       - "OverwriteFromSnapshot still returns an error for an empty sourceSnapshotID"
       - "A test case covers the malformed snapshot ID path"
-    completed_at: null
+    completed_at: "2026-05-11T23:43:00Z"
 
   - id: task-003
     title: "Add missing error log in tenants.GetMetrics"

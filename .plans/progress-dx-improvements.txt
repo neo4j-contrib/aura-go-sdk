@@ -19,3 +19,27 @@ Key Decisions:
 - Used `kind: Fixed` in the changie fragment since this is a bug fix (patch release)
 
 Next Task: task-002
+================================================================================
+TASK-002: Add ValidateSnapshotID call in OverwriteFromSnapshot
+Date: 2026-05-11T23:43:00Z
+================================================================================
+
+Summary:
+Added utils.ValidateSnapshotID call in OverwriteFromSnapshot after the empty-string
+check, consistent with OverwriteFromInstance which already validates its source instance
+ID via utils.ValidateInstanceID. Updated all existing tests that used non-UUID snapshot
+IDs to supply valid UUIDs, and extended the validation test table with a "malformed source
+snapshot ID" case that confirms a non-UUID is rejected with the "invalid source snapshot ID"
+error.
+
+Files Changed:
+- instances.go (modified): added utils.ValidateSnapshotID call after empty-string guard in OverwriteFromSnapshot
+- instances_test.go (modified): updated snapshotID in Overwrite_WithSnapshot to valid UUID; added malformed case to OverwriteFromSnapshot_Validation; updated test comment
+- integration_test.go (modified): updated snapshotID in TestInstances_Overwrite_WithSourceSnapshot to valid UUID
+
+Key Decisions:
+- Followed the exact same pattern as OverwriteFromInstance: empty check first, then format validation
+- Error message is "invalid source snapshot ID: ..." (wrapping utils error), matching the "invalid source instance ID: ..." pattern
+- Pre-existing test IDs that were opaque strings (snap-abc-001, snapshot-123) updated to valid UUIDs since the new validation now requires UUID format
+
+Next Task: task-003
