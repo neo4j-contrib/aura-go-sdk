@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -15,6 +16,59 @@ func testLogger() *slog.Logger {
 	opts := &slog.HandlerOptions{Level: slog.LevelWarn}
 	handler := slog.NewTextHandler(os.Stderr, opts)
 	return slog.New(handler)
+}
+
+// capturingHandler is a slog.Handler that collects records for test assertions.
+type capturingHandler struct {
+	mu      sync.Mutex
+	records []slog.Record
+}
+
+func (h *capturingHandler) Enabled(_ context.Context, _ slog.Level) bool { return true }
+
+func (h *capturingHandler) Handle(_ context.Context, r slog.Record) error {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.records = append(h.records, r)
+	return nil
+}
+
+func (h *capturingHandler) WithAttrs(_ []slog.Attr) slog.Handler {
+	return h
+}
+
+func (h *capturingHandler) WithGroup(_ string) slog.Handler {
+	return h
+}
+
+func (h *capturingHandler) hasRecord(level slog.Level, msgSubstr string) bool {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	for _, r := range h.records {
+		if r.Level == level && strings.Contains(r.Message, msgSubstr) {
+			return true
+		}
+	}
+	return false
+}
+
+func (h *capturingHandler) hasAttr(key, value string) bool {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	for _, r := range h.records {
+		found := false
+		r.Attrs(func(a slog.Attr) bool {
+			if a.Key == key && a.Value.String() == value {
+				found = true
+				return false
+			}
+			return true
+		})
+		if found {
+			return true
+		}
+	}
+	return false
 }
 
 // ============================================================================

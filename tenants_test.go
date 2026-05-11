@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"testing"
 	"time"
 
@@ -284,5 +285,78 @@ func TestTenantService_Get_ContextTimeout(t *testing.T) {
 	}
 	if elapsed > 500*time.Millisecond {
 		t.Errorf("timeout took too long: %v", elapsed)
+	}
+}
+
+// ============================================================================
+// GetMetrics Tests
+// ============================================================================
+
+// TestTenantService_GetMetrics_Success verifies successful GetMetrics call.
+func TestTenantService_GetMetrics_Success(t *testing.T) {
+	tenantID := "00000000-0000-0000-0000-000000000001"
+	expectedResponse := GetTenantMetricsURLResponse{
+		Data: GetTenantMetricsURLData{
+			Endpoint: "https://metrics.example.com/tenant/prometheus",
+		},
+	}
+
+	responseBody, _ := json.Marshal(expectedResponse)
+	mock := &mockAPIService{
+		response: &api.Response{StatusCode: 200, Body: responseBody},
+	}
+
+	service := createTestTenantService(mock)
+	result, err := service.GetMetrics(context.Background(), tenantID)
+
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if mock.lastMethod != "GET" {
+		t.Errorf("expected GET method, got %s", mock.lastMethod)
+	}
+	expectedPath := "tenants/" + tenantID + "/metrics-integration"
+	if mock.lastPath != expectedPath {
+		t.Errorf("expected path %q, got %q", expectedPath, mock.lastPath)
+	}
+	if result.Data.Endpoint != expectedResponse.Data.Endpoint {
+		t.Errorf("expected endpoint %q, got %q", expectedResponse.Data.Endpoint, result.Data.Endpoint)
+	}
+}
+
+// TestTenantService_GetMetrics_APIError verifies that GetMetrics logs an ErrorContext
+// with tenantID and error fields when the API call fails.
+func TestTenantService_GetMetrics_APIError(t *testing.T) {
+	tenantID := "00000000-0000-0000-0000-000000000001"
+	apiErr := &api.Error{StatusCode: 500, Message: "internal server error"}
+	mock := &mockAPIService{err: apiErr}
+
+	handler := &capturingHandler{}
+	service := &tenantService{
+		api:     mock,
+		timeout: 30 * time.Second,
+		logger:  slog.New(handler),
+	}
+
+	result, err := service.GetMetrics(context.Background(), tenantID)
+
+	if err == nil {
+		t.Fatal("expected error from GetMetrics")
+	}
+	if result != nil {
+		t.Error("expected nil result on error")
+	}
+	if !errors.Is(err, apiErr) {
+		t.Errorf("expected api error, got %v", err)
+	}
+
+	if !handler.hasRecord(slog.LevelError, "failed to get tenant metrics url") {
+		t.Error("expected ErrorContext log with 'failed to get tenant metrics url' message")
+	}
+	if !handler.hasAttr("tenantID", tenantID) {
+		t.Errorf("expected log attr tenantID=%q", tenantID)
+	}
+	if !handler.hasAttr("error", apiErr.Error()) {
+		t.Errorf("expected log attr error=%q", apiErr.Error())
 	}
 }

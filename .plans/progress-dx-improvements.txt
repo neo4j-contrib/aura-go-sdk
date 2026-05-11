@@ -43,3 +43,23 @@ Key Decisions:
 - Pre-existing test IDs that were opaque strings (snap-abc-001, snapshot-123) updated to valid UUIDs since the new validation now requires UUID format
 
 Next Task: task-003
+================================================================================
+TASK-003: Add missing error log in tenants.GetMetrics
+Date: 2026-05-11T00:00:00Z
+================================================================================
+
+Summary:
+Added t.logger.ErrorContext call in tenants.GetMetrics when api.Get fails,
+matching the existing pattern in List and Get. Added capturingHandler test
+helper (in mocks_test.go) and tests for the success and error paths.
+
+Files Changed:
+- tenants.go (modified: added ErrorContext log on api.Get failure)
+- tenants_test.go (modified: added GetMetrics tests, uses capturingHandler)
+- mocks_test.go (modified: added capturingHandler slog handler helper)
+
+Key Decisions:
+- Moved capturingHandler to mocks_test.go for package-wide reuse
+- Replaced hand-rolled substring search with strings.Contains
+
+Next Task: task-004

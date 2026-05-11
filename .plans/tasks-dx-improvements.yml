@@ -40,12 +40,12 @@ tasks:
       tenants.go GetMetrics returns the API error without logging it, unlike every other
       service method. Add t.logger.ErrorContext after the failed api.Get call, consistent
       with the pattern in tenants.List and tenants.Get.
-    status: pending
+    status: completed
     dependencies: []
     acceptance_criteria:
       - "GetMetrics logs an ErrorContext with the error string when api.Get fails"
       - "The log entry includes the tenantID and error fields"
-    completed_at: null
+    completed_at: "2026-05-11T00:00:00Z"
 
   - id: task-004
     title: "Remove redundant ctx.Err() pre-checks from all service methods"

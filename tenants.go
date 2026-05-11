@@ -150,6 +150,7 @@ func (t *tenantService) GetMetrics(ctx context.Context, tenantID string) (*GetTe
 
 	resp, err := t.api.Get(ctx, fmt.Sprintf("tenants/%s/metrics-integration", tenantID))
 	if err != nil {
+		t.logger.ErrorContext(ctx, "failed to get tenant metrics url", slog.String("tenantID", tenantID), slog.String("error", err.Error()))
 		return nil, err
 	}
 
