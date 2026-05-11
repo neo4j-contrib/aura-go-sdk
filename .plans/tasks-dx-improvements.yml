@@ -1,0 +1,250 @@
+feature: dx-improvements
+prd: ./prd-dx-improvements.md
+created_at: 2026-05-11T00:00:00Z
+updated_at: 2026-05-11T00:00:00Z
+
+tasks:
+  - id: task-001
+    title: "Fix CMEK tenant filter query parameter key"
+    description: |
+      In cmek.go:56, change the query parameter from `?tenantID=` to `?tenant_id=`
+      so the Aura API actually applies the tenant filter. The current key is silently
+      ignored by the API, causing List to return all CMEKs regardless of the tenantID
+      argument. Add a changelog fragment for this bug fix.
+    status: pending
+    dependencies: []
+    acceptance_criteria:
+      - "cmek.go sends `?tenant_id=<value>` in the request URL when tenantID is non-empty"
+      - "Existing test or new test verifies the query parameter key is `tenant_id`"
+      - "A changie fragment exists in .changes/unreleased/ for this fix"
+    completed_at: null
+
+  - id: task-002
+    title: "Add ValidateSnapshotID call in OverwriteFromSnapshot"
+    description: |
+      instances.go OverwriteFromSnapshot checks for empty sourceSnapshotID but does not
+      call utils.ValidateSnapshotID to enforce the UUID format. Add the validation call
+      after the empty-string check, consistent with how OverwriteFromInstance validates
+      its source instance ID.
+    status: pending
+    dependencies: []
+    acceptance_criteria:
+      - "OverwriteFromSnapshot returns an error for a non-UUID sourceSnapshotID"
+      - "OverwriteFromSnapshot still returns an error for an empty sourceSnapshotID"
+      - "A test case covers the malformed snapshot ID path"
+    completed_at: null
+
+  - id: task-003
+    title: "Add missing error log in tenants.GetMetrics"
+    description: |
+      tenants.go GetMetrics returns the API error without logging it, unlike every other
+      service method. Add t.logger.ErrorContext after the failed api.Get call, consistent
+      with the pattern in tenants.List and tenants.Get.
+    status: pending
+    dependencies: []
+    acceptance_criteria:
+      - "GetMetrics logs an ErrorContext with the error string when api.Get fails"
+      - "The log entry includes the tenantID and error fields"
+    completed_at: null
+
+  - id: task-004
+    title: "Remove redundant ctx.Err() pre-checks from all service methods"
+    description: |
+      Every service method (instances, tenants, snapshots, cmek, graphanalytics, prometheus)
+      opens with a ctx.Err() check that is racy, redundant with context.WithTimeout, and
+      contrary to idiomatic Go. Remove all 25 pre-checks. The context cancellation will
+      propagate naturally through the HTTP layer.
+    status: pending
+    dependencies: []
+    acceptance_criteria:
+      - "No ctx.Err() pre-check blocks remain in any service method (grep confirms zero matches)"
+      - "go test -race ./... passes with no regressions"
+      - "Context cancellation tests still pass (context propagates through HTTP correctly)"
+    completed_at: null
+
+  - id: task-005
+    title: "Replace fmt.Errorf with errors.New for static error strings"
+    description: |
+      graphanalytics.go (lines 191, 222, 259, 296) and prometheus.go (lines 102, 197, 278)
+      use fmt.Errorf for static strings with no format verbs. Replace each with errors.New.
+      This aligns with client.go and instances.go which already use errors.New correctly.
+    status: pending
+    dependencies: []
+    acceptance_criteria:
+      - "No fmt.Errorf call with a static string (no %w, %s, %v verbs) remains in graphanalytics.go or prometheus.go"
+      - "All replaced errors still carry the same message text"
+      - "go vet ./... produces no new errors"
+    completed_at: null
+
+  - id: task-006
+    title: "Fix minor Go style: import alias, struct name, utils.Marshal, bytes.NewReader"
+    description: |
+      Bundle four low-risk cosmetic fixes: (1) remove the redundant utils alias in
+      instances.go and graphanalytics.go; (2) rename gDSSessionService to gdsSessionService
+      everywhere including interfaces.go and client.go; (3) replace utils.Marshal calls in
+      graphanalytics.go with json.Marshal directly; (4) replace strings.NewReader(string(data))
+      in prometheus.go with bytes.NewReader(data).
+    status: pending
+    dependencies: []
+    acceptance_criteria:
+      - "No `import utils \"...\"` alias remains in instances.go or graphanalytics.go"
+      - "gDSSessionService is renamed to gdsSessionService in graphanalytics.go, interfaces.go, and client.go"
+      - "graphanalytics.go uses json.Marshal directly instead of utils.Marshal"
+      - "prometheus.go uses bytes.NewReader(data) instead of strings.NewReader(string(data))"
+      - "go build ./... succeeds"
+    completed_at: null
+
+  - id: task-007
+    title: "Downgrade 'metric not found' log from Error to Debug in GetMetricValue"
+    description: |
+      prometheus.go GetMetricValue logs at ErrorContext level when a metric is not found.
+      A missing metric is an expected absence on certain Neo4j plans and versions, not an
+      error condition. Change the log call to DebugContext to avoid false-alarm noise in
+      production logging pipelines.
+    status: pending
+    dependencies: []
+    acceptance_criteria:
+      - "GetMetricValue uses p.logger.DebugContext (not ErrorContext) when a metric name is not found"
+      - "The log message and fields are otherwise unchanged"
+    completed_at: null
+
+  - id: task-008
+    title: "Rename QueriesPerSecond to QueryExecutionTotal with corrected doc"
+    description: |
+      The QueryMetrics.QueriesPerSecond field is sourced from neo4j_db_query_execution_success_total,
+      a cumulative counter — not a per-second rate. Rename the field to QueryExecutionTotal and
+      update the JSON tag to `query_execution_total`. Add a doc comment explaining the value is a
+      cumulative counter. Add a changelog fragment marking this as a breaking change.
+    status: pending
+    dependencies: []
+    acceptance_criteria:
+      - "QueryMetrics.QueryExecutionTotal replaces QueriesPerSecond in prometheus.go"
+      - "JSON tag is `json:\"query_execution_total\"`"
+      - "Doc comment describes the field as a cumulative counter"
+      - "A changie fragment exists marked as a breaking Changed entry"
+      - "go build ./... and all tests pass"
+    completed_at: null
+
+  - id: task-009
+    title: "Replace AuraAPIClientVersion constant with debug.ReadBuildInfo()"
+    description: |
+      AuraAPIClientVersion is a hardcoded constant that always reflects the version at the
+      time the library was authored, not the version the consumer actually imported. Replace
+      it with a package-level var that calls debug.ReadBuildInfo() at init time, falling back
+      to the literal string when the build info is unavailable (devel/go run/go test).
+    status: pending
+    dependencies: []
+    acceptance_criteria:
+      - "AuraAPIClientVersion is a var, not a const"
+      - "It calls debug.ReadBuildInfo() and uses info.Main.Version when non-empty and not '(devel)'"
+      - "Falls back to the literal version string (e.g. 'v1.10.0') in devel builds"
+      - "go test ./... passes; the User-Agent sent in tests is the fallback string"
+    completed_at: null
+
+  - id: task-010
+    title: "Add Close() to api.RequestService interface and implement on apiRequestService"
+    description: |
+      Add Close() to the internal api.RequestService interface and implement it on
+      apiRequestService by calling httpclient.HTTPService.Close() (or equivalently
+      CloseIdleConnections on the underlying transport). Also add Close() to
+      httpclient.HTTPService interface and implement it on httpService. Update the
+      compile-time interface check in interfaces.go.
+    status: pending
+    dependencies: []
+    acceptance_criteria:
+      - "api.RequestService interface includes Close()"
+      - "httpclient.HTTPService interface includes Close()"
+      - "httpService.Close() calls retryablehttp.Client.HTTPClient.CloseIdleConnections()"
+      - "go build ./... succeeds with no unused-interface errors"
+    completed_at: null
+
+  - id: task-011
+    title: "Add AuraAPIClient.Close() public method"
+    description: |
+      Expose a Close() method on AuraAPIClient that delegates to c.api.Close(). Document
+      the method with a godoc comment explaining it drains idle connections and should be
+      called via defer when the client is no longer needed.
+    status: pending
+    dependencies:
+      - task-010
+    acceptance_criteria:
+      - "AuraAPIClient.Close() exists and calls c.api.Close()"
+      - "Godoc comment explains the purpose and idiomatic defer usage"
+      - "A test verifies calling Close() twice does not panic"
+      - "README Quick Start example includes `defer client.Close()`"
+    completed_at: null
+
+  - id: task-012
+    title: "Add WithHTTPClient, WithUserAgent, and WithDefaultHeaders options"
+    description: |
+      Add three new functional options to client.go: WithHTTPClient(*http.Client) injects
+      a custom transport; WithUserAgent(string) overrides the default User-Agent; and
+      WithDefaultHeaders(map[string]string) sets headers on every API request. WithDefaultHeaders
+      must silently ignore Authorization, Content-Type, and User-Agent keys. Store these in
+      the config struct.
+    status: pending
+    dependencies: []
+    acceptance_criteria:
+      - "WithHTTPClient returns an error if the argument is nil"
+      - "WithUserAgent returns an error if the argument is empty"
+      - "WithDefaultHeaders is a no-op if the map is empty; ignores protected header keys"
+      - "All three options are accepted by NewClient without error when valid"
+      - "Options tests cover nil/empty validation"
+    completed_at: null
+
+  - id: task-013
+    title: "Wire HTTPClient, UserAgent, and DefaultHeaders through api.Config into httpclient"
+    description: |
+      Extend api.Config with HTTPClient, UserAgent (already exists as a field but not wired
+      from all options), and DefaultHeaders. Update api.NewRequestService to pass HTTPClient
+      into httpclient.NewHTTPService (replacing the internally-constructed transport when set)
+      and to merge DefaultHeaders into every authenticated request header map. Ensure protected
+      headers cannot be overridden.
+    status: pending
+    dependencies:
+      - task-012
+    acceptance_criteria:
+      - "api.Config has HTTPClient *http.Client and DefaultHeaders map[string]string fields"
+      - "When HTTPClient is set, it is used as the base client inside retryablehttp"
+      - "DefaultHeaders are merged into the header map on every doAuthenticatedRequest call"
+      - "Authorization, Content-Type, and User-Agent in DefaultHeaders are silently skipped"
+      - "Integration test or unit test verifies a custom header reaches the server"
+    completed_at: null
+
+  - id: task-014
+    title: "Rename CmekService, Cmek field, and GetCmeks* types to CMEK acronym convention"
+    description: |
+      Apply the breaking CMEK rename throughout the codebase: CmekService -> CMEKService,
+      client.Cmek field -> client.CMEK, GetCmeksResponse -> GetCMEKsResponse,
+      GetCmeksData -> GetCMEKData. Update interfaces.go compile-time checks, client.go
+      service wire-up, cmek.go types, and any test files. Add a changie fragment for this
+      breaking change.
+    status: pending
+    dependencies: []
+    acceptance_criteria:
+      - "No exported identifier with 'Cmek' (mixed-case) remains"
+      - "client.CMEK is the correct field name; client.Cmek does not compile"
+      - "GetCMEKsResponse and GetCMEKData are the exported response types"
+      - "All tests pass after rename"
+      - "A changie fragment is added as a breaking Changed entry"
+    completed_at: null
+
+  - id: task-015
+    title: "Update README for breaking changes and new options"
+    description: |
+      Update README.md to reflect all breaking renames (client.CMEK, QueryExecutionTotal)
+      and document the four new options (WithHTTPClient, WithUserAgent, WithDefaultHeaders,
+      and close/defer pattern). Ensure all code examples compile against the updated API.
+    status: pending
+    dependencies:
+      - task-008
+      - task-011
+      - task-012
+      - task-014
+    acceptance_criteria:
+      - "README CMEK section uses client.CMEK.List (not client.Cmek.List)"
+      - "README Prometheus section references QueryExecutionTotal (not QueriesPerSecond)"
+      - "README Configuration section has examples for WithHTTPClient, WithUserAgent, WithDefaultHeaders"
+      - "README Quick Start example includes `defer client.Close()`"
+      - "No stale option or field names remain in any README example"
+    completed_at: null
