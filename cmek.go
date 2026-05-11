@@ -53,7 +53,7 @@ func (c *cmekService) List(ctx context.Context, tenantID string) (*GetCmeksRespo
 		if err := utils.ValidateTenantID(tenantID); err != nil {
 			return nil, err
 		}
-		endpoint += "?tenantID=" + tenantID
+		endpoint += "?tenant_id=" + tenantID
 	}
 
 	resp, err := c.api.Get(ctx, endpoint)

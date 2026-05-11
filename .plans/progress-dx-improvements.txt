@@ -1,0 +1,21 @@
+================================================================================
+TASK-001: Fix CMEK tenant filter query parameter key
+Date: 2026-05-11T00:00:00Z
+================================================================================
+
+Summary:
+Fixed a bug where cmekService.List was sending `?tenantID=` as the query parameter
+key when filtering by tenant, which is silently ignored by the Aura API. Changed to
+`?tenant_id=` (snake_case) so the API correctly applies the tenant filter.
+
+Files Changed:
+- cmek.go (modified): changed query parameter key from `tenantID` to `tenant_id`
+- cmek_test.go (modified): updated assertion in TestCmekService_List_WithTenantFilter to expect `tenant_id`
+- .changes/unreleased/fix-cmek-tenant-filter-query-param.yaml (created): changie fragment for the fix
+
+Key Decisions:
+- Only one line changed in production code; the fix is minimal and surgical
+- Updated the existing test rather than adding a new one (the existing test already covered the exact scenario)
+- Used `kind: Fixed` in the changie fragment since this is a bug fix (patch release)
+
+Next Task: task-002

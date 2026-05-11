@@ -11,13 +11,13 @@ tasks:
       so the Aura API actually applies the tenant filter. The current key is silently
       ignored by the API, causing List to return all CMEKs regardless of the tenantID
       argument. Add a changelog fragment for this bug fix.
-    status: pending
+    status: completed
     dependencies: []
     acceptance_criteria:
       - "cmek.go sends `?tenant_id=<value>` in the request URL when tenantID is non-empty"
       - "Existing test or new test verifies the query parameter key is `tenant_id`"
       - "A changie fragment exists in .changes/unreleased/ for this fix"
-    completed_at: null
+    completed_at: "2026-05-11T00:00:00Z"
 
   - id: task-002
     title: "Add ValidateSnapshotID call in OverwriteFromSnapshot"

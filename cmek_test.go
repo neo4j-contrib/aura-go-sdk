@@ -80,7 +80,7 @@ func TestCmekService_List_WithTenantFilter(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	if mock.lastPath != "customer-managed-keys?tenantID="+TenantID {
+	if mock.lastPath != "customer-managed-keys?tenant_id="+TenantID {
 		t.Errorf("expected path with tenant filter, got '%s'", mock.lastPath)
 	}
 	if len(result.Data) != 1 {
