@@ -157,6 +157,8 @@ func (m *mockAPIService) Delete(_ context.Context, endpoint string) (*api.Respon
 	return m.response, m.err
 }
 
+func (m *mockAPIService) Close() {}
+
 // ============================================================================
 // mockAPIServiceWithDelay — respects context cancellation, can simulate slow APIs
 // ============================================================================
@@ -222,6 +224,8 @@ func (m *mockAPIServiceWithDelay) executeWithDelay(ctx context.Context) (*api.Re
 	}
 	return m.response, m.err
 }
+
+func (m *mockAPIServiceWithDelay) Close() {}
 
 // ============================================================================
 // mockAPIServiceWithCallback — supports hooks to inspect context values and
@@ -304,3 +308,5 @@ func (m *mockAPIServiceWithCallback) executeWithDelay(ctx context.Context) (*api
 	}
 	return m.response, m.err
 }
+
+func (m *mockAPIServiceWithCallback) Close() {}

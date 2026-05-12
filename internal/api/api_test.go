@@ -509,6 +509,8 @@ func (m *sequencedMock) Delete(_ context.Context, url string, headers map[string
 	return m.next()
 }
 
+func (m *sequencedMock) Close() {}
+
 func newSequencedMock(responses []*httpclient.HTTPResponse, errs []error) *sequencedMock {
 	return &sequencedMock{responses: responses, errors: errs}
 }

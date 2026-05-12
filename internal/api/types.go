@@ -50,6 +50,9 @@ type apiRequestService struct {
 	logger       *slog.Logger
 }
 
+// Compile-time interface compliance check.
+var _ RequestService = (*apiRequestService)(nil)
+
 // authManager handles token management for the API.
 type authManager struct {
 	clientID     string
@@ -76,4 +79,7 @@ type RequestService interface {
 	Put(ctx context.Context, endpoint string, body string) (*Response, error)
 	Patch(ctx context.Context, endpoint string, body string) (*Response, error)
 	Delete(ctx context.Context, endpoint string) (*Response, error)
+	// Close releases idle connections held by the underlying HTTP transport.
+	// It should be called (typically via defer) when the client is no longer needed.
+	Close()
 }

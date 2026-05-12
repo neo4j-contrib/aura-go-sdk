@@ -67,6 +67,14 @@ func NewHTTPService(timeout time.Duration, maxRetry int, logger *slog.Logger) HT
 	}
 }
 
+// Close releases idle connections held by the underlying HTTP transport.
+// It delegates to http.Client.CloseIdleConnections on the retryablehttp client's
+// inner http.Client, draining the connection pool. Call this (typically via defer)
+// when the service is no longer needed.
+func (s *httpService) Close() {
+	s.client.HTTPClient.CloseIdleConnections()
+}
+
 // Get performs an HTTP GET request with the provided headers.
 func (s *httpService) Get(ctx context.Context, url string, headers map[string]string) (*HTTPResponse, error) {
 	return s.doRequest(ctx, http.MethodGet, url, headers, "")

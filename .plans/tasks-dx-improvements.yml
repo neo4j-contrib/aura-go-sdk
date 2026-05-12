@@ -149,14 +149,14 @@ tasks:
       CloseIdleConnections on the underlying transport). Also add Close() to
       httpclient.HTTPService interface and implement it on httpService. Update the
       compile-time interface check in interfaces.go.
-    status: pending
+    status: completed
     dependencies: []
     acceptance_criteria:
       - "api.RequestService interface includes Close()"
       - "httpclient.HTTPService interface includes Close()"
       - "httpService.Close() calls retryablehttp.Client.HTTPClient.CloseIdleConnections()"
       - "go build ./... succeeds with no unused-interface errors"
-    completed_at: null
+    completed_at: "2026-05-12T11:00:00Z"
 
   - id: task-011
     title: "Add AuraAPIClient.Close() public method"

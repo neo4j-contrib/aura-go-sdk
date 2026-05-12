@@ -99,6 +99,9 @@ func (m *MockHTTPService) Delete(_ context.Context, url string, headers map[stri
 	return m.Response, m.Error
 }
 
+// Close implements httpclient.HTTPService. It is a no-op in the mock.
+func (m *MockHTTPService) Close() {}
+
 func (m *MockHTTPService) record(method, url string, headers map[string]string, body string) {
 	m.LastMethod = method
 	m.LastURL = url

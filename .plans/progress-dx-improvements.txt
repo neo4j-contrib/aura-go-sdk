@@ -216,3 +216,34 @@ Key Decisions:
   an exact value; in test builds the var stays at the fallback literal
 
 Next Task: task-010
+================================================================================
+TASK-010: Add Close() to api.RequestService interface and implement on apiRequestService
+Date: 2026-05-12T11:00:00Z
+================================================================================
+
+Summary:
+Added Close() to both the httpclient.HTTPService and api.RequestService interfaces.
+Implemented Close() on the concrete httpService struct by calling
+s.client.HTTPClient.CloseIdleConnections() on the retryablehttp.Client's inner
+http.Client. Implemented Close() on apiRequestService by delegating to
+httpClient.Close(). Added compile-time interface assertions (var _ Interface = (*concrete)(nil))
+in both internal packages. Updated all mock implementations in test files to
+satisfy the updated interfaces.
+
+Files Changed:
+- internal/httpclient/types.go (added Close() to HTTPService interface; added compile-time check)
+- internal/httpclient/httpclient.go (implemented Close() on httpService)
+- internal/api/types.go (added Close() to RequestService interface; added compile-time check)
+- internal/api/api.go (implemented Close() on apiRequestService)
+- internal/testutil/mock_http.go (added no-op Close() to MockHTTPService)
+- mocks_test.go (added no-op Close() to all three mock types)
+- instances_test.go (added no-op Close() to mockAPIServiceContextCheck)
+- internal/api/api_test.go (added no-op Close() to sequencedMock)
+
+Key Decisions:
+- Compile-time checks added to internal packages since the concrete types are
+  unexported and can't be checked from interfaces.go
+- The public interfaces.go already covers public service types; no change needed there
+- All mock Close() methods are no-ops — mocks don't own real connections
+
+Next Task: task-011

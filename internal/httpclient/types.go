@@ -29,6 +29,9 @@ type HTTPService interface {
 	Put(ctx context.Context, url string, headers map[string]string, body string) (*HTTPResponse, error)
 	Patch(ctx context.Context, url string, headers map[string]string, body string) (*HTTPResponse, error)
 	Delete(ctx context.Context, url string, headers map[string]string) (*HTTPResponse, error)
+	// Close releases idle connections held by the underlying HTTP transport.
+	// It should be called when the service is no longer needed.
+	Close()
 }
 
 // httpService is the concrete implementation of HTTPService.
@@ -40,3 +43,6 @@ type httpService struct {
 	client  *retryablehttp.Client
 	logger  *slog.Logger
 }
+
+// Compile-time interface compliance check.
+var _ HTTPService = (*httpService)(nil)
