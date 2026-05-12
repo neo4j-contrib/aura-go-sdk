@@ -27,7 +27,7 @@ Client Id and Secret are required and these can be obtained from the [Neo4j Aura
 ## Installation
 
 ```bash
-go get github.com/LackOfMorals/aura-client
+go get github.com/neo4j-contrib/aura-go-sdk
 ```
 
 ## Quick Start
@@ -38,7 +38,7 @@ package main
 import (
     "context"
     "log"
-    aura "github.com/LackOfMorals/aura-client"
+    aura "github.com/neo4j-contrib/aura-go-sdk"
 )
 
 func main() {
@@ -829,7 +829,7 @@ import (
     "os"
     "time"
 
-    aura "github.com/LackOfMorals/aura-client"
+    aura "github.com/neo4j-contrib/aura-go-sdk"
 )
 
 func main() {
@@ -889,8 +889,8 @@ go run main.go
 ## Additional Resources
 
 - [Neo4j Aura API Documentation](https://neo4j.com/docs/aura/platform/api/)
-- [GitHub Repository](https://github.com/LackOfMorals/aura-client)
-- [Report Issues](https://github.com/LackOfMorals/aura-client/issues)
+- [GitHub Repository](https://github.com/neo4j-contrib/aura-go-sdk)
+- [Report Issues](https://github.com/neo4j-contrib/aura-go-sdk/issues)
 - [Prometheus Metrics Guide](./docs/prometheus.md)
 
 ---
@@ -924,8 +924,8 @@ changie merge   # folds that file into CHANGELOG.md
 
 ```bash
 git add CHANGELOG.md .changes/
-git commit -m "chore: release v1.9.0"
-git tag v1.9.0
+git commit -m "chore: release vX.Y.Z"
+git tag vX.Y.Z
 git push origin main --tags
 ```
 
@@ -933,13 +933,13 @@ git push origin main --tags
 
 Pushing the tag fires the Release workflow, which:
 - Runs `go test -race ./...` — the release is aborted if any test fails
-- Extracts the `## v1.9.0` section from `CHANGELOG.md`
+- Extracts the `## vX.Y.Z` section from `CHANGELOG.md`
 - Creates a GitHub Release with that text as the release notes
 
 Because this is a Go module with no compiled binaries, the tag itself is what consumers reference:
 
 ```bash
-go get github.com/LackOfMorals/aura-client@v1.9.0
+go get github.com/neo4j-contrib/aura-go-sdk@vX.Y.Z
 ```
 
 ### Adding a changelog entry

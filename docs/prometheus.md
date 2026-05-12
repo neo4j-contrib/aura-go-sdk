@@ -12,7 +12,7 @@ This package provides a Go client for fetching and parsing Prometheus metrics fr
 ## Installation
 
 ```bash
-go get github.com/LackOfMorals/aura-client
+go get github.com/neo4j-contrib/aura-go-sdk
 ```
 
 ## Understanding Aura Metrics
@@ -37,7 +37,7 @@ neo4j_aura_cpu_usage{availability_zone="europe-west2-c",instance_id="c9f0d13a"} 
 ### Basic Setup
 
 ```go
-import aura "github.com/LackOfMorals/aura-client"
+import aura "github.com/neo4j-contrib/aura-go-sdk"
 
 client, err := aura.NewClient(
     aura.WithCredentials("client-id", "client-secret"),
@@ -385,7 +385,7 @@ package main
 import (
     "fmt"
     "log"
-    aura "github.com/LackOfMorals/aura-client"
+    aura "github.com/neo4j-contrib/aura-go-sdk"
 )
 
 func main() {
