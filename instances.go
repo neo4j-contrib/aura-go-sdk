@@ -111,7 +111,7 @@ type UpdateInstanceData struct {
 	Name              string `json:"name,omitempty"`
 	Memory            string `json:"memory,omitempty"`
 	CDCEnrichmentMode string `json:"cdc_enrichment_mode,omitempty"`
-	SecondariesCount  *int   `json:"secondaries_count,omitempty"`
+	SecondariesCount  int    `json:"secondaries_count,omitempty"`
 }
 
 // GetInstanceResponse wraps the response for a single instance lookup.

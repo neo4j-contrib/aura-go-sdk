@@ -942,10 +942,9 @@ func TestInstanceService_CreateFromSnapshot_Validation(t *testing.T) {
 // secondaries_count are serialised into the PATCH request body when set.
 func TestInstanceService_Update_WithExtendedFields(t *testing.T) {
 	instanceID := "f1f1b2b2"
-	secondaries := 2
 	updateRequest := &UpdateInstanceData{
 		CDCEnrichmentMode: "FULL",
-		SecondariesCount:  &secondaries,
+		SecondariesCount:  2,
 	}
 
 	responseBody, _ := json.Marshal(GetInstanceResponse{
@@ -966,7 +965,7 @@ func TestInstanceService_Update_WithExtendedFields(t *testing.T) {
 	if sent.CDCEnrichmentMode != "FULL" {
 		t.Errorf("expected cdc_enrichment_mode 'FULL', got '%s'", sent.CDCEnrichmentMode)
 	}
-	if sent.SecondariesCount == nil || *sent.SecondariesCount != 2 {
+	if sent.SecondariesCount != 2 {
 		t.Errorf("expected secondaries_count 2, got %v", sent.SecondariesCount)
 	}
 	if result.Data.CDCEnrichment != "FULL" {

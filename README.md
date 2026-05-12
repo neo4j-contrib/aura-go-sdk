@@ -400,13 +400,11 @@ fmt.Printf("Clone created: %s\n", instance.Data.ID)
 ```go
 ctx := context.Background()
 
-secondaries := 2
-
 updateData := &aura.UpdateInstanceData{
     Name:              "my-renamed-instance",
     Memory:            "16GB",
     CDCEnrichmentMode: "FULL",   // "" | "DIFF" | "FULL"
-    SecondariesCount:  &secondaries,
+    SecondariesCount:  2,
 }
 
 instance, err := client.Instances.Update(ctx, "instance-id", updateData)
