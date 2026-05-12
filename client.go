@@ -39,20 +39,20 @@ const auraAPIVersion = "v1"
 // debug.ReadBuildInfo() is unavailable (devel builds, go test, go run).
 const auraAPIClientVersionFallback = "v1.10.0"
 
-// AuraAPIClientVersion is the release version of this library as reported by
-// the Go module build info. In development builds (go test / go run) it falls
-// back to the hardcoded literal auraAPIClientVersionFallback.
-//
-//nolint:gochecknoglobals
+// AuraAPIClientVersion is the version of this client library. It is populated
+// at init time from the module's build info, falling back to the literal version
+// in devel/test builds where build info is unavailable.
 var AuraAPIClientVersion = auraAPIClientVersionFallback
 
 func init() {
-	if info, ok := debug.ReadBuildInfo(); ok &&
-		info.Main.Version != "" &&
-		info.Main.Version != "(devel)" {
+	if info, ok := debug.ReadBuildInfo(); ok && info.Main.Version != "" && info.Main.Version != "(devel)" {
 		AuraAPIClientVersion = info.Main.Version
 	}
 }
+
+// -ldflags "-X 'main.Version=9999'"
+// This gets set as part of the Github workflow
+var ClientVersion = "development"
 
 // ============================================================================
 // Client types
@@ -223,7 +223,7 @@ func NewClient(opts ...Option) (*AuraAPIClient, error) {
 		APIVersion:   auraAPIVersion,
 		Timeout:      o.config.apiTimeout,
 		MaxRetry:     o.config.apiRetryMax,
-		UserAgent:    "aura-go-client/" + AuraAPIClientVersion,
+		UserAgent:    "aura-go-client/" + ClientVersion,
 	}, o.logger)
 
 	clientLogger := o.logger.With(slog.String("component", "AuraAPIClient"))
@@ -266,7 +266,7 @@ func NewClient(opts ...Option) (*AuraAPIClient, error) {
 
 	service.logger.Info("Aura API client initialized successfully",
 		slog.Int("services", 6),
-		slog.String("version", AuraAPIClientVersion),
+		slog.String("version", ClientVersion),
 		slog.String("apiVersion", auraAPIVersion),
 	)
 
