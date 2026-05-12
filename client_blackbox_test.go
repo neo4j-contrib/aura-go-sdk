@@ -126,7 +126,7 @@ func (m *mockInstanceService) CreateFromInstance(_ context.Context, _ string, _ 
 	return m.CreateResp, m.CreateErr
 }
 
-func (m *mockInstanceService) CreateFromSnapshot(_ context.Context, _ string, _ *aura.CreateInstanceConfigData) (*aura.CreateInstanceResponse, error) {
+func (m *mockInstanceService) CreateFromSnapshot(_ context.Context, _, _ string, _ *aura.CreateInstanceConfigData) (*aura.CreateInstanceResponse, error) {
 	m.LastMethod = "CreateFromSnapshot"
 	m.CallCount++
 	return m.CreateResp, m.CreateErr
@@ -1876,7 +1876,7 @@ func (m *mockCancelAwareInstanceService) CreateFromInstance(ctx context.Context,
 	return &aura.CreateInstanceResponse{}, nil
 }
 
-func (m *mockCancelAwareInstanceService) CreateFromSnapshot(ctx context.Context, _ string, _ *aura.CreateInstanceConfigData) (*aura.CreateInstanceResponse, error) {
+func (m *mockCancelAwareInstanceService) CreateFromSnapshot(ctx context.Context, _, _ string, _ *aura.CreateInstanceConfigData) (*aura.CreateInstanceResponse, error) {
 	if ctx.Err() != nil {
 		return nil, ctx.Err()
 	}

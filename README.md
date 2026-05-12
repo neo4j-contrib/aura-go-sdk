@@ -328,28 +328,26 @@ fmt.Printf("  Password: %s\n", instance.Data.Password)
 // The password is only shown once during creation.
 ```
 
-Optional fields on `CreateInstanceConfigData` enable additional capabilities at creation time:
+The optional fields `VectorOptimized`, `GraphAnalyticsPlugin`, and `CustomerManagedKeyID` can also be set at creation time:
 
 ```go
-secondaries := 1
-vectorOptimized := true
-graphAnalytics := true
-
 config := &aura.CreateInstanceConfigData{
     Name:                 "my-neo4j-db",
     TenantID:             "your-tenant-id",
     CloudProvider:        "gcp",
     Region:               "europe-west1",
     Type:                 "enterprise-db",
+    Version:              "5",
     Memory:               "8GB",
-    CDCEnrichmentMode:    "DIFF",       // "" | "DIFF" | "FULL"
-    SecondariesCount:     &secondaries,
-    VectorOptimized:      &vectorOptimized,
-    GraphAnalyticsPlugin: &graphAnalytics,
+    VectorOptimized:      true,
+    GraphAnalyticsPlugin: true,
+    CustomerManagedKeyID: "your-cmk-id",  // enterprise tiers only
 }
 ```
 
 ### Clone an Instance from Another Instance
+
+Creates a new instance pre-loaded with the data from the latest snapshot of an existing instance.
 
 ```go
 ctx := context.Background()
@@ -360,6 +358,7 @@ config := &aura.CreateInstanceConfigData{
     CloudProvider: "gcp",
     Region:        "europe-west1",
     Type:          "enterprise-db",
+    Version:       "5",
     Memory:        "8GB",
 }
 
@@ -373,6 +372,8 @@ fmt.Printf("Clone created: %s\n", instance.Data.ID)
 
 ### Clone an Instance from a Snapshot
 
+Creates a new instance from a specific exportable snapshot. Both the source instance ID and the snapshot ID are required.
+
 ```go
 ctx := context.Background()
 
@@ -382,10 +383,11 @@ config := &aura.CreateInstanceConfigData{
     CloudProvider: "gcp",
     Region:        "europe-west1",
     Type:          "enterprise-db",
+    Version:       "5",
     Memory:        "8GB",
 }
 
-instance, err := client.Instances.CreateFromSnapshot(ctx, "snapshot-id", config)
+instance, err := client.Instances.CreateFromSnapshot(ctx, "source-instance-id", "snapshot-id", config)
 if err != nil {
     log.Fatalf("Error: %v", err)
 }
@@ -398,13 +400,11 @@ fmt.Printf("Clone created: %s\n", instance.Data.ID)
 ```go
 ctx := context.Background()
 
-secondaries := 2
-
 updateData := &aura.UpdateInstanceData{
     Name:              "my-renamed-instance",
     Memory:            "16GB",
     CDCEnrichmentMode: "FULL",   // "" | "DIFF" | "FULL"
-    SecondariesCount:  &secondaries,
+    SecondariesCount:  2,
 }
 
 instance, err := client.Instances.Update(ctx, "instance-id", updateData)

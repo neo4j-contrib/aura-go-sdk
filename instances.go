@@ -62,18 +62,17 @@ type CreateInstanceConfigData struct {
 	CloudProvider        string `json:"cloud_provider"`
 	Region               string `json:"region"`
 	Type                 string `json:"type"`
-	Version              string `json:"version,omitempty"`
+	Version              string `json:"version"`
 	Memory               string `json:"memory"`
-	CDCEnrichmentMode    string `json:"cdc_enrichment_mode,omitempty"`
-	SecondariesCount     *int   `json:"secondaries_count,omitempty"`
-	VectorOptimized      *bool  `json:"vector_optimized,omitempty"`
-	GraphAnalyticsPlugin *bool  `json:"graph_analytics_plugin,omitempty"`
+	VectorOptimized      bool   `json:"vector_optimized,omitempty"`
+	GraphAnalyticsPlugin bool   `json:"graph_analytics_plugin,omitempty"`
+	CustomerManagedKeyID string `json:"customer_managed_key_id,omitempty"`
 }
 
 // createInstanceFromSourceRequest is the internal POST body used when cloning from a source.
 type createInstanceFromSourceRequest struct {
 	CreateInstanceConfigData
-	SourceInstanceID string `json:"source_instance_id,omitempty"`
+	SourceInstanceID string `json:"source_instance_id"`
 	SourceSnapshotID string `json:"source_snapshot_id,omitempty"`
 }
 
@@ -112,7 +111,7 @@ type UpdateInstanceData struct {
 	Name              string `json:"name,omitempty"`
 	Memory            string `json:"memory,omitempty"`
 	CDCEnrichmentMode string `json:"cdc_enrichment_mode,omitempty"`
-	SecondariesCount  *int   `json:"secondaries_count,omitempty"`
+	SecondariesCount  int    `json:"secondaries_count,omitempty"`
 }
 
 // GetInstanceResponse wraps the response for a single instance lookup.
@@ -516,13 +515,21 @@ func (i *instanceService) CreateFromInstance(ctx context.Context, sourceInstance
 	return &result, nil
 }
 
-// CreateFromSnapshot provisions a new instance cloned from an existing snapshot.
-func (i *instanceService) CreateFromSnapshot(ctx context.Context, sourceSnapshotID string, instanceRequest *CreateInstanceConfigData) (*CreateInstanceResponse, error) {
+// CreateFromSnapshot provisions a new instance cloned from a specific snapshot.
+// Both sourceInstanceID and sourceSnapshotID are required by the API; the snapshot
+// must belong to the source instance and must be exportable.
+func (i *instanceService) CreateFromSnapshot(ctx context.Context, sourceInstanceID string, sourceSnapshotID string, instanceRequest *CreateInstanceConfigData) (*CreateInstanceResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, i.timeout)
 	defer cancel()
 
 	if instanceRequest == nil {
 		return nil, errors.New("instanceRequest must not be nil")
+	}
+	if sourceInstanceID == "" {
+		return nil, fmt.Errorf("must provide sourceInstanceID")
+	}
+	if err := utils.ValidateInstanceID(sourceInstanceID); err != nil {
+		return nil, fmt.Errorf("invalid source instance ID: %w", err)
 	}
 	if sourceSnapshotID == "" {
 		return nil, fmt.Errorf("must provide sourceSnapshotID")
@@ -535,10 +542,11 @@ func (i *instanceService) CreateFromSnapshot(ctx context.Context, sourceSnapshot
 		return nil, err
 	}
 
-	i.logger.DebugContext(ctx, "creating instance from snapshot", slog.String("name", instanceRequest.Name), slog.String("sourceSnapshotID", sourceSnapshotID))
+	i.logger.DebugContext(ctx, "creating instance from snapshot", slog.String("name", instanceRequest.Name), slog.String("sourceInstanceID", sourceInstanceID), slog.String("sourceSnapshotID", sourceSnapshotID))
 
 	body, err := json.Marshal(createInstanceFromSourceRequest{
 		CreateInstanceConfigData: *instanceRequest,
+		SourceInstanceID:         sourceInstanceID,
 		SourceSnapshotID:         sourceSnapshotID,
 	})
 	if err != nil {
@@ -547,7 +555,7 @@ func (i *instanceService) CreateFromSnapshot(ctx context.Context, sourceSnapshot
 
 	resp, err := i.api.Post(ctx, "instances", string(body))
 	if err != nil {
-		i.logger.ErrorContext(ctx, "failed to create instance from snapshot", slog.String("sourceSnapshotID", sourceSnapshotID), slog.String("error", err.Error()))
+		i.logger.ErrorContext(ctx, "failed to create instance from snapshot", slog.String("sourceInstanceID", sourceInstanceID), slog.String("sourceSnapshotID", sourceSnapshotID), slog.String("error", err.Error()))
 		return nil, err
 	}
 
@@ -556,25 +564,13 @@ func (i *instanceService) CreateFromSnapshot(ctx context.Context, sourceSnapshot
 		return nil, err
 	}
 
-	i.logger.InfoContext(ctx, "instance created from snapshot", slog.String("instanceID", result.Data.ID), slog.String("sourceSnapshotID", sourceSnapshotID))
+	i.logger.InfoContext(ctx, "instance created from snapshot", slog.String("instanceID", result.Data.ID), slog.String("sourceInstanceID", sourceInstanceID), slog.String("sourceSnapshotID", sourceSnapshotID))
 	return &result, nil
 }
 
 // validateCreateInstanceConfig performs basic checks that the minimum number
 // of configuration options have been supplied when creating an instance.
 func validateCreateInstanceConfig(instanceConfig *CreateInstanceConfigData) error {
-	if instanceConfig.Region == "" {
-		return fmt.Errorf("region must not be empty")
-	}
-	if instanceConfig.Memory == "" {
-		return fmt.Errorf("memory must not be empty")
-	}
-	if instanceConfig.Type == "" {
-		return fmt.Errorf("instance type must not be empty")
-	}
-	if instanceConfig.CloudProvider == "" {
-		return fmt.Errorf("cloud provider must not be empty")
-	}
 	if instanceConfig.Name == "" {
 		return fmt.Errorf("instance name must not be empty")
 	}
@@ -586,6 +582,21 @@ func validateCreateInstanceConfig(instanceConfig *CreateInstanceConfigData) erro
 	}
 	if err := utils.ValidateTenantID(instanceConfig.TenantID); err != nil {
 		return fmt.Errorf("invalid tenant ID: %w", err)
+	}
+	if instanceConfig.CloudProvider == "" {
+		return fmt.Errorf("cloud provider must not be empty")
+	}
+	if instanceConfig.Region == "" {
+		return fmt.Errorf("region must not be empty")
+	}
+	if instanceConfig.Type == "" {
+		return fmt.Errorf("instance type must not be empty")
+	}
+	if instanceConfig.Version == "" {
+		return fmt.Errorf("version must not be empty")
+	}
+	if instanceConfig.Memory == "" {
+		return fmt.Errorf("memory must not be empty")
 	}
 	return nil
 }
