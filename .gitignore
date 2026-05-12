@@ -6,3 +6,5 @@ example/
 
 coverage.out
 .plans/
+.vscode/
+.kiro/
