@@ -1,4 +1,4 @@
-module github.com/LackOfMorals/aura-client
+module github.com/neo4j-contrib/aura-go-sdk
 
 go 1.24
 

@@ -1,7 +1,7 @@
 package aura
 
 import (
-	"github.com/LackOfMorals/aura-client/internal/api"
+	"github.com/neo4j-contrib/aura-go-sdk/internal/api"
 )
 
 // Error represents an error response from the Aura API.

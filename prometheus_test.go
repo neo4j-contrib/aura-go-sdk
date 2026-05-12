@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/LackOfMorals/aura-client/internal/api"
+	"github.com/neo4j-contrib/aura-go-sdk/internal/api"
 )
 
 // newTestPrometheusService creates a prometheusService for unit testing.

@@ -7,7 +7,7 @@ package testutil
 import (
 	"context"
 
-	"github.com/LackOfMorals/aura-client/internal/httpclient"
+	"github.com/neo4j-contrib/aura-go-sdk/internal/httpclient"
 )
 
 // MockHTTPService is a test double for httpclient.HTTPService.

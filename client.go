@@ -24,7 +24,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/LackOfMorals/aura-client/internal/api"
+	"github.com/neo4j-contrib/aura-go-sdk/internal/api"
 )
 
 // ============================================================================
@@ -117,7 +117,7 @@ func defaultOptions() *options {
 			apiTimeout:    120 * time.Second,
 			apiRetryMax:   3,
 			clientVersion: ClientVersion,
-			userAgent:     "aura-go-client/" + ClientVersion,
+			userAgent:     "aura-go-sdk/" + ClientVersion,
 		},
 		logger: slog.New(handler),
 	}

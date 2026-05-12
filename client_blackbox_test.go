@@ -21,7 +21,7 @@ import (
 	"testing"
 	"time"
 
-	aura "github.com/LackOfMorals/aura-client"
+	aura "github.com/neo4j-contrib/aura-go-sdk"
 )
 
 // =============================================================================

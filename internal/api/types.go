@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/LackOfMorals/aura-client/internal/httpclient"
+	"github.com/neo4j-contrib/aura-go-sdk/internal/httpclient"
 )
 
 // Response represents a response from the Aura API.
