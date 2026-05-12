@@ -116,3 +116,31 @@ Key Decisions:
 - go fmt also touched instances_test.go, httpclient_test.go, utils_test.go (whitespace alignment only)
 
 Next Task: task-006
+================================================================================
+TASK-006: Fix minor Go style: import alias, struct name, utils.Marshal, bytes.NewReader
+Date: 2026-05-12T09:10:00Z
+================================================================================
+
+Summary:
+Applied four cosmetic Go style fixes: removed redundant `utils` import aliases in
+instances.go and graphanalytics.go; renamed gDSSessionService to gdsSessionService
+throughout (graphanalytics.go, interfaces.go, client.go, and test files); replaced
+two utils.Marshal calls in graphanalytics.go with json.Marshal directly (removing
+the now-unused utils import); replaced strings.NewReader(string(data)) in
+prometheus.go with bytes.NewReader(data), swapping "strings" import for "bytes".
+
+Files Changed:
+- instances.go (modified: removed `utils` import alias)
+- graphanalytics.go (modified: removed `utils` import alias and import; renamed struct and all methods; replaced utils.Marshal with json.Marshal)
+- interfaces.go (modified: updated compile-time check to gdsSessionService)
+- client.go (modified: updated struct literal and logger service name to gdsSessionService)
+- prometheus.go (modified: replaced strings import with bytes; bytes.NewReader(data) replaces strings.NewReader(string(data)))
+- graphanalytics_test.go (modified: renamed all gDSSessionService references)
+- context_test.go (modified: renamed all gDSSessionService references)
+
+Key Decisions:
+- Test files referencing the struct by name needed updating — caught by test compilation failure
+- utils import in graphanalytics.go was only used for Marshal; removing both alias and import was correct
+- golangci-lint v2 config error is pre-existing (missing `version:` key); not introduced by this task
+
+Next Task: task-007

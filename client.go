@@ -237,10 +237,10 @@ func NewClient(opts ...Option) (*AuraAPIClient, error) {
 		timeout: o.config.apiTimeout,
 		logger:  clientLogger.With(slog.String("service", "cmekService")),
 	}
-	service.GraphAnalytics = &gDSSessionService{
+	service.GraphAnalytics = &gdsSessionService{
 		api:     apiSvc,
 		timeout: o.config.apiTimeout,
-		logger:  clientLogger.With(slog.String("service", "gDSSessionService")),
+		logger:  clientLogger.With(slog.String("service", "gdsSessionService")),
 	}
 	service.Prometheus = &prometheusService{
 		api:     apiSvc,

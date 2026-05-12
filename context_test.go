@@ -64,7 +64,7 @@ func TestAllServices_ContextCancellation(t *testing.T) {
 		{
 			name: "GDSSessionService.List",
 			operation: func() error {
-				service := &gDSSessionService{api: mock, timeout: 30 * time.Second, logger: testLogger()}
+				service := &gdsSessionService{api: mock, timeout: 30 * time.Second, logger: testLogger()}
 				_, err := service.List(ctx)
 				return err
 			},
@@ -124,7 +124,7 @@ func TestAllServices_TimeoutEnforcement(t *testing.T) {
 		{
 			name: "GDSSessionService.Delete",
 			operation: func() error {
-				service := &gDSSessionService{api: mock, timeout: shortTimeout, logger: testLogger()}
+				service := &gdsSessionService{api: mock, timeout: shortTimeout, logger: testLogger()}
 				_, err := service.Delete(context.Background(), "session-id")
 				return err
 			},

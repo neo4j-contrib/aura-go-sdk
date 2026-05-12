@@ -84,7 +84,7 @@ tasks:
       everywhere including interfaces.go and client.go; (3) replace utils.Marshal calls in
       graphanalytics.go with json.Marshal directly; (4) replace strings.NewReader(string(data))
       in prometheus.go with bytes.NewReader(data).
-    status: pending
+    status: completed
     dependencies: []
     acceptance_criteria:
       - "No `import utils \"...\"` alias remains in instances.go or graphanalytics.go"
@@ -92,7 +92,7 @@ tasks:
       - "graphanalytics.go uses json.Marshal directly instead of utils.Marshal"
       - "prometheus.go uses bytes.NewReader(data) instead of strings.NewReader(string(data))"
       - "go build ./... succeeds"
-    completed_at: null
+    completed_at: "2026-05-12T09:10:00Z"
 
   - id: task-007
     title: "Downgrade 'metric not found' log from Error to Debug in GetMetricValue"

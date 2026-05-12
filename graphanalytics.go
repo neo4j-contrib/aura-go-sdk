@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/LackOfMorals/aura-client/internal/api"
-	utils "github.com/LackOfMorals/aura-client/internal/utils"
 )
 
 // ============================================================================
@@ -145,15 +144,15 @@ type DeleteGDSSession struct {
 // Service
 // ============================================================================
 
-// gDSSessionService handles Graph Data Science session operations.
-type gDSSessionService struct {
+// gdsSessionService handles Graph Data Science session operations.
+type gdsSessionService struct {
 	api     api.RequestService
 	timeout time.Duration
 	logger  *slog.Logger
 }
 
 // List returns all GDS sessions accessible to the authenticated user.
-func (g *gDSSessionService) List(ctx context.Context) (*GetGDSSessionListResponse, error) {
+func (g *gdsSessionService) List(ctx context.Context) (*GetGDSSessionListResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, g.timeout)
 	defer cancel()
 
@@ -176,7 +175,7 @@ func (g *gDSSessionService) List(ctx context.Context) (*GetGDSSessionListRespons
 }
 
 // Get returns information on a single GDS session.
-func (g *gDSSessionService) Get(ctx context.Context, gdsSessionID string) (*GetGDSSessionResponse, error) {
+func (g *gdsSessionService) Get(ctx context.Context, gdsSessionID string) (*GetGDSSessionResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, g.timeout)
 	defer cancel()
 
@@ -203,7 +202,7 @@ func (g *gDSSessionService) Get(ctx context.Context, gdsSessionID string) (*GetG
 }
 
 // Create creates a new GDS session.
-func (g *gDSSessionService) Create(ctx context.Context, gdsSessionConfigRequest *CreateGDSSessionConfigData) (*GetGDSSessionResponse, error) {
+func (g *gdsSessionService) Create(ctx context.Context, gdsSessionConfigRequest *CreateGDSSessionConfigData) (*GetGDSSessionResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, g.timeout)
 	defer cancel()
 
@@ -213,7 +212,7 @@ func (g *gDSSessionService) Create(ctx context.Context, gdsSessionConfigRequest 
 
 	g.logger.DebugContext(ctx, "creating GDS session")
 
-	body, err := utils.Marshal(gdsSessionConfigRequest)
+	body, err := json.Marshal(gdsSessionConfigRequest)
 	if err != nil {
 		g.logger.ErrorContext(ctx, "failed to marshal create gds session request", slog.String("error", err.Error()))
 		return nil, err
@@ -236,7 +235,7 @@ func (g *gDSSessionService) Create(ctx context.Context, gdsSessionConfigRequest 
 }
 
 // Estimate estimates the size of a new GDS session.
-func (g *gDSSessionService) Estimate(ctx context.Context, gdsSessionSizeEstimateRequest *GetGDSSessionSizeEstimation) (*GDSSessionSizeEstimationResponse, error) {
+func (g *gdsSessionService) Estimate(ctx context.Context, gdsSessionSizeEstimateRequest *GetGDSSessionSizeEstimation) (*GDSSessionSizeEstimationResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, g.timeout)
 	defer cancel()
 
@@ -246,7 +245,7 @@ func (g *gDSSessionService) Estimate(ctx context.Context, gdsSessionSizeEstimate
 
 	g.logger.DebugContext(ctx, "estimating GDS session")
 
-	body, err := utils.Marshal(gdsSessionSizeEstimateRequest)
+	body, err := json.Marshal(gdsSessionSizeEstimateRequest)
 	if err != nil {
 		g.logger.ErrorContext(ctx, "failed to marshal estimate gds session request", slog.String("error", err.Error()))
 		return nil, err
@@ -269,7 +268,7 @@ func (g *gDSSessionService) Estimate(ctx context.Context, gdsSessionSizeEstimate
 }
 
 // Delete deletes a GDS session.
-func (g *gDSSessionService) Delete(ctx context.Context, gdsSessionID string) (*DeleteGDSSessionResponse, error) {
+func (g *gdsSessionService) Delete(ctx context.Context, gdsSessionID string) (*DeleteGDSSessionResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, g.timeout)
 	defer cancel()
 

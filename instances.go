@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/LackOfMorals/aura-client/internal/api"
-	utils "github.com/LackOfMorals/aura-client/internal/utils"
+	"github.com/LackOfMorals/aura-client/internal/utils"
 )
 
 // ============================================================================

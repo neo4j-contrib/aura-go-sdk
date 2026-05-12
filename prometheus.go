@@ -1,12 +1,12 @@
 package aura
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"io"
 	"log/slog"
-	"strings"
 	"time"
 
 	"github.com/LackOfMorals/aura-client/internal/api"
@@ -121,7 +121,7 @@ func (p *prometheusService) parsePrometheusMetrics(data []byte) (*PrometheusMetr
 		Metrics: make(map[string][]PrometheusMetric),
 	}
 
-	reader := strings.NewReader(string(data))
+	reader := bytes.NewReader(data)
 	var parser expfmt.TextParser
 	metricFamilies, err := parser.TextToMetricFamilies(reader)
 	if err != nil && err != io.EOF {

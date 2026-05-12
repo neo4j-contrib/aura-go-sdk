@@ -83,6 +83,6 @@ var (
 	_ InstanceService   = (*instanceService)(nil)
 	_ SnapshotService   = (*snapshotService)(nil)
 	_ CmekService       = (*cmekService)(nil)
-	_ GDSSessionService = (*gDSSessionService)(nil)
+	_ GDSSessionService = (*gdsSessionService)(nil)
 	_ PrometheusService = (*prometheusService)(nil)
 )
