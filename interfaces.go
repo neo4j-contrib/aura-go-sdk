@@ -23,8 +23,10 @@ type InstanceService interface {
 	Create(ctx context.Context, instanceRequest *CreateInstanceConfigData) (*CreateInstanceResponse, error)
 	// CreateFromInstance provisions a new instance cloned from an existing source instance
 	CreateFromInstance(ctx context.Context, sourceInstanceID string, instanceRequest *CreateInstanceConfigData) (*CreateInstanceResponse, error)
-	// CreateFromSnapshot provisions a new instance cloned from an existing snapshot
-	CreateFromSnapshot(ctx context.Context, sourceSnapshotID string, instanceRequest *CreateInstanceConfigData) (*CreateInstanceResponse, error)
+	// CreateFromSnapshot provisions a new instance cloned from a specific snapshot.
+	// Both sourceInstanceID and sourceSnapshotID are required; the snapshot must belong
+	// to the source instance and must be exportable.
+	CreateFromSnapshot(ctx context.Context, sourceInstanceID string, sourceSnapshotID string, instanceRequest *CreateInstanceConfigData) (*CreateInstanceResponse, error)
 	// Delete removes an instance by ID
 	Delete(ctx context.Context, instanceID string) (*DeleteInstanceResponse, error)
 	// Pause suspends an instance by ID

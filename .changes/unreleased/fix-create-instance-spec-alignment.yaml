@@ -1,0 +1,3 @@
+kind: Changed
+body: 'Align CreateInstanceConfigData with the POST /instances API spec: remove CDCEnrichmentMode and SecondariesCount (PATCH-only fields), add CustomerManagedKeyID, make Version required (no omitempty), change VectorOptimized and GraphAnalyticsPlugin from pointer to value types; fix CreateFromSnapshot to require both sourceInstanceID and sourceSnapshotID per spec'
+time: 2026-05-12T00:00:00Z

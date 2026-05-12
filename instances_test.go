@@ -761,19 +761,15 @@ func (m *mockAPIServiceContextCheck) Close() {}
 // Extended Create/Update Field Tests
 // ============================================================================
 
-func intPtr(i int) *int    { return &i }
-func boolPtr(b bool) *bool { return &b }
-
 // TestInstanceService_Create_WithExtendedFields verifies that optional fields are
 // serialised into the request body when set.
 func TestInstanceService_Create_WithExtendedFields(t *testing.T) {
 	createRequest := &CreateInstanceConfigData{
 		Name: "ext-instance", TenantID: "ad69ff24-12fc-5a34-af02-ff8d3cc23611",
-		CloudProvider: "gcp", Region: "us-central1", Type: "enterprise-db", Memory: "8GB",
-		CDCEnrichmentMode:    "DIFF",
-		SecondariesCount:     intPtr(1),
-		VectorOptimized:      boolPtr(true),
-		GraphAnalyticsPlugin: boolPtr(true),
+		CloudProvider: "gcp", Region: "us-central1", Type: "enterprise-db", Version: "5", Memory: "8GB",
+		VectorOptimized:      true,
+		GraphAnalyticsPlugin: true,
+		CustomerManagedKeyID: "cmk-uuid-1234",
 	}
 
 	responseBody, _ := json.Marshal(CreateInstanceResponse{
@@ -791,17 +787,14 @@ func TestInstanceService_Create_WithExtendedFields(t *testing.T) {
 	if err := json.Unmarshal([]byte(mock.lastBody), &sent); err != nil {
 		t.Fatalf("failed to unmarshal request body: %v", err)
 	}
-	if sent.CDCEnrichmentMode != "DIFF" {
-		t.Errorf("expected cdc_enrichment_mode 'DIFF', got '%s'", sent.CDCEnrichmentMode)
+	if !sent.VectorOptimized {
+		t.Error("expected vector_optimized true")
 	}
-	if sent.SecondariesCount == nil || *sent.SecondariesCount != 1 {
-		t.Errorf("expected secondaries_count 1, got %v", sent.SecondariesCount)
+	if !sent.GraphAnalyticsPlugin {
+		t.Error("expected graph_analytics_plugin true")
 	}
-	if sent.VectorOptimized == nil || !*sent.VectorOptimized {
-		t.Errorf("expected vector_optimized true, got %v", sent.VectorOptimized)
-	}
-	if sent.GraphAnalyticsPlugin == nil || !*sent.GraphAnalyticsPlugin {
-		t.Errorf("expected graph_analytics_plugin true, got %v", sent.GraphAnalyticsPlugin)
+	if sent.CustomerManagedKeyID != "cmk-uuid-1234" {
+		t.Errorf("expected customer_managed_key_id 'cmk-uuid-1234', got '%s'", sent.CustomerManagedKeyID)
 	}
 }
 
@@ -809,7 +802,7 @@ func TestInstanceService_Create_WithExtendedFields(t *testing.T) {
 func TestInstanceService_CreateFromInstance_Success(t *testing.T) {
 	baseConfig := &CreateInstanceConfigData{
 		Name: "clone-instance", TenantID: "ad69ff24-12fc-5a34-af02-ff8d3cc23611",
-		CloudProvider: "gcp", Region: "us-central1", Type: "enterprise-db", Memory: "8GB",
+		CloudProvider: "gcp", Region: "us-central1", Type: "enterprise-db", Version: "5", Memory: "8GB",
 	}
 
 	responseBody, _ := json.Marshal(CreateInstanceResponse{
@@ -842,12 +835,13 @@ func TestInstanceService_CreateFromInstance_Success(t *testing.T) {
 	}
 }
 
-// TestInstanceService_CreateFromSnapshot_Success verifies cloning from a snapshot.
+// TestInstanceService_CreateFromSnapshot_Success verifies cloning from a specific snapshot.
 func TestInstanceService_CreateFromSnapshot_Success(t *testing.T) {
+	instanceID := "bbbb5678"
 	snapshotID := "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
 	baseConfig := &CreateInstanceConfigData{
 		Name: "snap-clone", TenantID: "ad69ff24-12fc-5a34-af02-ff8d3cc23611",
-		CloudProvider: "gcp", Region: "us-central1", Type: "enterprise-db", Memory: "8GB",
+		CloudProvider: "gcp", Region: "us-central1", Type: "enterprise-db", Version: "5", Memory: "8GB",
 	}
 
 	responseBody, _ := json.Marshal(CreateInstanceResponse{
@@ -856,7 +850,7 @@ func TestInstanceService_CreateFromSnapshot_Success(t *testing.T) {
 	mock := &mockAPIService{response: &api.Response{StatusCode: 200, Body: responseBody}}
 
 	service := createTestInstanceService(mock)
-	_, err := service.CreateFromSnapshot(context.Background(), snapshotID, baseConfig)
+	_, err := service.CreateFromSnapshot(context.Background(), instanceID, snapshotID, baseConfig)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -869,11 +863,11 @@ func TestInstanceService_CreateFromSnapshot_Success(t *testing.T) {
 	if err := json.Unmarshal([]byte(mock.lastBody), &sent); err != nil {
 		t.Fatalf("failed to unmarshal request body: %v", err)
 	}
+	if sent.SourceInstanceID != instanceID {
+		t.Errorf("expected source_instance_id '%s', got '%s'", instanceID, sent.SourceInstanceID)
+	}
 	if sent.SourceSnapshotID != snapshotID {
 		t.Errorf("expected source_snapshot_id '%s', got '%s'", snapshotID, sent.SourceSnapshotID)
-	}
-	if sent.SourceInstanceID != "" {
-		t.Errorf("expected source_instance_id to be empty, got '%s'", sent.SourceInstanceID)
 	}
 }
 
@@ -881,7 +875,7 @@ func TestInstanceService_CreateFromSnapshot_Success(t *testing.T) {
 func TestInstanceService_CreateFromInstance_Validation(t *testing.T) {
 	validConfig := &CreateInstanceConfigData{
 		Name: "test", TenantID: "ad69ff24-12fc-5a34-af02-ff8d3cc23611",
-		CloudProvider: "gcp", Region: "us-central1", Type: "enterprise-db", Memory: "8GB",
+		CloudProvider: "gcp", Region: "us-central1", Type: "enterprise-db", Version: "5", Memory: "8GB",
 	}
 	tests := []struct {
 		name             string
@@ -912,23 +906,28 @@ func TestInstanceService_CreateFromInstance_Validation(t *testing.T) {
 func TestInstanceService_CreateFromSnapshot_Validation(t *testing.T) {
 	validConfig := &CreateInstanceConfigData{
 		Name: "test", TenantID: "ad69ff24-12fc-5a34-af02-ff8d3cc23611",
-		CloudProvider: "gcp", Region: "us-central1", Type: "enterprise-db", Memory: "8GB",
+		CloudProvider: "gcp", Region: "us-central1", Type: "enterprise-db", Version: "5", Memory: "8GB",
 	}
+	validInstanceID := "bbbb5678"
+	validSnapshotID := "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
 	tests := []struct {
 		name             string
+		sourceInstanceID string
 		sourceSnapshotID string
 		config           *CreateInstanceConfigData
 		errContains      string
 	}{
-		{"nil config", "a1b2c3d4-e5f6-7890-abcd-ef1234567890", nil, "must not be nil"},
-		{"empty snapshot ID", "", validConfig, "must provide sourceSnapshotID"},
-		{"invalid snapshot ID format", "not-a-uuid", validConfig, "invalid source snapshot ID"},
+		{"nil config", validInstanceID, validSnapshotID, nil, "must not be nil"},
+		{"empty instance ID", "", validSnapshotID, validConfig, "must provide sourceInstanceID"},
+		{"invalid instance ID format", "invalid", validSnapshotID, validConfig, "invalid source instance ID"},
+		{"empty snapshot ID", validInstanceID, "", validConfig, "must provide sourceSnapshotID"},
+		{"invalid snapshot ID format", validInstanceID, "not-a-uuid", validConfig, "invalid source snapshot ID"},
 	}
 	mock := &mockAPIService{}
 	service := createTestInstanceService(mock)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := service.CreateFromSnapshot(context.Background(), tt.sourceSnapshotID, tt.config)
+			_, err := service.CreateFromSnapshot(context.Background(), tt.sourceInstanceID, tt.sourceSnapshotID, tt.config)
 			if err == nil {
 				t.Fatal("expected error")
 			}
@@ -943,9 +942,10 @@ func TestInstanceService_CreateFromSnapshot_Validation(t *testing.T) {
 // secondaries_count are serialised into the PATCH request body when set.
 func TestInstanceService_Update_WithExtendedFields(t *testing.T) {
 	instanceID := "f1f1b2b2"
+	secondaries := 2
 	updateRequest := &UpdateInstanceData{
 		CDCEnrichmentMode: "FULL",
-		SecondariesCount:  intPtr(2),
+		SecondariesCount:  &secondaries,
 	}
 
 	responseBody, _ := json.Marshal(GetInstanceResponse{
