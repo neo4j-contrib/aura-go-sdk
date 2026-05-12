@@ -3,6 +3,7 @@ package aura
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -180,7 +181,7 @@ func (g *gDSSessionService) Get(ctx context.Context, gdsSessionID string) (*GetG
 	defer cancel()
 
 	if gdsSessionID == "" {
-		return nil, fmt.Errorf("GDS session ID must not be empty")
+		return nil, errors.New("GDS session ID must not be empty")
 	}
 
 	g.logger.DebugContext(ctx, "getting GDS session", slog.String("sessionID", gdsSessionID))
@@ -207,7 +208,7 @@ func (g *gDSSessionService) Create(ctx context.Context, gdsSessionConfigRequest 
 	defer cancel()
 
 	if gdsSessionConfigRequest == nil {
-		return nil, fmt.Errorf("gdsSessionConfigRequest must not be nil")
+		return nil, errors.New("gdsSessionConfigRequest must not be nil")
 	}
 
 	g.logger.DebugContext(ctx, "creating GDS session")
@@ -240,7 +241,7 @@ func (g *gDSSessionService) Estimate(ctx context.Context, gdsSessionSizeEstimate
 	defer cancel()
 
 	if gdsSessionSizeEstimateRequest == nil {
-		return nil, fmt.Errorf("gdsSessionSizeEstimateRequest must not be nil")
+		return nil, errors.New("gdsSessionSizeEstimateRequest must not be nil")
 	}
 
 	g.logger.DebugContext(ctx, "estimating GDS session")
@@ -273,7 +274,7 @@ func (g *gDSSessionService) Delete(ctx context.Context, gdsSessionID string) (*D
 	defer cancel()
 
 	if gdsSessionID == "" {
-		return nil, fmt.Errorf("GDS session ID must not be empty")
+		return nil, errors.New("GDS session ID must not be empty")
 	}
 
 	g.logger.DebugContext(ctx, "deleting a GDS session", slog.String("sessionID", gdsSessionID))

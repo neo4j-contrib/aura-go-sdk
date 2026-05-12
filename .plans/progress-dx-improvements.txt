@@ -96,3 +96,23 @@ Key Decisions:
   asserts context.Canceled is returned.
 
 Next Task: task-005
+================================================================================
+TASK-005: Replace fmt.Errorf with errors.New for static error strings
+Date: 2026-05-12T08:30:00Z
+================================================================================
+
+Summary:
+Replaced all fmt.Errorf calls with static string arguments (no format verbs) with
+errors.New in graphanalytics.go (4 sites) and prometheus.go (3 sites). Added
+"errors" import to both files. The "fmt" import was retained in both files as it
+is still used for format-verb calls (fmt.Errorf with %w/%s/%v) and fmt.Sprintf.
+
+Files Changed:
+- graphanalytics.go (modified: added "errors" import; replaced 4 static fmt.Errorf with errors.New)
+- prometheus.go (modified: added "errors" import; replaced 3 static fmt.Errorf with errors.New)
+
+Key Decisions:
+- fmt.Errorf calls that use %w, %s, %v, or fmt.Sprintf were intentionally left unchanged
+- go fmt also touched instances_test.go, httpclient_test.go, utils_test.go (whitespace alignment only)
+
+Next Task: task-006

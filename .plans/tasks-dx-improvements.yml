@@ -68,13 +68,13 @@ tasks:
       graphanalytics.go (lines 191, 222, 259, 296) and prometheus.go (lines 102, 197, 278)
       use fmt.Errorf for static strings with no format verbs. Replace each with errors.New.
       This aligns with client.go and instances.go which already use errors.New correctly.
-    status: pending
+    status: completed
     dependencies: []
     acceptance_criteria:
       - "No fmt.Errorf call with a static string (no %w, %s, %v verbs) remains in graphanalytics.go or prometheus.go"
       - "All replaced errors still carry the same message text"
       - "go vet ./... produces no new errors"
-    completed_at: null
+    completed_at: "2026-05-12T08:30:00Z"
 
   - id: task-006
     title: "Fix minor Go style: import alias, struct name, utils.Marshal, bytes.NewReader"

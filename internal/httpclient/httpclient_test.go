@@ -94,7 +94,7 @@ func TestGet_404NotError(t *testing.T) {
 	// Error interpretation is the responsibility of the api layer above.
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
-		_, _ = w.Write([]byte(`{"message":"not found"}`)) 
+		_, _ = w.Write([]byte(`{"message":"not found"}`))
 	}))
 	defer srv.Close()
 
@@ -121,7 +121,7 @@ func TestPost_BodyForwarded(t *testing.T) {
 			t.Errorf("expected body '%s', got '%s'", expectedBody, body)
 		}
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"data":{}}`))  // POST test
+		_, _ = w.Write([]byte(`{"data":{}}`)) // POST test
 	}))
 	defer srv.Close()
 

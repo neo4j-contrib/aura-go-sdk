@@ -2,6 +2,7 @@ package aura
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -95,7 +96,7 @@ func (p *prometheusService) FetchRawMetrics(ctx context.Context, prometheusURL s
 // independent timeouts that would shorten the effective budget unexpectedly.
 func (p *prometheusService) doFetchRawMetrics(ctx context.Context, prometheusURL string) (*PrometheusMetricsResponse, error) {
 	if prometheusURL == "" {
-		return nil, fmt.Errorf("prometheus URL cannot be empty")
+		return nil, errors.New("prometheus URL cannot be empty")
 	}
 
 	resp, err := p.api.Get(ctx, prometheusURL)
@@ -186,7 +187,7 @@ func (p *prometheusService) GetInstanceHealth(ctx context.Context, instanceID st
 	}
 
 	if prometheusURL == "" {
-		return nil, fmt.Errorf("prometheus URL cannot be empty")
+		return nil, errors.New("prometheus URL cannot be empty")
 	}
 
 	// doFetchRawMetrics is used directly here so the context deadline set above
@@ -263,7 +264,7 @@ func (p *prometheusService) GetInstanceHealth(ctx context.Context, instanceID st
 // When no filters are provided it averages across all series for that metric name.
 func (p *prometheusService) GetMetricValue(ctx context.Context, metrics *PrometheusMetricsResponse, name string, labelFilters map[string]string) (float64, error) {
 	if metrics == nil {
-		return 0, fmt.Errorf("metrics response must not be nil")
+		return 0, errors.New("metrics response must not be nil")
 	}
 	metricList, ok := metrics.Metrics[name]
 	if !ok {

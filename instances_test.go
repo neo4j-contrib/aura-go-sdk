@@ -380,17 +380,17 @@ func TestInstanceService_OverwriteFromInstance_Validation(t *testing.T) {
 		{
 			name: "empty source instance ID", instanceID: "aaaa1234",
 			sourceInstanceID: "",
-			expectError: true, errorContains: "must provide sourceInstanceID",
+			expectError:      true, errorContains: "must provide sourceInstanceID",
 		},
 		{
 			name: "valid source instance ID", instanceID: "aaaa1234",
 			sourceInstanceID: "bbbb5678",
-			expectError: false,
+			expectError:      false,
 		},
 		{
 			name: "invalid source instance ID format", instanceID: "aaaa1234",
 			sourceInstanceID: "invalid",
-			expectError: true, errorContains: "invalid source instance ID",
+			expectError:      true, errorContains: "invalid source instance ID",
 		},
 	}
 
@@ -430,17 +430,17 @@ func TestInstanceService_OverwriteFromSnapshot_Validation(t *testing.T) {
 		{
 			name: "empty source snapshot ID", instanceID: "aaaa1234",
 			sourceSnapshotID: "",
-			expectError: true, errorContains: "must provide sourceSnapshotID",
+			expectError:      true, errorContains: "must provide sourceSnapshotID",
 		},
 		{
 			name: "malformed source snapshot ID", instanceID: "aaaa1234",
 			sourceSnapshotID: "snapshot-123",
-			expectError: true, errorContains: "invalid source snapshot ID",
+			expectError:      true, errorContains: "invalid source snapshot ID",
 		},
 		{
 			name: "valid source snapshot ID", instanceID: "aaaa1234",
 			sourceSnapshotID: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-			expectError: false,
+			expectError:      false,
 		},
 	}
 
