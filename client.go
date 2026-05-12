@@ -19,6 +19,7 @@ import (
 	"errors"
 	"log/slog"
 	"os"
+	"runtime/debug"
 	"strings"
 	"time"
 
@@ -34,9 +35,24 @@ import (
 // will be delivered as a separate module (e.g. aura-api-client/v2).
 const auraAPIVersion = "v1"
 
-// AuraAPIClientVersion is the current release version of this library.
-// Updated via changie on each release.
-const AuraAPIClientVersion = "v1.10.0"
+// auraAPIClientVersionFallback is the hardcoded fallback used when
+// debug.ReadBuildInfo() is unavailable (devel builds, go test, go run).
+const auraAPIClientVersionFallback = "v1.10.0"
+
+// AuraAPIClientVersion is the release version of this library as reported by
+// the Go module build info. In development builds (go test / go run) it falls
+// back to the hardcoded literal auraAPIClientVersionFallback.
+//
+//nolint:gochecknoglobals
+var AuraAPIClientVersion = auraAPIClientVersionFallback
+
+func init() {
+	if info, ok := debug.ReadBuildInfo(); ok &&
+		info.Main.Version != "" &&
+		info.Main.Version != "(devel)" {
+		AuraAPIClientVersion = info.Main.Version
+	}
+}
 
 // ============================================================================
 // Client types

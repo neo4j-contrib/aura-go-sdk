@@ -132,14 +132,14 @@ tasks:
       time the library was authored, not the version the consumer actually imported. Replace
       it with a package-level var that calls debug.ReadBuildInfo() at init time, falling back
       to the literal string when the build info is unavailable (devel/go run/go test).
-    status: pending
+    status: completed
     dependencies: []
     acceptance_criteria:
       - "AuraAPIClientVersion is a var, not a const"
       - "It calls debug.ReadBuildInfo() and uses info.Main.Version when non-empty and not '(devel)'"
       - "Falls back to the literal version string (e.g. 'v1.10.0') in devel builds"
       - "go test ./... passes; the User-Agent sent in tests is the fallback string"
-    completed_at: null
+    completed_at: "2026-05-12T10:30:00Z"
 
   - id: task-010
     title: "Add Close() to api.RequestService interface and implement on apiRequestService"

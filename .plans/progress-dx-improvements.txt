@@ -191,3 +191,28 @@ Key Decisions:
 - changie kind is `Changed` (breaking) since callers referencing the old field name by struct literal or accessor will not compile
 
 Next Task: task-009
+================================================================================
+TASK-009: Replace AuraAPIClientVersion constant with debug.ReadBuildInfo()
+Date: 2026-05-12T10:30:00Z
+================================================================================
+
+Summary:
+Replaced the hardcoded `const AuraAPIClientVersion = "v1.10.0"` with a package-level
+var populated at init time via debug.ReadBuildInfo(). When the module build info
+is available and reports a real version (not empty and not "(devel)"), that version
+is used; otherwise the var retains its initial value of the hardcoded fallback
+"v1.10.0". In test and development builds ReadBuildInfo() returns "(devel)" so the
+fallback is always used, keeping existing tests passing without modification.
+
+Files Changed:
+- client.go (modified: added "runtime/debug" import; replaced const with var + init())
+
+Key Decisions:
+- A separate unexported `auraAPIClientVersionFallback` const holds the literal so
+  the fallback value is defined in exactly one place
+- The nolint:gochecknoglobals directive guards against linters that flag mutable
+  package-level vars; this is idiomatic for version strings populated at init time
+- No test changes were needed because existing tests only assert non-empty, not
+  an exact value; in test builds the var stays at the fallback literal
+
+Next Task: task-010
