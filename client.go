@@ -35,8 +35,10 @@ import (
 // will be delivered as a separate module (e.g. aura-api-client/v2).
 const auraAPIVersion = "v1"
 
-// -ldflags "-X 'main.Version=9999'"
-// This gets set as part of the Github workflow
+// ClientVersion is the version of this client library embedded in the User-Agent header.
+// The value is "development" in local and test builds. The release workflow overwrites it
+// with the release tag (e.g. "v1.10.0") via sed before running tests and creating the
+// GitHub Release — the source intentionally stays at "development" between releases.
 var ClientVersion = "development"
 
 // ============================================================================

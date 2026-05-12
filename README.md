@@ -905,11 +905,11 @@ Three GitHub Actions workflows manage CI and the release process.
 |---|---|---|
 | **CI** | Push to `main`, every PR | Runs tests with the race detector, golangci-lint, and `go build ./...` |
 | **Changelog check** | Every PR | Fails if the PR changes `.go` files but has no entry in `.changes/unreleased/` |
-| **Release** | Push of a `vX.Y.Z` tag | Gates on tests, verifies the tag matches `AuraAPIClientVersion`, extracts the changelog section, creates a GitHub Release |
+| **Release** | Push of a `vX.Y.Z` tag | Stamps `ClientVersion` with the tag, gates on tests, extracts the changelog section, creates a GitHub Release |
 
 ### Making a release
 
-Releases follow a four-step process. changie collects the unreleased fragment files and determines the correct semver bump automatically from the change kinds (`Added` → minor, `Fixed`/`Security` → patch, `Changed`/`Removed` → major).
+Releases follow a three-step process. changie collects the unreleased fragment files and determines the correct semver bump automatically from the change kinds (`Added` → minor, `Fixed`/`Security` → patch, `Changed`/`Removed` → major).
 
 **1. Batch and merge the changelog**
 
@@ -918,35 +918,22 @@ changie batch   # collects .changes/unreleased/*.yaml → .changes/vX.Y.Z.md
 changie merge   # folds that file into CHANGELOG.md
 ```
 
-**2. Bump the version fallback**
-
-Edit `client.go` and update the `auraAPIClientVersionFallback` constant to match
-the version changie just created:
-
-```go
-const auraAPIClientVersionFallback = "v1.9.0"  // ← update this
-```
-
-`AuraAPIClientVersion` is a package-level var that is populated at init time
-from the module's build info. In devel and test builds where build info is
-unavailable, it falls back to `auraAPIClientVersionFallback`. The release
-workflow verifies that the pushed tag and this fallback value are identical; if
-they differ the workflow fails before creating any GitHub Release.
-
-**3. Commit and tag**
+**2. Commit and tag**
 
 ```bash
-git add CHANGELOG.md .changes/ client_types.go
+git add CHANGELOG.md .changes/
 git commit -m "chore: release v1.9.0"
 git tag v1.9.0
 git push origin main --tags
 ```
 
-**4. Workflow takes over**
+`ClientVersion` in `client.go` stays as `"development"` in source — you do not need to edit it. The release workflow stamps it with the tag automatically before running tests.
+
+**3. Workflow takes over**
 
 Pushing the tag fires the Release workflow, which:
+- Replaces `ClientVersion = "development"` with the tag value (e.g. `"v1.9.0"`) so tests run with the correct User-Agent
 - Runs `go test -race ./...` — the release is aborted if any test fails
-- Verifies the tag matches `AuraAPIClientVersion` in code
 - Extracts the `## v1.9.0` section from `CHANGELOG.md`
 - Creates a GitHub Release with that text as the release notes
 
