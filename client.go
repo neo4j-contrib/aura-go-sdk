@@ -20,6 +20,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"runtime/debug"
 	"strings"
 	"time"
 
@@ -35,11 +36,29 @@ import (
 // will be delivered as a separate module (e.g. aura-api-client/v2).
 const auraAPIVersion = "v1"
 
-// ClientVersion is the version of this client library embedded in the User-Agent header.
-// The value is "development" in local and test builds. The release workflow overwrites it
-// with the release tag (e.g. "v1.10.0") via sed before running tests and creating the
-// GitHub Release — the source intentionally stays at "development" between releases.
-var ClientVersion = "development"
+// clientVersionFallback is embedded in the User-Agent when the real module version cannot
+// be determined (local builds, go test, go run). It is intentionally kept as "development"
+// in source — there is no need to update it before tagging a release.
+const clientVersionFallback = "development"
+
+// ClientVersion is the version of this client library, embedded in every User-Agent header.
+//
+// Why debug.ReadBuildInfo()?
+// Go consumers import this library by source (via the module proxy). There are no compiled
+// binaries to stamp at build time. When a consumer builds their application, the Go toolchain
+// records all module dependencies and their exact versions in the binary. debug.ReadBuildInfo()
+// reads that information at runtime, so the User-Agent automatically reflects the version the
+// consumer actually imported (e.g. "v1.10.0") without any source edits or workflow tricks.
+//
+// In local and test builds, ReadBuildInfo returns "(devel)" or fails entirely, so we fall back
+// to clientVersionFallback ("development") to make it obvious the binary is not a release build.
+var ClientVersion = clientVersionFallback
+
+func init() {
+	if info, ok := debug.ReadBuildInfo(); ok && info.Main.Version != "" && info.Main.Version != "(devel)" {
+		ClientVersion = info.Main.Version
+	}
+}
 
 // ============================================================================
 // Client types

@@ -905,11 +905,13 @@ Three GitHub Actions workflows manage CI and the release process.
 |---|---|---|
 | **CI** | Push to `main`, every PR | Runs tests with the race detector, golangci-lint, and `go build ./...` |
 | **Changelog check** | Every PR | Fails if the PR changes `.go` files but has no entry in `.changes/unreleased/` |
-| **Release** | Push of a `vX.Y.Z` tag | Stamps `ClientVersion` with the tag, gates on tests, extracts the changelog section, creates a GitHub Release |
+| **Release** | Push of a `vX.Y.Z` tag | Gates on tests, extracts the changelog section, creates a GitHub Release |
 
 ### Making a release
 
 Releases follow a three-step process. changie collects the unreleased fragment files and determines the correct semver bump automatically from the change kinds (`Added` → minor, `Fixed`/`Security` → patch, `Changed`/`Removed` → major).
+
+There is **no manual version bump** required. `ClientVersion` uses `debug.ReadBuildInfo()` at runtime to read the module version that the Go toolchain embeds when a consumer builds their application. It falls back to `"development"` only in local and test builds.
 
 **1. Batch and merge the changelog**
 
@@ -927,12 +929,9 @@ git tag v1.9.0
 git push origin main --tags
 ```
 
-`ClientVersion` in `client.go` stays as `"development"` in source — you do not need to edit it. The release workflow stamps it with the tag automatically before running tests.
-
 **3. Workflow takes over**
 
 Pushing the tag fires the Release workflow, which:
-- Replaces `ClientVersion = "development"` with the tag value (e.g. `"v1.9.0"`) so tests run with the correct User-Agent
 - Runs `go test -race ./...` — the release is aborted if any test fails
 - Extracts the `## v1.9.0` section from `CHANGELOG.md`
 - Creates a GitHub Release with that text as the release notes
