@@ -1,3 +1,0 @@
-kind: Added
-body: 'CreateInstanceConfigData: add CDCEnrichmentMode, SecondariesCount, SourceInstanceID, SourceSnapshotID, VectorOptimized, GraphAnalyticsPlugin fields; UpdateInstanceData: add CDCEnrichmentMode and SecondariesCount fields'
-time: 2026-05-12T00:00:00Z
