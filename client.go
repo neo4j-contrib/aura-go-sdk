@@ -276,7 +276,7 @@ func NewClient(opts ...Option) (*AuraAPIClient, error) {
 	// Custom userAgent maybe withdrawn.
 	if o.config.userAgent == "" {
 		o.logger.Error("validation failed", slog.String("reason", "User agent cannot be empty"))
-		return nil, errors.New("User agent cannot be empty")
+		return nil, errors.New("user agent cannot be empty")
 	}
 
 	o.logger.Debug("configuration validated",
