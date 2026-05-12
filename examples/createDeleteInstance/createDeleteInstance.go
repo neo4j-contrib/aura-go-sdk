@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"log/slog"
@@ -26,7 +27,7 @@ func pollInstance(ctx context.Context, client aura.AuraAPIClient, id string, sta
 	for {
 		select {
 		case <-ctxPolling.Done():
-			return fmt.Errorf("Timed out")
+			return errors.New("timed out")
 		default:
 			result, err := client.Instances.Get(ctx, id)
 			if err != nil {
@@ -108,12 +109,12 @@ func main() {
 	// Create a new instance
 	newInstance, err := client.Instances.Create(ctx, &instanceSpec)
 	if err != nil {
-		log.Fatalf("Failed to create instance", err)
+		log.Fatalf("Failed to create instance: %v", err)
 	}
 
 	// Show new instance details
 	fmt.Println("\n Instance created")
-	fmt.Printf("- %s: %s %s %s (%s) (%s) (%s)\n",
+	fmt.Printf("- %s: %s %s %s (%s) (%s)\n",
 		newInstance.Data.Name,
 		newInstance.Data.ID,
 		newInstance.Data.CloudProvider,
