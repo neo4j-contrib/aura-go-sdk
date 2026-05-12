@@ -342,10 +342,10 @@ func BenchmarkCheckDate(b *testing.B) {
 // TestTruncateString verifies correct truncation by rune count, not byte count.
 func TestTruncateString(t *testing.T) {
 	tests := []struct {
-		name  string
-		s     string
-		n     int
-		want  string
+		name string
+		s    string
+		n    int
+		want string
 	}{
 		{"shorter than limit", "hello", 10, "hello"},
 		{"exact length", "hello", 5, "hello"},

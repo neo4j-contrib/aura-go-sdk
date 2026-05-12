@@ -50,9 +50,9 @@ jobs:
           cache: false
 
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v7
         with:
-          version: latest
+          version: v2.11.4
 
   # -----------------------------------------------------------------------
   # Build — verify the module compiles cleanly, including examples

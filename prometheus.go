@@ -1,11 +1,12 @@
 package aura
 
 import (
+	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
-	"strings"
 	"time"
 
 	"github.com/LackOfMorals/aura-client/internal/api"
@@ -39,8 +40,12 @@ type ResourceMetrics struct {
 
 // QueryMetrics contains query performance statistics.
 type QueryMetrics struct {
-	QueriesPerSecond float64 `json:"queries_per_second"`
-	AvgLatencyMS     float64 `json:"avg_latency_ms"`
+	// QueryExecutionTotal is a cumulative counter sourced from the
+	// neo4j_db_query_execution_success_total Prometheus metric. It represents
+	// the total number of successfully executed queries since the instance
+	// started, not a per-second rate.
+	QueryExecutionTotal float64 `json:"query_execution_total"`
+	AvgLatencyMS        float64 `json:"avg_latency_ms"`
 }
 
 // ConnectionMetrics contains connection pool information.
@@ -81,10 +86,6 @@ type prometheusService struct {
 
 // FetchRawMetrics fetches and parses raw Prometheus metrics from an Aura metrics endpoint.
 func (p *prometheusService) FetchRawMetrics(ctx context.Context, prometheusURL string) (*PrometheusMetricsResponse, error) {
-	if err := ctx.Err(); err != nil {
-		p.logger.ErrorContext(ctx, "context already cancelled before function", slog.String("error", err.Error()))
-		return nil, err
-	}
 	ctx, cancel := context.WithTimeout(ctx, p.timeout)
 	defer cancel()
 
@@ -99,7 +100,7 @@ func (p *prometheusService) FetchRawMetrics(ctx context.Context, prometheusURL s
 // independent timeouts that would shorten the effective budget unexpectedly.
 func (p *prometheusService) doFetchRawMetrics(ctx context.Context, prometheusURL string) (*PrometheusMetricsResponse, error) {
 	if prometheusURL == "" {
-		return nil, fmt.Errorf("prometheus URL cannot be empty")
+		return nil, errors.New("prometheus URL cannot be empty")
 	}
 
 	resp, err := p.api.Get(ctx, prometheusURL)
@@ -124,7 +125,7 @@ func (p *prometheusService) parsePrometheusMetrics(data []byte) (*PrometheusMetr
 		Metrics: make(map[string][]PrometheusMetric),
 	}
 
-	reader := strings.NewReader(string(data))
+	reader := bytes.NewReader(data)
 	var parser expfmt.TextParser
 	metricFamilies, err := parser.TextToMetricFamilies(reader)
 	if err != nil && err != io.EOF {
@@ -180,10 +181,6 @@ func (p *prometheusService) parsePrometheusMetrics(data []byte) (*PrometheusMetr
 
 // GetInstanceHealth retrieves comprehensive health metrics for an instance.
 func (p *prometheusService) GetInstanceHealth(ctx context.Context, instanceID string, prometheusURL string) (*PrometheusHealthMetrics, error) {
-	if err := ctx.Err(); err != nil {
-		p.logger.ErrorContext(ctx, "context already cancelled before function", slog.String("error", err.Error()))
-		return nil, err
-	}
 	ctx, cancel := context.WithTimeout(ctx, p.timeout)
 	defer cancel()
 
@@ -194,7 +191,7 @@ func (p *prometheusService) GetInstanceHealth(ctx context.Context, instanceID st
 	}
 
 	if prometheusURL == "" {
-		return nil, fmt.Errorf("prometheus URL cannot be empty")
+		return nil, errors.New("prometheus URL cannot be empty")
 	}
 
 	// doFetchRawMetrics is used directly here so the context deadline set above
@@ -226,7 +223,7 @@ func (p *prometheusService) GetInstanceHealth(ctx context.Context, instanceID st
 	}
 
 	if successCount, err := p.GetMetricValue(ctx, rawMetrics, "neo4j_db_query_execution_success_total", nil); err == nil {
-		metrics.Query.QueriesPerSecond = successCount
+		metrics.Query.QueryExecutionTotal = successCount
 	} else {
 		p.logger.WarnContext(ctx, "failed to get query count", slog.String("error", err.Error()))
 	}
@@ -270,16 +267,12 @@ func (p *prometheusService) GetInstanceHealth(ctx context.Context, instanceID st
 // GetMetricValue retrieves a specific metric value by name and optional label filters.
 // When no filters are provided it averages across all series for that metric name.
 func (p *prometheusService) GetMetricValue(ctx context.Context, metrics *PrometheusMetricsResponse, name string, labelFilters map[string]string) (float64, error) {
-	if err := ctx.Err(); err != nil {
-		p.logger.ErrorContext(ctx, "context already cancelled before function", slog.String("error", err.Error()))
-		return 0, err
-	}
 	if metrics == nil {
-		return 0, fmt.Errorf("metrics response must not be nil")
+		return 0, errors.New("metrics response must not be nil")
 	}
 	metricList, ok := metrics.Metrics[name]
 	if !ok {
-		p.logger.ErrorContext(ctx, "metric not found", slog.String("metric", name))
+		p.logger.DebugContext(ctx, "metric not found", slog.String("metric", name))
 		return 0, fmt.Errorf("metric %s not found", name)
 	}
 

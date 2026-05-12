@@ -1,0 +1,387 @@
+================================================================================
+TASK-001: Fix CMEK tenant filter query parameter key
+Date: 2026-05-11T00:00:00Z
+================================================================================
+
+Summary:
+Fixed a bug where cmekService.List was sending `?tenantID=` as the query parameter
+key when filtering by tenant, which is silently ignored by the Aura API. Changed to
+`?tenant_id=` (snake_case) so the API correctly applies the tenant filter.
+
+Files Changed:
+- cmek.go (modified): changed query parameter key from `tenantID` to `tenant_id`
+- cmek_test.go (modified): updated assertion in TestCmekService_List_WithTenantFilter to expect `tenant_id`
+- .changes/unreleased/fix-cmek-tenant-filter-query-param.yaml (created): changie fragment for the fix
+
+Key Decisions:
+- Only one line changed in production code; the fix is minimal and surgical
+- Updated the existing test rather than adding a new one (the existing test already covered the exact scenario)
+- Used `kind: Fixed` in the changie fragment since this is a bug fix (patch release)
+
+Next Task: task-002
+================================================================================
+TASK-002: Add ValidateSnapshotID call in OverwriteFromSnapshot
+Date: 2026-05-11T23:43:00Z
+================================================================================
+
+Summary:
+Added utils.ValidateSnapshotID call in OverwriteFromSnapshot after the empty-string
+check, consistent with OverwriteFromInstance which already validates its source instance
+ID via utils.ValidateInstanceID. Updated all existing tests that used non-UUID snapshot
+IDs to supply valid UUIDs, and extended the validation test table with a "malformed source
+snapshot ID" case that confirms a non-UUID is rejected with the "invalid source snapshot ID"
+error.
+
+Files Changed:
+- instances.go (modified): added utils.ValidateSnapshotID call after empty-string guard in OverwriteFromSnapshot
+- instances_test.go (modified): updated snapshotID in Overwrite_WithSnapshot to valid UUID; added malformed case to OverwriteFromSnapshot_Validation; updated test comment
+- integration_test.go (modified): updated snapshotID in TestInstances_Overwrite_WithSourceSnapshot to valid UUID
+
+Key Decisions:
+- Followed the exact same pattern as OverwriteFromInstance: empty check first, then format validation
+- Error message is "invalid source snapshot ID: ..." (wrapping utils error), matching the "invalid source instance ID: ..." pattern
+- Pre-existing test IDs that were opaque strings (snap-abc-001, snapshot-123) updated to valid UUIDs since the new validation now requires UUID format
+
+Next Task: task-003
+================================================================================
+TASK-003: Add missing error log in tenants.GetMetrics
+Date: 2026-05-11T00:00:00Z
+================================================================================
+
+Summary:
+Added t.logger.ErrorContext call in tenants.GetMetrics when api.Get fails,
+matching the existing pattern in List and Get. Added capturingHandler test
+helper (in mocks_test.go) and tests for the success and error paths.
+
+Files Changed:
+- tenants.go (modified: added ErrorContext log on api.Get failure)
+- tenants_test.go (modified: added GetMetrics tests, uses capturingHandler)
+- mocks_test.go (modified: added capturingHandler slog handler helper)
+
+Key Decisions:
+- Moved capturingHandler to mocks_test.go for package-wide reuse
+- Replaced hand-rolled substring search with strings.Contains
+
+Next Task: task-004
+================================================================================
+TASK-004: Remove redundant ctx.Err() pre-checks from all service methods
+Date: 2026-05-12T07:58:00Z
+================================================================================
+
+Summary:
+Removed all 25 ctx.Err() pre-check blocks from every service method across
+instances, tenants, snapshots, cmek, graphanalytics, and prometheus. These
+checks are racy (not atomic with the subsequent HTTP call), redundant with
+context.WithTimeout, and contrary to idiomatic Go. Context cancellation now
+propagates naturally through the HTTP layer. Three tests that relied on the
+pre-check behaviour were updated to use mockAPIServiceWithDelay (which checks
+ctx.Err() inside the mock) instead of mockAPIService (which ignores context).
+
+Files Changed:
+- instances.go (removed 9 ctx.Err() pre-check blocks)
+- tenants.go (removed 3 ctx.Err() pre-check blocks)
+- snapshots.go (removed 4 ctx.Err() pre-check blocks)
+- cmek.go (removed 1 ctx.Err() pre-check block)
+- graphanalytics.go (removed 5 ctx.Err() pre-check blocks)
+- prometheus.go (removed 3 ctx.Err() pre-check blocks)
+- instances_test.go (updated Resume_QuickCancellation and Overwrite_CancellationDuringValidation to use mockAPIServiceWithDelay)
+- cmek_test.go (updated List_ContextCancelled to use mockAPIServiceWithDelay)
+
+Key Decisions:
+- Tests that checked ctx.Err() return before the API call was made needed the mock
+  upgraded to mockAPIServiceWithDelay (delay=0), which checks ctx.Err() inside
+  executeWithDelay — the same mechanism the real HTTP client uses.
+- TestInstanceService_Overwrite_CancellationDuringValidation dropped the assertion
+  "API should not be called" (which depended on the pre-check) and now simply
+  asserts context.Canceled is returned.
+
+Next Task: task-005
+================================================================================
+TASK-005: Replace fmt.Errorf with errors.New for static error strings
+Date: 2026-05-12T08:30:00Z
+================================================================================
+
+Summary:
+Replaced all fmt.Errorf calls with static string arguments (no format verbs) with
+errors.New in graphanalytics.go (4 sites) and prometheus.go (3 sites). Added
+"errors" import to both files. The "fmt" import was retained in both files as it
+is still used for format-verb calls (fmt.Errorf with %w/%s/%v) and fmt.Sprintf.
+
+Files Changed:
+- graphanalytics.go (modified: added "errors" import; replaced 4 static fmt.Errorf with errors.New)
+- prometheus.go (modified: added "errors" import; replaced 3 static fmt.Errorf with errors.New)
+
+Key Decisions:
+- fmt.Errorf calls that use %w, %s, %v, or fmt.Sprintf were intentionally left unchanged
+- go fmt also touched instances_test.go, httpclient_test.go, utils_test.go (whitespace alignment only)
+
+Next Task: task-006
+================================================================================
+TASK-006: Fix minor Go style: import alias, struct name, utils.Marshal, bytes.NewReader
+Date: 2026-05-12T09:10:00Z
+================================================================================
+
+Summary:
+Applied four cosmetic Go style fixes: removed redundant `utils` import aliases in
+instances.go and graphanalytics.go; renamed gDSSessionService to gdsSessionService
+throughout (graphanalytics.go, interfaces.go, client.go, and test files); replaced
+two utils.Marshal calls in graphanalytics.go with json.Marshal directly (removing
+the now-unused utils import); replaced strings.NewReader(string(data)) in
+prometheus.go with bytes.NewReader(data), swapping "strings" import for "bytes".
+
+Files Changed:
+- instances.go (modified: removed `utils` import alias)
+- graphanalytics.go (modified: removed `utils` import alias and import; renamed struct and all methods; replaced utils.Marshal with json.Marshal)
+- interfaces.go (modified: updated compile-time check to gdsSessionService)
+- client.go (modified: updated struct literal and logger service name to gdsSessionService)
+- prometheus.go (modified: replaced strings import with bytes; bytes.NewReader(data) replaces strings.NewReader(string(data)))
+- graphanalytics_test.go (modified: renamed all gDSSessionService references)
+- context_test.go (modified: renamed all gDSSessionService references)
+
+Key Decisions:
+- Test files referencing the struct by name needed updating — caught by test compilation failure
+- utils import in graphanalytics.go was only used for Marshal; removing both alias and import was correct
+- golangci-lint v2 config error is pre-existing (missing `version:` key); not introduced by this task
+
+Next Task: task-007
+================================================================================
+TASK-007: Downgrade 'metric not found' log from Error to Debug in GetMetricValue
+Date: 2026-05-12T10:00:00Z
+================================================================================
+
+Summary:
+Changed p.logger.ErrorContext to p.logger.DebugContext in GetMetricValue when a
+metric name is not found. A missing metric is an expected absence on certain
+Neo4j plans and versions, not an error condition, so logging at Error level was
+causing false-alarm noise in production pipelines.
+
+Files Changed:
+- prometheus.go (modified: ErrorContext -> DebugContext for "metric not found" log)
+
+Key Decisions:
+- Log message text and slog fields were left unchanged; only the level changed
+- No changie fragment needed: this is an internal logging behaviour change with no API impact
+
+Next Task: task-008
+================================================================================
+TASK-008: Rename QueriesPerSecond to QueryExecutionTotal with corrected doc
+Date: 2026-05-12T10:05:00Z
+================================================================================
+
+Summary:
+Renamed QueryMetrics.QueriesPerSecond to QueryExecutionTotal in prometheus.go.
+Updated the JSON tag from `queries_per_second` to `query_execution_total`. Added
+a doc comment explaining the field is a cumulative counter sourced from
+neo4j_db_query_execution_success_total, not a per-second rate. Updated all
+reference sites: the assignment in GetInstanceHealth, the example binary, the
+docs markdown, and the README. Created a changie fragment marking this as a
+breaking Changed entry. Also improved the README format string from `%.2f` to
+`%.0f` since a counter has no meaningful decimal places.
+
+Files Changed:
+- prometheus.go (modified: field renamed, JSON tag updated, doc comment added, usage site updated)
+- examples/prometheus/prometheus.go (modified: updated field reference)
+- docs/prometheus.md (modified: updated field reference)
+- README.md (modified: updated field reference and format string)
+- .changes/unreleased/rename-queries-per-second-to-query-execution-total.yaml (created: breaking Changed fragment)
+
+Key Decisions:
+- JSON tag changed from `queries_per_second` to `query_execution_total` to match the field name and source metric semantics
+- README format verb changed from `%.2f` to `%.0f` — a cumulative counter displayed with decimal places is misleading
+- changie kind is `Changed` (breaking) since callers referencing the old field name by struct literal or accessor will not compile
+
+Next Task: task-009
+================================================================================
+TASK-009: Replace AuraAPIClientVersion constant with debug.ReadBuildInfo()
+Date: 2026-05-12T10:30:00Z
+================================================================================
+
+Summary:
+Replaced the hardcoded `const AuraAPIClientVersion = "v1.10.0"` with a package-level
+var populated at init time via debug.ReadBuildInfo(). When the module build info
+is available and reports a real version (not empty and not "(devel)"), that version
+is used; otherwise the var retains its initial value of the hardcoded fallback
+"v1.10.0". In test and development builds ReadBuildInfo() returns "(devel)" so the
+fallback is always used, keeping existing tests passing without modification.
+
+Files Changed:
+- client.go (modified: added "runtime/debug" import; replaced const with var + init())
+
+Key Decisions:
+- A separate unexported `auraAPIClientVersionFallback` const holds the literal so
+  the fallback value is defined in exactly one place
+- The nolint:gochecknoglobals directive guards against linters that flag mutable
+  package-level vars; this is idiomatic for version strings populated at init time
+- No test changes were needed because existing tests only assert non-empty, not
+  an exact value; in test builds the var stays at the fallback literal
+
+Next Task: task-010
+================================================================================
+TASK-010: Add Close() to api.RequestService interface and implement on apiRequestService
+Date: 2026-05-12T11:00:00Z
+================================================================================
+
+Summary:
+Added Close() to both the httpclient.HTTPService and api.RequestService interfaces.
+Implemented Close() on the concrete httpService struct by calling
+s.client.HTTPClient.CloseIdleConnections() on the retryablehttp.Client's inner
+http.Client. Implemented Close() on apiRequestService by delegating to
+httpClient.Close(). Added compile-time interface assertions (var _ Interface = (*concrete)(nil))
+in both internal packages. Updated all mock implementations in test files to
+satisfy the updated interfaces.
+
+Files Changed:
+- internal/httpclient/types.go (added Close() to HTTPService interface; added compile-time check)
+- internal/httpclient/httpclient.go (implemented Close() on httpService)
+- internal/api/types.go (added Close() to RequestService interface; added compile-time check)
+- internal/api/api.go (implemented Close() on apiRequestService)
+- internal/testutil/mock_http.go (added no-op Close() to MockHTTPService)
+- mocks_test.go (added no-op Close() to all three mock types)
+- instances_test.go (added no-op Close() to mockAPIServiceContextCheck)
+- internal/api/api_test.go (added no-op Close() to sequencedMock)
+
+Key Decisions:
+- Compile-time checks added to internal packages since the concrete types are
+  unexported and can't be checked from interfaces.go
+- The public interfaces.go already covers public service types; no change needed there
+- All mock Close() methods are no-ops — mocks don't own real connections
+
+Next Task: task-011
+================================================================================
+TASK-011: Add AuraAPIClient.Close() public method
+Date: 2026-05-12T12:00:00Z
+================================================================================
+
+Summary:
+Exposed a public Close() method on AuraAPIClient that delegates to c.api.Close()
+(implemented in task-010). Added a godoc comment with a runnable example showing
+idiomatic defer usage. Added two blackbox tests: one verifying Close() does not
+panic on first call, another verifying it does not panic when called a second
+time. Updated the README Quick Start example to include `defer client.Close()`
+immediately after client creation.
+
+Files Changed:
+- client.go (modified: added Close() method with godoc comment)
+- client_blackbox_test.go (modified: added TestBlackBox_Close_DoesNotPanic and TestBlackBox_Close_CalledTwiceDoesNotPanic)
+- README.md (modified: added `defer client.Close()` to Quick Start example)
+
+Key Decisions:
+- Placed Close() between the last option constructor (WithInsecureBaseURL) and
+  NewClient so it's grouped with other client-level methods, not buried after NewClient
+- Used panic/recover pattern in tests rather than interface mocking — tests the
+  real implementation end-to-end at the blackbox level
+- Godoc includes a code block so `go doc` renders the example correctly
+
+Next Task: task-012
+================================================================================
+TASK-012: Add WithHTTPClient, WithUserAgent, and WithDefaultHeaders options
+Date: 2026-05-12T13:00:00Z
+================================================================================
+
+Summary:
+Added three new functional Option constructors to client.go. WithHTTPClient injects
+a custom *http.Client (returns error if nil). WithUserAgent overrides the default
+User-Agent header (returns error if empty). WithDefaultHeaders sets headers on every
+API request (no-op for nil/empty maps; silently drops Authorization, Content-Type,
+and User-Agent keys via case-insensitive comparison). All three values are stored in
+new fields on the config struct. Wiring through to api.Config is deferred to task-013.
+
+Files Changed:
+- client.go (modified: added "net/http" import; added httpClient, userAgent, defaultHeaders to config; added WithHTTPClient, WithUserAgent, WithDefaultHeaders Option functions; added protectedHeaders package var)
+- client_blackbox_test.go (modified: added "net/http" import; added 8 new blackbox tests covering nil/empty validation, valid inputs, protected header dropping, and case-insensitive key matching)
+
+Key Decisions:
+- protectedHeaders is a package-level var (map[string]struct{}) for O(1) lookup; keys stored lowercased so a single strings.ToLower on the input key suffices
+- WithDefaultHeaders stores nil in config.defaultHeaders when all supplied keys are protected (all filtered out); this is safe since the field is only read during wiring in task-013
+- No changie fragment needed: these are new additive API symbols with no breaking impact
+
+Next Task: task-013
+================================================================================
+TASK-013: Wire HTTPClient, UserAgent, and DefaultHeaders through api.Config into httpclient
+Date: 2026-05-12T14:00:00Z
+================================================================================
+
+Summary:
+Extended api.Config with two new fields: HTTPClient *http.Client and DefaultHeaders
+map[string]string. Updated NewHTTPService signature to accept an optional *http.Client
+(nil preserves existing default-transport behaviour; non-nil replaces it). In
+doAuthenticatedRequest, defaultHeaders are merged into the header map before the
+three protected headers (Authorization, Content-Type, User-Agent) are written, so
+they can never be overridden. In NewClient, the UserAgent override from WithUserAgent
+is resolved before constructing api.Config, and httpClient/defaultHeaders are wired
+through. Added four new tests at the internal/api layer (ReachServer, CannotOverrideProtected,
+MergedOnEveryMethod) and two blackbox integration tests using httptest.Server (WithDefaultHeaders
+and WithUserAgent end-to-end).
+
+Files Changed:
+- internal/api/types.go (modified: added net/http import; added HTTPClient and DefaultHeaders to Config; added defaultHeaders field to apiRequestService)
+- internal/api/api.go (modified: NewRequestService passes cfg.HTTPClient to NewHTTPService and stores cfg.DefaultHeaders; doAuthenticatedRequest merges defaultHeaders before writing protected headers)
+- internal/httpclient/httpclient.go (modified: NewHTTPService signature gains customClient *http.Client parameter; uses it when non-nil, adds caller-responsibility comment)
+- internal/httpclient/httpclient_test.go (modified: updated NewHTTPService call to pass nil)
+- internal/httpclient/mock_behavior_test.go (modified: updated NewHTTPService call to pass nil)
+- client.go (modified: resolve userAgent override before api.Config construction; wire HTTPClient and DefaultHeaders into api.Config)
+- internal/api/api_test.go (modified: added TestAPIService_DefaultHeaders_ReachServer, _CannotOverrideProtected, _MergedOnEveryMethod)
+- client_blackbox_test.go (modified: added encoding/json and net/http/httptest imports; added TestBlackBox_WithDefaultHeaders_ReachServer and TestBlackBox_WithUserAgent_ReachServer)
+
+Key Decisions:
+- Protected headers are enforced at the api layer (doAuthenticatedRequest) by writing them after the defaultHeaders merge — this is a second line of defence independent of the option-layer filtering in WithDefaultHeaders
+- NewHTTPService gets a new positional parameter rather than an options struct, consistent with the existing signature style; all call sites updated
+- When a custom http.Client is provided its Timeout is the caller's responsibility (documented in a code comment); the cfg.Timeout is not applied to avoid surprising overrides
+
+Next Task: task-014
+================================================================================
+TASK-014: Rename CmekService, Cmek field, and GetCmeks* types to CMEK acronym convention
+Date: 2026-05-12T15:00:00Z
+================================================================================
+
+Summary:
+Applied Go acronym naming convention throughout the CMEK surface: renamed the
+CmekService interface to CMEKService, the AuraAPIClient.Cmek field to CMEK,
+GetCmeksResponse to GetCMEKsResponse, and GetCmeksData to GetCMEKsData. The
+concrete cmekService struct (unexported) was left unchanged — no rename needed.
+Test helper functions (createTestCmekService, mockCmekService) are unexported and
+were also left as-is. All exported references across production code, integration
+tests, blackbox tests, and README were updated. A changie fragment was created
+marking this as a breaking Changed entry.
+
+Files Changed:
+- cmek.go (modified: renamed GetCmeksResponse -> GetCMEKsResponse, GetCmeksData -> GetCMEKsData, updated method signature and local var)
+- interfaces.go (modified: renamed CmekService -> CMEKService, updated List return type, updated compile-time check)
+- client.go (modified: renamed Cmek field -> CMEK with type CMEKService; updated service.CMEK wire-up)
+- cmek_test.go (modified: updated GetCMEKsResponse and GetCMEKsData references; updated comment)
+- client_test.go (modified: updated client.CMEK nil check and error message)
+- client_blackbox_test.go (modified: updated all GetCMEKsResponse, GetCMEKsData, CMEKService, client.CMEK references)
+- integration_test.go (modified: updated client.CMEK and error message strings)
+- context_test.go (modified: updated test case name string)
+- README.md (modified: updated client.CMEK.List in both CMEK examples)
+- .changes/unreleased/rename-cmek-to-acronym-convention.yaml (created: breaking Changed fragment)
+
+Key Decisions:
+- GetCmeksData was plural in the original code; kept plural as GetCMEKsData (not GetCMEKData) to preserve semantics
+- Unexported identifiers (mockCmekService, createTestCmekService, cmekService struct) were intentionally not renamed — they are internal and Go conventions only mandate acronym casing for exported identifiers
+- All feedback loops (build, test -race, golangci-lint, fmt) passed with no regressions
+
+Next Task: task-015
+================================================================================
+TASK-015: Update README for breaking changes and new options
+Date: 2026-05-12T16:00:00Z
+================================================================================
+
+Summary:
+Updated README.md to reflect all breaking changes and new options introduced
+in this feature branch. Added three new Configuration subsections with complete
+Go examples for WithHTTPClient, WithUserAgent, and WithDefaultHeaders. Verified
+that client.CMEK.List, QueryExecutionTotal, and defer client.Close() were
+already correct (updated by their respective tasks). Updated the CI & Releases
+"Bump the version" step to reference the unexported auraAPIClientVersionFallback
+constant instead of the now-var AuraAPIClientVersion.
+
+Files Changed:
+- README.md (modified: added WithHTTPClient, WithUserAgent, WithDefaultHeaders sections; updated CI release instructions)
+
+Key Decisions:
+- The three new option examples each stand alone as minimal, complete snippets showing only the new option alongside WithCredentials — avoids noise from unrelated options
+- The CI release section now explains the var/init pattern and why the fallback constant is what maintainers must edit
+- No Table of Contents changes were needed since the ToC lists section headers, not subsections
+
+Next Task: All tasks complete

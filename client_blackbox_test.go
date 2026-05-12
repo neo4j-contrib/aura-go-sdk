@@ -12,8 +12,11 @@ package aura_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"log/slog"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
 	"time"
@@ -200,14 +203,14 @@ func (m *mockSnapshotService) Restore(_ context.Context, instanceID, snapshotID 
 // --- CMEK --------------------------------------------------------------------
 
 type mockCmekService struct {
-	ListResp *aura.GetCmeksResponse
+	ListResp *aura.GetCMEKsResponse
 	ListErr  error
 
 	LastTenantID string
 	CallCount    int
 }
 
-func (m *mockCmekService) List(_ context.Context, tenantID string) (*aura.GetCmeksResponse, error) {
+func (m *mockCmekService) List(_ context.Context, tenantID string) (*aura.GetCMEKsResponse, error) {
 	m.LastTenantID = tenantID
 	m.CallCount++
 	return m.ListResp, m.ListErr
@@ -369,8 +372,8 @@ func TestBlackBox_NewClient_ServicesNonNil(t *testing.T) {
 	if client.Snapshots == nil {
 		t.Error("Snapshots service is nil")
 	}
-	if client.Cmek == nil {
-		t.Error("Cmek service is nil")
+	if client.CMEK == nil {
+		t.Error("CMEK service is nil")
 	}
 	if client.GraphAnalytics == nil {
 		t.Error("GraphAnalytics service is nil")
@@ -535,6 +538,282 @@ func TestBlackBox_NewClient_OptionAppliedInOrder(t *testing.T) {
 }
 
 // =============================================================================
+// WithHTTPClient option
+// =============================================================================
+
+func TestBlackBox_WithHTTPClient_Nil_ReturnsError(t *testing.T) {
+	_, err := aura.NewClient(
+		aura.WithCredentials("id", "secret"),
+		aura.WithHTTPClient(nil),
+	)
+	if err == nil {
+		t.Fatal("expected error for nil HTTP client")
+	}
+	if err.Error() != "HTTP client cannot be nil" {
+		t.Errorf("unexpected error message: %q", err.Error())
+	}
+}
+
+func TestBlackBox_WithHTTPClient_NonNil_Accepted(t *testing.T) {
+	client, err := aura.NewClient(
+		aura.WithCredentials("id", "secret"),
+		aura.WithHTTPClient(&http.Client{}),
+	)
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+	if client == nil {
+		t.Fatal("expected non-nil client")
+	}
+}
+
+// =============================================================================
+// WithUserAgent option
+// =============================================================================
+
+func TestBlackBox_WithUserAgent_Empty_ReturnsError(t *testing.T) {
+	_, err := aura.NewClient(
+		aura.WithCredentials("id", "secret"),
+		aura.WithUserAgent(""),
+	)
+	if err == nil {
+		t.Fatal("expected error for empty user agent")
+	}
+	if err.Error() != "user agent must not be empty" {
+		t.Errorf("unexpected error message: %q", err.Error())
+	}
+}
+
+func TestBlackBox_WithUserAgent_NonEmpty_Accepted(t *testing.T) {
+	client, err := aura.NewClient(
+		aura.WithCredentials("id", "secret"),
+		aura.WithUserAgent("my-app/1.0"),
+	)
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+	if client == nil {
+		t.Fatal("expected non-nil client")
+	}
+}
+
+// =============================================================================
+// WithDefaultHeaders option
+// =============================================================================
+
+func TestBlackBox_WithDefaultHeaders_Nil_IsNoOp(t *testing.T) {
+	client, err := aura.NewClient(
+		aura.WithCredentials("id", "secret"),
+		aura.WithDefaultHeaders(nil),
+	)
+	if err != nil {
+		t.Fatalf("expected no error for nil headers, got: %v", err)
+	}
+	if client == nil {
+		t.Fatal("expected non-nil client")
+	}
+}
+
+func TestBlackBox_WithDefaultHeaders_Empty_IsNoOp(t *testing.T) {
+	client, err := aura.NewClient(
+		aura.WithCredentials("id", "secret"),
+		aura.WithDefaultHeaders(map[string]string{}),
+	)
+	if err != nil {
+		t.Fatalf("expected no error for empty headers, got: %v", err)
+	}
+	if client == nil {
+		t.Fatal("expected non-nil client")
+	}
+}
+
+func TestBlackBox_WithDefaultHeaders_ValidHeaders_Accepted(t *testing.T) {
+	client, err := aura.NewClient(
+		aura.WithCredentials("id", "secret"),
+		aura.WithDefaultHeaders(map[string]string{
+			"X-Request-ID": "abc-123",
+			"X-Tenant":     "my-tenant",
+		}),
+	)
+	if err != nil {
+		t.Fatalf("expected no error for valid headers, got: %v", err)
+	}
+	if client == nil {
+		t.Fatal("expected non-nil client")
+	}
+}
+
+func TestBlackBox_WithDefaultHeaders_ProtectedHeadersDropped(t *testing.T) {
+	// Protected headers should be silently dropped; construction must succeed.
+	client, err := aura.NewClient(
+		aura.WithCredentials("id", "secret"),
+		aura.WithDefaultHeaders(map[string]string{
+			"Authorization": "Bearer sneaky-token",
+			"Content-Type":  "text/plain",
+			"User-Agent":    "evil-agent/1.0",
+		}),
+	)
+	if err != nil {
+		t.Fatalf("expected no error (protected headers silently dropped), got: %v", err)
+	}
+	if client == nil {
+		t.Fatal("expected non-nil client")
+	}
+}
+
+func TestBlackBox_WithDefaultHeaders_ProtectedHeadersCaseInsensitive(t *testing.T) {
+	// Mixed-case variants of protected keys must also be dropped without error.
+	client, err := aura.NewClient(
+		aura.WithCredentials("id", "secret"),
+		aura.WithDefaultHeaders(map[string]string{
+			"authorization": "Bearer lower",
+			"CONTENT-TYPE":  "text/html",
+			"User-agent":    "mixed-case/1.0",
+			"X-Custom":      "kept",
+		}),
+	)
+	if err != nil {
+		t.Fatalf("expected no error for mixed-case protected headers, got: %v", err)
+	}
+	if client == nil {
+		t.Fatal("expected non-nil client")
+	}
+}
+
+// =============================================================================
+// WithDefaultHeaders — end-to-end: headers reach the mock HTTP server
+// =============================================================================
+
+// TestBlackBox_WithDefaultHeaders_ReachServer verifies that headers supplied via
+// WithDefaultHeaders are present on every API request sent by the client.
+// It uses an httptest.Server to act as a stand-in Aura API and inspects the
+// incoming request headers directly.
+func TestBlackBox_WithDefaultHeaders_ReachServer(t *testing.T) {
+	const customHeaderKey = "X-Request-ID"
+	const customHeaderVal = "test-req-42"
+
+	// tokenResp is the minimal OAuth token response the client needs before it
+	// will attempt any authenticated API call.
+	tokenResp, _ := json.Marshal(map[string]any{
+		"token_type":   "Bearer",
+		"access_token": "test-token",
+		"expires_in":   int64(3600),
+	})
+
+	var capturedCustomHeader string
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/oauth/token":
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write(tokenResp)
+		default:
+			// Capture the custom header from the authenticated API request.
+			capturedCustomHeader = r.Header.Get(customHeaderKey)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"data":[]}`))
+		}
+	}))
+	defer srv.Close()
+
+	client, err := aura.NewClient(
+		aura.WithCredentials("id", "secret"),
+		aura.WithInsecureBaseURL(srv.URL),
+		aura.WithDefaultHeaders(map[string]string{
+			customHeaderKey: customHeaderVal,
+		}),
+	)
+	if err != nil {
+		t.Fatalf("NewClient failed: %v", err)
+	}
+	defer client.Close()
+
+	// Trigger a real API call so headers are sent to the server.
+	_, _ = client.Instances.List(context.Background())
+
+	if capturedCustomHeader != customHeaderVal {
+		t.Errorf("expected %s header %q, got %q", customHeaderKey, customHeaderVal, capturedCustomHeader)
+	}
+}
+
+// TestBlackBox_WithUserAgent_ReachServer verifies that the User-Agent override
+// supplied via WithUserAgent reaches the server on every API request.
+func TestBlackBox_WithUserAgent_ReachServer(t *testing.T) {
+	const customUA = "my-app/2.0"
+
+	tokenResp, _ := json.Marshal(map[string]any{
+		"token_type":   "Bearer",
+		"access_token": "test-token",
+		"expires_in":   int64(3600),
+	})
+
+	var capturedUA string
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/oauth/token":
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write(tokenResp)
+		default:
+			capturedUA = r.Header.Get("User-Agent")
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"data":[]}`))
+		}
+	}))
+	defer srv.Close()
+
+	client, err := aura.NewClient(
+		aura.WithCredentials("id", "secret"),
+		aura.WithInsecureBaseURL(srv.URL),
+		aura.WithUserAgent(customUA),
+	)
+	if err != nil {
+		t.Fatalf("NewClient failed: %v", err)
+	}
+	defer client.Close()
+
+	_, _ = client.Instances.List(context.Background())
+
+	if capturedUA != customUA {
+		t.Errorf("expected User-Agent %q, got %q", customUA, capturedUA)
+	}
+}
+
+// =============================================================================
+// Close
+// =============================================================================
+
+func TestBlackBox_Close_DoesNotPanic(t *testing.T) {
+	client := newTestClient(t)
+
+	// Calling Close() once must not panic.
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("Close() panicked: %v", r)
+		}
+	}()
+	client.Close()
+}
+
+func TestBlackBox_Close_CalledTwiceDoesNotPanic(t *testing.T) {
+	client := newTestClient(t)
+
+	// Calling Close() a second time must not panic even though idle
+	// connections are already drained.
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("second Close() panicked: %v", r)
+		}
+	}()
+	client.Close()
+	client.Close()
+}
+
+// =============================================================================
 // Service interface injection
 //
 // These tests confirm that exported service fields accept any implementation of
@@ -604,16 +883,16 @@ func TestBlackBox_ServiceInjection_Snapshots(t *testing.T) {
 
 func TestBlackBox_ServiceInjection_Cmek(t *testing.T) {
 	client := newTestClient(t)
-	var _ aura.CmekService = (*mockCmekService)(nil) // compile-time check
+	var _ aura.CMEKService = (*mockCmekService)(nil) // compile-time check
 
 	mock := &mockCmekService{
-		ListResp: &aura.GetCmeksResponse{
-			Data: []aura.GetCmeksData{{ID: "cmek-1", Name: "my-key", TenantID: "tenant-1"}},
+		ListResp: &aura.GetCMEKsResponse{
+			Data: []aura.GetCMEKsData{{ID: "cmek-1", Name: "my-key", TenantID: "tenant-1"}},
 		},
 	}
-	client.Cmek = mock
+	client.CMEK = mock
 
-	result, err := client.Cmek.List(context.Background(), "tenant-1")
+	result, err := client.CMEK.List(context.Background(), "tenant-1")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1103,15 +1382,15 @@ func TestBlackBox_Snapshots_Restore_Success(t *testing.T) {
 
 func TestBlackBox_Cmek_List_Success(t *testing.T) {
 	client := newTestClient(t)
-	client.Cmek = &mockCmekService{
-		ListResp: &aura.GetCmeksResponse{
-			Data: []aura.GetCmeksData{
+	client.CMEK = &mockCmekService{
+		ListResp: &aura.GetCMEKsResponse{
+			Data: []aura.GetCMEKsData{
 				{ID: "k1", Name: "key-one", TenantID: "t1"},
 			},
 		},
 	}
 
-	result, err := client.Cmek.List(context.Background(), "t1")
+	result, err := client.CMEK.List(context.Background(), "t1")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1122,11 +1401,11 @@ func TestBlackBox_Cmek_List_Success(t *testing.T) {
 
 func TestBlackBox_Cmek_List_Error(t *testing.T) {
 	client := newTestClient(t)
-	client.Cmek = &mockCmekService{
+	client.CMEK = &mockCmekService{
 		ListErr: &aura.Error{StatusCode: 403, Message: "Forbidden"},
 	}
 
-	_, err := client.Cmek.List(context.Background(), "t1")
+	_, err := client.CMEK.List(context.Background(), "t1")
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -1472,8 +1751,8 @@ func TestBlackBox_Constants_StatusValues(t *testing.T) {
 }
 
 func TestBlackBox_Constants_ClientVersion_NonEmpty(t *testing.T) {
-	if aura.AuraAPIClientVersion == "" {
-		t.Error("AuraAPIClientVersion must not be empty")
+	if aura.ClientVersion == "" {
+		t.Error("ClientVersion must not be empty")
 	}
 }
 

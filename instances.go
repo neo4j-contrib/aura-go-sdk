@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/LackOfMorals/aura-client/internal/api"
-	utils "github.com/LackOfMorals/aura-client/internal/utils"
+	"github.com/LackOfMorals/aura-client/internal/utils"
 )
 
 // ============================================================================
@@ -154,11 +154,6 @@ type instanceService struct {
 
 // List returns all instances accessible to the authenticated user.
 func (i *instanceService) List(ctx context.Context) (*ListInstancesResponse, error) {
-	if err := ctx.Err(); err != nil {
-		i.logger.ErrorContext(ctx, "context already cancelled before function", slog.String("error", err.Error()))
-		return nil, err
-	}
-
 	ctx, cancel := context.WithTimeout(ctx, i.timeout)
 	defer cancel()
 
@@ -182,11 +177,6 @@ func (i *instanceService) List(ctx context.Context) (*ListInstancesResponse, err
 
 // Get retrieves details for a specific instance by ID.
 func (i *instanceService) Get(ctx context.Context, instanceID string) (*GetInstanceResponse, error) {
-	if err := ctx.Err(); err != nil {
-		i.logger.ErrorContext(ctx, "context already cancelled before function", slog.String("error", err.Error()))
-		return nil, err
-	}
-
 	ctx, cancel := context.WithTimeout(ctx, i.timeout)
 	defer cancel()
 
@@ -215,11 +205,6 @@ func (i *instanceService) Get(ctx context.Context, instanceID string) (*GetInsta
 
 // Create provisions a new database instance.
 func (i *instanceService) Create(ctx context.Context, instanceRequest *CreateInstanceConfigData) (*CreateInstanceResponse, error) {
-	if err := ctx.Err(); err != nil {
-		i.logger.ErrorContext(ctx, "context already cancelled before function", slog.String("error", err.Error()))
-		return nil, err
-	}
-
 	ctx, cancel := context.WithTimeout(ctx, i.timeout)
 	defer cancel()
 
@@ -260,10 +245,6 @@ func (i *instanceService) Create(ctx context.Context, instanceRequest *CreateIns
 
 // Delete removes an instance by ID.
 func (i *instanceService) Delete(ctx context.Context, instanceID string) (*DeleteInstanceResponse, error) {
-	if err := ctx.Err(); err != nil {
-		i.logger.ErrorContext(ctx, "context already cancelled before function", slog.String("error", err.Error()))
-		return nil, err
-	}
 	ctx, cancel := context.WithTimeout(ctx, i.timeout)
 	defer cancel()
 
@@ -292,10 +273,6 @@ func (i *instanceService) Delete(ctx context.Context, instanceID string) (*Delet
 
 // Pause suspends an instance by ID.
 func (i *instanceService) Pause(ctx context.Context, instanceID string) (*GetInstanceResponse, error) {
-	if err := ctx.Err(); err != nil {
-		i.logger.ErrorContext(ctx, "context already cancelled before function", slog.String("error", err.Error()))
-		return nil, err
-	}
 	ctx, cancel := context.WithTimeout(ctx, i.timeout)
 	defer cancel()
 
@@ -324,10 +301,6 @@ func (i *instanceService) Pause(ctx context.Context, instanceID string) (*GetIns
 
 // Resume restarts a paused instance by ID.
 func (i *instanceService) Resume(ctx context.Context, instanceID string) (*GetInstanceResponse, error) {
-	if err := ctx.Err(); err != nil {
-		i.logger.ErrorContext(ctx, "context already cancelled before function", slog.String("error", err.Error()))
-		return nil, err
-	}
 	ctx, cancel := context.WithTimeout(ctx, i.timeout)
 	defer cancel()
 
@@ -356,11 +329,6 @@ func (i *instanceService) Resume(ctx context.Context, instanceID string) (*GetIn
 
 // Update modifies an instance's configuration.
 func (i *instanceService) Update(ctx context.Context, instanceID string, instanceRequest *UpdateInstanceData) (*GetInstanceResponse, error) {
-	if err := ctx.Err(); err != nil {
-		i.logger.ErrorContext(ctx, "context already cancelled before function", slog.String("error", err.Error()))
-		return nil, err
-	}
-
 	ctx, cancel := context.WithTimeout(ctx, i.timeout)
 	defer cancel()
 
@@ -401,10 +369,6 @@ func (i *instanceService) Update(ctx context.Context, instanceID string, instanc
 
 // OverwriteFromInstance replaces instance data from another instance.
 func (i *instanceService) OverwriteFromInstance(ctx context.Context, instanceID string, sourceInstanceID string) (*OverwriteInstanceResponse, error) {
-	if err := ctx.Err(); err != nil {
-		i.logger.ErrorContext(ctx, "context already cancelled before function", slog.String("error", err.Error()))
-		return nil, err
-	}
 	ctx, cancel := context.WithTimeout(ctx, i.timeout)
 	defer cancel()
 
@@ -451,10 +415,6 @@ func (i *instanceService) OverwriteFromInstance(ctx context.Context, instanceID 
 
 // OverwriteFromSnapshot replaces instance data from a snapshot.
 func (i *instanceService) OverwriteFromSnapshot(ctx context.Context, instanceID string, sourceSnapshotID string) (*OverwriteInstanceResponse, error) {
-	if err := ctx.Err(); err != nil {
-		i.logger.ErrorContext(ctx, "context already cancelled before function", slog.String("error", err.Error()))
-		return nil, err
-	}
 	ctx, cancel := context.WithTimeout(ctx, i.timeout)
 	defer cancel()
 
@@ -467,6 +427,10 @@ func (i *instanceService) OverwriteFromSnapshot(ctx context.Context, instanceID 
 
 	if sourceSnapshotID == "" {
 		return nil, fmt.Errorf("must provide sourceSnapshotID")
+	}
+
+	if err := utils.ValidateSnapshotID(sourceSnapshotID); err != nil {
+		return nil, fmt.Errorf("invalid source snapshot ID: %w", err)
 	}
 
 	requestBody := overwriteInstanceRequest{

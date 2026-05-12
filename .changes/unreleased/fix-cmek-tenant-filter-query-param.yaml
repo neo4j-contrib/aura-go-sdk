@@ -1,0 +1,2 @@
+kind: Fixed
+body: "CMEKService.List now sends `?tenant_id=` (not `?tenantID=`) so the Aura API correctly applies the tenant filter"

@@ -131,7 +131,7 @@ if err != nil {
 fmt.Printf("Status: %s\n", health.OverallStatus)
 fmt.Printf("CPU Usage: %.2f%%\n", health.Resources.CPUUsagePercent)
 fmt.Printf("Memory Usage: %.2f%%\n", health.Resources.MemoryUsagePercent)
-fmt.Printf("Total Queries: %.0f\n", health.Query.QueriesPerSecond)
+fmt.Printf("Total Queries: %.0f\n", health.Query.QueryExecutionTotal)
 fmt.Printf("Avg Latency (p50): %.2fms\n", health.Query.AvgLatencyMS)
 fmt.Printf("Connections: %d/%d (%.1f%%)\n", 
     health.Connections.ActiveConnections,

@@ -72,11 +72,6 @@ type tenantService struct {
 
 // List returns all tenants accessible to the authenticated user.
 func (t *tenantService) List(ctx context.Context) (*ListTenantsResponse, error) {
-	if err := ctx.Err(); err != nil {
-		t.logger.ErrorContext(ctx, "context already cancelled before function", slog.String("error", err.Error()))
-		return nil, err
-	}
-
 	ctx, cancel := context.WithTimeout(ctx, t.timeout)
 	defer cancel()
 
@@ -100,11 +95,6 @@ func (t *tenantService) List(ctx context.Context) (*ListTenantsResponse, error) 
 
 // Get retrieves details for a specific tenant by ID.
 func (t *tenantService) Get(ctx context.Context, tenantID string) (*GetTenantResponse, error) {
-	if err := ctx.Err(); err != nil {
-		t.logger.ErrorContext(ctx, "context already cancelled before function", slog.String("error", err.Error()))
-		return nil, err
-	}
-
 	ctx, cancel := context.WithTimeout(ctx, t.timeout)
 	defer cancel()
 
@@ -133,11 +123,6 @@ func (t *tenantService) Get(ctx context.Context, tenantID string) (*GetTenantRes
 
 // GetMetrics retrieves the Prometheus metrics URL for a specific tenant.
 func (t *tenantService) GetMetrics(ctx context.Context, tenantID string) (*GetTenantMetricsURLResponse, error) {
-	if err := ctx.Err(); err != nil {
-		t.logger.ErrorContext(ctx, "context already cancelled before function", slog.String("error", err.Error()))
-		return nil, err
-	}
-
 	ctx, cancel := context.WithTimeout(ctx, t.timeout)
 	defer cancel()
 
@@ -150,6 +135,7 @@ func (t *tenantService) GetMetrics(ctx context.Context, tenantID string) (*GetTe
 
 	resp, err := t.api.Get(ctx, fmt.Sprintf("tenants/%s/metrics-integration", tenantID))
 	if err != nil {
+		t.logger.ErrorContext(ctx, "failed to get tenant metrics url", slog.String("tenantID", tenantID), slog.String("error", err.Error()))
 		return nil, err
 	}
 

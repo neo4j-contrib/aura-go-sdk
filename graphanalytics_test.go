@@ -11,19 +11,19 @@ import (
 	"github.com/LackOfMorals/aura-client/internal/api"
 )
 
-// createTestGDSSessionService creates a gDSSessionService with a mock API service for testing
-func createTestGDSSessionService(mock *mockAPIService) *gDSSessionService {
-	return &gDSSessionService{
+// createTestGDSSessionService creates a gdsSessionService with a mock API service for testing
+func createTestGDSSessionService(mock *mockAPIService) *gdsSessionService {
+	return &gdsSessionService{
 		api:     mock,
 		timeout: 30 * time.Second,
 		logger:  testLogger(),
 	}
 }
 
-// createTestGDSSessionServiceWithTimeout creates a gDSSessionService with a specific timeout.
+// createTestGDSSessionServiceWithTimeout creates a gdsSessionService with a specific timeout.
 // Pass the desired context directly to each method call.
-func createTestGDSSessionServiceWithTimeout(mock api.RequestService, timeout time.Duration) *gDSSessionService {
-	return &gDSSessionService{
+func createTestGDSSessionServiceWithTimeout(mock api.RequestService, timeout time.Duration) *gdsSessionService {
+	return &gdsSessionService{
 		api:     mock,
 		timeout: timeout,
 		logger:  testLogger(),

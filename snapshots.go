@@ -109,10 +109,6 @@ type snapshotService struct {
 
 // List returns snapshots for an instance, optionally filtered by date (YYYY-MM-DD).
 func (s *snapshotService) List(ctx context.Context, instanceID string, snapshotDate *SnapshotDate) (*GetSnapshotsResponse, error) {
-	if err := ctx.Err(); err != nil {
-		s.logger.ErrorContext(ctx, "context already cancelled before function", slog.String("error", err.Error()))
-		return nil, err
-	}
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -147,10 +143,6 @@ func (s *snapshotService) List(ctx context.Context, instanceID string, snapshotD
 
 // Get returns the details for a snapshot of an instance.
 func (s *snapshotService) Get(ctx context.Context, instanceID string, snapshotID string) (*GetSnapshotDataResponse, error) {
-	if err := ctx.Err(); err != nil {
-		s.logger.ErrorContext(ctx, "context already cancelled before function", slog.String("error", err.Error()))
-		return nil, err
-	}
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -183,10 +175,6 @@ func (s *snapshotService) Get(ctx context.Context, instanceID string, snapshotID
 
 // Create triggers an on-demand snapshot for an instance.
 func (s *snapshotService) Create(ctx context.Context, instanceID string) (*CreateSnapshotResponse, error) {
-	if err := ctx.Err(); err != nil {
-		s.logger.ErrorContext(ctx, "context already cancelled before function", slog.String("error", err.Error()))
-		return nil, err
-	}
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -215,10 +203,6 @@ func (s *snapshotService) Create(ctx context.Context, instanceID string) (*Creat
 
 // Restore restores an instance from a snapshot.
 func (s *snapshotService) Restore(ctx context.Context, instanceID string, snapshotID string) (*RestoreSnapshotResponse, error) {
-	if err := ctx.Err(); err != nil {
-		s.logger.ErrorContext(ctx, "context already cancelled before function", slog.String("error", err.Error()))
-		return nil, err
-	}
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 

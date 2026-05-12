@@ -18,6 +18,7 @@ package aura
 import (
 	"errors"
 	"log/slog"
+	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -34,9 +35,9 @@ import (
 // will be delivered as a separate module (e.g. aura-api-client/v2).
 const auraAPIVersion = "v1"
 
-// AuraAPIClientVersion is the current release version of this library.
-// Updated via changie on each release.
-const AuraAPIClientVersion = "v1.10.0"
+// -ldflags "-X 'main.Version=9999'"
+// This gets set as part of the Github workflow
+var ClientVersion = "development"
 
 // ============================================================================
 // Client types
@@ -53,18 +54,22 @@ type AuraAPIClient struct {
 	Tenants        TenantService
 	Instances      InstanceService
 	Snapshots      SnapshotService
-	Cmek           CmekService
+	CMEK           CMEKService
 	GraphAnalytics GDSSessionService
 	Prometheus     PrometheusService
 }
 
 // config holds internal configuration (unexported).
 type config struct {
-	baseURL      string        // the base URL of the Aura API
-	apiTimeout   time.Duration // how long to wait for a response from an Aura API endpoint
-	apiRetryMax  int           // the number of retries to attempt
-	clientID     string        // client ID used to obtain an OAuth token
-	clientSecret string        // client secret used to obtain an OAuth token
+	baseURL        string            // the base URL of the Aura API
+	apiTimeout     time.Duration     // how long to wait for a response from an Aura API endpoint
+	apiRetryMax    int               // the number of retries to attempt
+	clientID       string            // client ID used to obtain an OAuth token
+	clientSecret   string            // client secret used to obtain an OAuth token
+	httpClient     *http.Client      // optional custom HTTP client (injected transport)
+	userAgent      string            // optional User-Agent override
+	defaultHeaders map[string]string // optional headers added to every API request
+	clientVersion  string            // the version of this aura client
 }
 
 // Option is a functional option for configuring the AuraAPIClient.
@@ -87,9 +92,11 @@ func defaultOptions() *options {
 
 	return &options{
 		config: config{
-			baseURL:     "https://api.neo4j.io",
-			apiTimeout:  120 * time.Second,
-			apiRetryMax: 3,
+			baseURL:       "https://api.neo4j.io",
+			apiTimeout:    120 * time.Second,
+			apiRetryMax:   3,
+			clientVersion: ClientVersion,
+			userAgent:     "aura-go-client/" + ClientVersion,
 		},
 		logger: slog.New(handler),
 	}
@@ -166,8 +173,78 @@ func WithInsecureBaseURL(baseURL string) Option {
 	}
 }
 
+// WithHTTPClient sets a custom *http.Client to use for all API requests. This
+// lets callers inject a custom transport (e.g. for mTLS, proxies, or testing).
+// Returns an error if client is nil.
+func WithHTTPClient(client *http.Client) Option {
+	return func(o *options) error {
+		if client == nil {
+			return errors.New("HTTP client cannot be nil")
+		}
+		o.config.httpClient = client
+		return nil
+	}
+}
+
+// WithUserAgent overrides the default User-Agent header sent with every request.
+// Returns an error if ua is empty.
+func WithUserAgent(ua string) Option {
+	return func(o *options) error {
+		if ua == "" {
+			return errors.New("user agent must not be empty")
+		}
+		o.config.userAgent = ua
+		return nil
+	}
+}
+
+// protectedHeaders is the set of header keys that WithDefaultHeaders silently
+// drops to prevent callers from inadvertently overriding security-sensitive or
+// protocol-critical headers.
+var protectedHeaders = map[string]struct{}{
+	"authorization": {},
+	"content-type":  {},
+	"user-agent":    {},
+}
+
+// WithDefaultHeaders adds the given headers to every API request. It is a no-op
+// when headers is nil or empty. Keys matching Authorization, Content-Type, or
+// User-Agent (case-insensitive) are silently ignored to protect credentials and
+// protocol semantics.
+func WithDefaultHeaders(headers map[string]string) Option {
+	return func(o *options) error {
+		if len(headers) == 0 {
+			return nil
+		}
+		filtered := make(map[string]string, len(headers))
+		for k, v := range headers {
+			if _, protected := protectedHeaders[strings.ToLower(k)]; !protected {
+				filtered[k] = v
+			}
+		}
+		if len(filtered) > 0 {
+			o.config.defaultHeaders = filtered
+		}
+		return nil
+	}
+}
+
+// Close drains idle HTTP connections held by the underlying transport. It
+// should be called via defer when the client is no longer needed to avoid
+// leaking file descriptors.
+//
+//	client, err := aura.NewClient(aura.WithCredentials(id, secret))
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//	defer client.Close()
+func (c *AuraAPIClient) Close() {
+	c.api.Close()
+}
+
 // NewClient creates a new Aura API client with functional options.
 func NewClient(opts ...Option) (*AuraAPIClient, error) {
+	// set the default options.  These will be overridden where this is a supplied option
 	o := defaultOptions()
 
 	for _, opt := range opts {
@@ -194,6 +271,14 @@ func NewClient(opts ...Option) (*AuraAPIClient, error) {
 		return nil, errors.New("API timeout must be greater than zero")
 	}
 
+	// Technically the user agent could be empty. Our usage analysis relies on this being set so
+	// we don't allow it to be empty
+	// Custom userAgent maybe withdrawn.
+	if o.config.userAgent == "" {
+		o.logger.Error("validation failed", slog.String("reason", "User agent cannot be empty"))
+		return nil, errors.New("user agent cannot be empty")
+	}
+
 	o.logger.Debug("configuration validated",
 		slog.String("baseURL", o.config.baseURL),
 		slog.String("apiVersion", auraAPIVersion),
@@ -201,13 +286,15 @@ func NewClient(opts ...Option) (*AuraAPIClient, error) {
 	)
 
 	apiSvc := api.NewRequestService(api.Config{
-		ClientID:     o.config.clientID,
-		ClientSecret: o.config.clientSecret,
-		BaseURL:      o.config.baseURL,
-		APIVersion:   auraAPIVersion,
-		Timeout:      o.config.apiTimeout,
-		MaxRetry:     o.config.apiRetryMax,
-		UserAgent:    "aura-go-client/" + AuraAPIClientVersion,
+		ClientID:       o.config.clientID,
+		ClientSecret:   o.config.clientSecret,
+		BaseURL:        o.config.baseURL,
+		APIVersion:     auraAPIVersion,
+		Timeout:        o.config.apiTimeout,
+		MaxRetry:       o.config.apiRetryMax,
+		UserAgent:      o.config.userAgent,
+		HTTPClient:     o.config.httpClient,
+		DefaultHeaders: o.config.defaultHeaders,
 	}, o.logger)
 
 	clientLogger := o.logger.With(slog.String("component", "AuraAPIClient"))
@@ -232,15 +319,15 @@ func NewClient(opts ...Option) (*AuraAPIClient, error) {
 		timeout: o.config.apiTimeout,
 		logger:  clientLogger.With(slog.String("service", "snapshotService")),
 	}
-	service.Cmek = &cmekService{
+	service.CMEK = &cmekService{
 		api:     apiSvc,
 		timeout: o.config.apiTimeout,
 		logger:  clientLogger.With(slog.String("service", "cmekService")),
 	}
-	service.GraphAnalytics = &gDSSessionService{
+	service.GraphAnalytics = &gdsSessionService{
 		api:     apiSvc,
 		timeout: o.config.apiTimeout,
-		logger:  clientLogger.With(slog.String("service", "gDSSessionService")),
+		logger:  clientLogger.With(slog.String("service", "gdsSessionService")),
 	}
 	service.Prometheus = &prometheusService{
 		api:     apiSvc,
@@ -250,7 +337,7 @@ func NewClient(opts ...Option) (*AuraAPIClient, error) {
 
 	service.logger.Info("Aura API client initialized successfully",
 		slog.Int("services", 6),
-		slog.String("version", AuraAPIClientVersion),
+		slog.String("version", ClientVersion),
 		slog.String("apiVersion", auraAPIVersion),
 	)
 

@@ -14,13 +14,13 @@ import (
 // Types
 // ============================================================================
 
-// GetCmeksResponse contains a list of customer managed encryption keys.
-type GetCmeksResponse struct {
-	Data []GetCmeksData `json:"data"`
+// GetCMEKsResponse contains a list of customer managed encryption keys.
+type GetCMEKsResponse struct {
+	Data []GetCMEKsData `json:"data"`
 }
 
-// GetCmeksData holds the fields for a single customer-managed encryption key entry.
-type GetCmeksData struct {
+// GetCMEKsData holds the fields for a single customer-managed encryption key entry.
+type GetCMEKsData struct {
 	ID       string `json:"id"`
 	Name     string `json:"name"`
 	TenantID string `json:"tenant_id"`
@@ -38,11 +38,7 @@ type cmekService struct {
 }
 
 // List returns all customer-managed encryption keys, optionally filtered by tenant.
-func (c *cmekService) List(ctx context.Context, tenantID string) (*GetCmeksResponse, error) {
-	if err := ctx.Err(); err != nil {
-		c.logger.ErrorContext(ctx, "context already cancelled before function", slog.String("error", err.Error()))
-		return nil, err
-	}
+func (c *cmekService) List(ctx context.Context, tenantID string) (*GetCMEKsResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, c.timeout)
 	defer cancel()
 
@@ -53,7 +49,7 @@ func (c *cmekService) List(ctx context.Context, tenantID string) (*GetCmeksRespo
 		if err := utils.ValidateTenantID(tenantID); err != nil {
 			return nil, err
 		}
-		endpoint += "?tenantID=" + tenantID
+		endpoint += "?tenant_id=" + tenantID
 	}
 
 	resp, err := c.api.Get(ctx, endpoint)
@@ -62,7 +58,7 @@ func (c *cmekService) List(ctx context.Context, tenantID string) (*GetCmeksRespo
 		return nil, err
 	}
 
-	var result GetCmeksResponse
+	var result GetCMEKsResponse
 	if err := json.Unmarshal(resp.Body, &result); err != nil {
 		c.logger.ErrorContext(ctx, "failed to unmarshal cmek response", slog.String("error", err.Error()))
 		return nil, err

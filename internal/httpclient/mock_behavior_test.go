@@ -22,7 +22,7 @@ import (
 // newSvc creates an HTTPService suitable for behavioral tests.
 func newSvc(timeout time.Duration) httpclient.HTTPService {
 	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelWarn}))
-	return httpclient.NewHTTPService(timeout, 0, logger)
+	return httpclient.NewHTTPService(timeout, 0, logger, nil)
 }
 
 // ─── Basic method dispatch ────────────────────────────────────────────────────
@@ -201,7 +201,6 @@ func TestBehavior_NonSuccessStatusCodes_NotErrors(t *testing.T) {
 	statuses := []int{400, 401, 403, 404, 422, 500, 503}
 
 	for _, code := range statuses {
-		code := code
 		t.Run(http.StatusText(code), func(t *testing.T) {
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(code)

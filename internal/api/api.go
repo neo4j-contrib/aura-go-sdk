@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"maps"
 	"net/http"
 	"net/url"
 	"strings"
@@ -62,8 +63,12 @@ func (e *Error) IsBadRequest() bool {
 // NewRequestService creates a new RequestService. It constructs its own HTTP
 // transport layer internally — callers do not need to know about or create an
 // httpclient.
+//
+// When cfg.HTTPClient is non-nil it is used as the base http.Client inside the
+// retryable wrapper, letting callers inject custom transports (mTLS, proxies,
+// testing). When nil a default client with production-suitable settings is used.
 func NewRequestService(cfg Config, logger *slog.Logger) RequestService {
-	httpSvc := httpclient.NewHTTPService(cfg.Timeout, cfg.MaxRetry, logger)
+	httpSvc := httpclient.NewHTTPService(cfg.Timeout, cfg.MaxRetry, logger, cfg.HTTPClient)
 
 	userAgent := cfg.UserAgent
 	if userAgent == "" {
@@ -77,11 +82,19 @@ func NewRequestService(cfg Config, logger *slog.Logger) RequestService {
 			clientSecret: cfg.ClientSecret,
 			logger:       logger,
 		},
-		baseURL:      cfg.BaseURL,
-		endpointBase: cfg.BaseURL + "/" + cfg.APIVersion,
-		userAgent:    userAgent,
-		logger:       logger,
+		baseURL:        cfg.BaseURL,
+		endpointBase:   cfg.BaseURL + "/" + cfg.APIVersion,
+		userAgent:      userAgent,
+		defaultHeaders: cfg.DefaultHeaders,
+		logger:         logger,
 	}
+}
+
+// Close releases idle connections held by the underlying HTTP transport by
+// delegating to the HTTPService.Close() method. Call this (typically via defer)
+// when the RequestService is no longer needed.
+func (s *apiRequestService) Close() {
+	s.httpClient.Close()
 }
 
 // Get performs an authenticated GET request.
@@ -135,11 +148,13 @@ func (s *apiRequestService) doAuthenticatedRequest(ctx context.Context, method, 
 		return nil, err
 	}
 
-	headers := map[string]string{
-		"Content-Type":  "application/json",
-		"User-Agent":    s.userAgent,
-		"Authorization": tokenType + " " + token,
-	}
+	// Start with any caller-supplied default headers, then overwrite with the
+	// required protocol headers so they can never be replaced.
+	headers := make(map[string]string, len(s.defaultHeaders)+3)
+	maps.Copy(headers, s.defaultHeaders)
+	headers["Content-Type"] = "application/json"
+	headers["User-Agent"] = s.userAgent
+	headers["Authorization"] = tokenType + " " + token
 
 	s.logger.DebugContext(ctx, "making authenticated API request",
 		slog.String("method", method),

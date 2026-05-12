@@ -21,7 +21,7 @@ func testLogger() *slog.Logger {
 // newTestService returns an HTTPService with a short timeout, no retries, and
 // a warn-level logger — suitable for fast unit tests.
 func newTestService() HTTPService {
-	return NewHTTPService(5*time.Second, 0, testLogger())
+	return NewHTTPService(5*time.Second, 0, testLogger(), nil)
 }
 
 // ─── GET ──────────────────────────────────────────────────────────────────────
@@ -94,7 +94,7 @@ func TestGet_404NotError(t *testing.T) {
 	// Error interpretation is the responsibility of the api layer above.
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
-		_, _ = w.Write([]byte(`{"message":"not found"}`)) 
+		_, _ = w.Write([]byte(`{"message":"not found"}`))
 	}))
 	defer srv.Close()
 
@@ -121,7 +121,7 @@ func TestPost_BodyForwarded(t *testing.T) {
 			t.Errorf("expected body '%s', got '%s'", expectedBody, body)
 		}
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"data":{}}`))  // POST test
+		_, _ = w.Write([]byte(`{"data":{}}`)) // POST test
 	}))
 	defer srv.Close()
 

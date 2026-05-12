@@ -3,12 +3,12 @@ package aura
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
 
 	"github.com/LackOfMorals/aura-client/internal/api"
-	utils "github.com/LackOfMorals/aura-client/internal/utils"
 )
 
 // ============================================================================
@@ -144,19 +144,15 @@ type DeleteGDSSession struct {
 // Service
 // ============================================================================
 
-// gDSSessionService handles Graph Data Science session operations.
-type gDSSessionService struct {
+// gdsSessionService handles Graph Data Science session operations.
+type gdsSessionService struct {
 	api     api.RequestService
 	timeout time.Duration
 	logger  *slog.Logger
 }
 
 // List returns all GDS sessions accessible to the authenticated user.
-func (g *gDSSessionService) List(ctx context.Context) (*GetGDSSessionListResponse, error) {
-	if err := ctx.Err(); err != nil {
-		g.logger.ErrorContext(ctx, "context already cancelled before function", slog.String("error", err.Error()))
-		return nil, err
-	}
+func (g *gdsSessionService) List(ctx context.Context) (*GetGDSSessionListResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, g.timeout)
 	defer cancel()
 
@@ -179,16 +175,12 @@ func (g *gDSSessionService) List(ctx context.Context) (*GetGDSSessionListRespons
 }
 
 // Get returns information on a single GDS session.
-func (g *gDSSessionService) Get(ctx context.Context, gdsSessionID string) (*GetGDSSessionResponse, error) {
-	if err := ctx.Err(); err != nil {
-		g.logger.ErrorContext(ctx, "context already cancelled before function", slog.String("error", err.Error()))
-		return nil, err
-	}
+func (g *gdsSessionService) Get(ctx context.Context, gdsSessionID string) (*GetGDSSessionResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, g.timeout)
 	defer cancel()
 
 	if gdsSessionID == "" {
-		return nil, fmt.Errorf("GDS session ID must not be empty")
+		return nil, errors.New("GDS session ID must not be empty")
 	}
 
 	g.logger.DebugContext(ctx, "getting GDS session", slog.String("sessionID", gdsSessionID))
@@ -210,21 +202,17 @@ func (g *gDSSessionService) Get(ctx context.Context, gdsSessionID string) (*GetG
 }
 
 // Create creates a new GDS session.
-func (g *gDSSessionService) Create(ctx context.Context, gdsSessionConfigRequest *CreateGDSSessionConfigData) (*GetGDSSessionResponse, error) {
-	if err := ctx.Err(); err != nil {
-		g.logger.ErrorContext(ctx, "context already cancelled before function", slog.String("error", err.Error()))
-		return nil, err
-	}
+func (g *gdsSessionService) Create(ctx context.Context, gdsSessionConfigRequest *CreateGDSSessionConfigData) (*GetGDSSessionResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, g.timeout)
 	defer cancel()
 
 	if gdsSessionConfigRequest == nil {
-		return nil, fmt.Errorf("gdsSessionConfigRequest must not be nil")
+		return nil, errors.New("gdsSessionConfigRequest must not be nil")
 	}
 
 	g.logger.DebugContext(ctx, "creating GDS session")
 
-	body, err := utils.Marshal(gdsSessionConfigRequest)
+	body, err := json.Marshal(gdsSessionConfigRequest)
 	if err != nil {
 		g.logger.ErrorContext(ctx, "failed to marshal create gds session request", slog.String("error", err.Error()))
 		return nil, err
@@ -247,21 +235,17 @@ func (g *gDSSessionService) Create(ctx context.Context, gdsSessionConfigRequest 
 }
 
 // Estimate estimates the size of a new GDS session.
-func (g *gDSSessionService) Estimate(ctx context.Context, gdsSessionSizeEstimateRequest *GetGDSSessionSizeEstimation) (*GDSSessionSizeEstimationResponse, error) {
-	if err := ctx.Err(); err != nil {
-		g.logger.ErrorContext(ctx, "context already cancelled before function", slog.String("error", err.Error()))
-		return nil, err
-	}
+func (g *gdsSessionService) Estimate(ctx context.Context, gdsSessionSizeEstimateRequest *GetGDSSessionSizeEstimation) (*GDSSessionSizeEstimationResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, g.timeout)
 	defer cancel()
 
 	if gdsSessionSizeEstimateRequest == nil {
-		return nil, fmt.Errorf("gdsSessionSizeEstimateRequest must not be nil")
+		return nil, errors.New("gdsSessionSizeEstimateRequest must not be nil")
 	}
 
 	g.logger.DebugContext(ctx, "estimating GDS session")
 
-	body, err := utils.Marshal(gdsSessionSizeEstimateRequest)
+	body, err := json.Marshal(gdsSessionSizeEstimateRequest)
 	if err != nil {
 		g.logger.ErrorContext(ctx, "failed to marshal estimate gds session request", slog.String("error", err.Error()))
 		return nil, err
@@ -284,16 +268,12 @@ func (g *gDSSessionService) Estimate(ctx context.Context, gdsSessionSizeEstimate
 }
 
 // Delete deletes a GDS session.
-func (g *gDSSessionService) Delete(ctx context.Context, gdsSessionID string) (*DeleteGDSSessionResponse, error) {
-	if err := ctx.Err(); err != nil {
-		g.logger.ErrorContext(ctx, "context already cancelled before function", slog.String("error", err.Error()))
-		return nil, err
-	}
+func (g *gdsSessionService) Delete(ctx context.Context, gdsSessionID string) (*DeleteGDSSessionResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, g.timeout)
 	defer cancel()
 
 	if gdsSessionID == "" {
-		return nil, fmt.Errorf("GDS session ID must not be empty")
+		return nil, errors.New("GDS session ID must not be empty")
 	}
 
 	g.logger.DebugContext(ctx, "deleting a GDS session", slog.String("sessionID", gdsSessionID))
