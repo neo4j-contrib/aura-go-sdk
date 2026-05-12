@@ -1,0 +1,3 @@
+kind: Added
+body: 'Add IsNotFound(err error) bool helper to detect Aura API 404 responses without importing internal packages'
+time: 2026-05-12T00:00:00Z
