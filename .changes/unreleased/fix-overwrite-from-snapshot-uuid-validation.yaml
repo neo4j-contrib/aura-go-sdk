@@ -1,0 +1,2 @@
+kind: Fixed
+body: "OverwriteFromSnapshot now validates that sourceSnapshotID is a valid UUID, consistent with OverwriteFromInstance. Previously only an empty string was rejected."

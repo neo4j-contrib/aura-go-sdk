@@ -1,0 +1,2 @@
+kind: Fixed
+body: "GetMetricValue now logs at Debug level (not Error) when a metric name is not found. Missing metrics are expected on certain Neo4j plans and versions and are not error conditions."
