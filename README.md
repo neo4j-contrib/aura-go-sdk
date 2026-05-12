@@ -554,7 +554,7 @@ if err != nil {
 fmt.Printf("Health Status: %s\n", health.OverallStatus)
 fmt.Printf("CPU Usage: %.2f%%\n", health.Resources.CPUUsagePercent)
 fmt.Printf("Memory Usage: %.2f%%\n", health.Resources.MemoryUsagePercent)
-fmt.Printf("Queries/sec: %.2f\n", health.Query.QueriesPerSecond)
+fmt.Printf("Total Queries: %.0f\n", health.Query.QueryExecutionTotal)
 
 if health.Connections.MaxConnections > 0 {
     fmt.Printf("Active Connections: %d/%d (%.1f%%)\n",

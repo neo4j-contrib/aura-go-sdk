@@ -1,0 +1,2 @@
+kind: Changed
+body: "Renamed QueryMetrics.QueriesPerSecond to QueryExecutionTotal to accurately reflect that the value is a cumulative counter (neo4j_db_query_execution_success_total), not a per-second rate. JSON tag updated from `queries_per_second` to `query_execution_total`. This is a breaking change."

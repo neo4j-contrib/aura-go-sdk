@@ -106,7 +106,7 @@ func main() {
 		fmt.Printf("  Memory Usage: %.2f%%\n", health.Resources.MemoryUsagePercent)
 
 		fmt.Println("\nQuery Performance:")
-		fmt.Printf("  Total Queries: %.0f\n", health.Query.QueriesPerSecond)
+		fmt.Printf("  Total Queries: %.0f\n", health.Query.QueryExecutionTotal)
 		fmt.Printf("  Avg Latency (p50): %.2fms\n", health.Query.AvgLatencyMS)
 
 		fmt.Println("\nConnections:")

@@ -144,3 +144,50 @@ Key Decisions:
 - golangci-lint v2 config error is pre-existing (missing `version:` key); not introduced by this task
 
 Next Task: task-007
+================================================================================
+TASK-007: Downgrade 'metric not found' log from Error to Debug in GetMetricValue
+Date: 2026-05-12T10:00:00Z
+================================================================================
+
+Summary:
+Changed p.logger.ErrorContext to p.logger.DebugContext in GetMetricValue when a
+metric name is not found. A missing metric is an expected absence on certain
+Neo4j plans and versions, not an error condition, so logging at Error level was
+causing false-alarm noise in production pipelines.
+
+Files Changed:
+- prometheus.go (modified: ErrorContext -> DebugContext for "metric not found" log)
+
+Key Decisions:
+- Log message text and slog fields were left unchanged; only the level changed
+- No changie fragment needed: this is an internal logging behaviour change with no API impact
+
+Next Task: task-008
+================================================================================
+TASK-008: Rename QueriesPerSecond to QueryExecutionTotal with corrected doc
+Date: 2026-05-12T10:05:00Z
+================================================================================
+
+Summary:
+Renamed QueryMetrics.QueriesPerSecond to QueryExecutionTotal in prometheus.go.
+Updated the JSON tag from `queries_per_second` to `query_execution_total`. Added
+a doc comment explaining the field is a cumulative counter sourced from
+neo4j_db_query_execution_success_total, not a per-second rate. Updated all
+reference sites: the assignment in GetInstanceHealth, the example binary, the
+docs markdown, and the README. Created a changie fragment marking this as a
+breaking Changed entry. Also improved the README format string from `%.2f` to
+`%.0f` since a counter has no meaningful decimal places.
+
+Files Changed:
+- prometheus.go (modified: field renamed, JSON tag updated, doc comment added, usage site updated)
+- examples/prometheus/prometheus.go (modified: updated field reference)
+- docs/prometheus.md (modified: updated field reference)
+- README.md (modified: updated field reference and format string)
+- .changes/unreleased/rename-queries-per-second-to-query-execution-total.yaml (created: breaking Changed fragment)
+
+Key Decisions:
+- JSON tag changed from `queries_per_second` to `query_execution_total` to match the field name and source metric semantics
+- README format verb changed from `%.2f` to `%.0f` — a cumulative counter displayed with decimal places is misleading
+- changie kind is `Changed` (breaking) since callers referencing the old field name by struct literal or accessor will not compile
+
+Next Task: task-009

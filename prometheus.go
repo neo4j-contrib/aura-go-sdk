@@ -40,8 +40,12 @@ type ResourceMetrics struct {
 
 // QueryMetrics contains query performance statistics.
 type QueryMetrics struct {
-	QueriesPerSecond float64 `json:"queries_per_second"`
-	AvgLatencyMS     float64 `json:"avg_latency_ms"`
+	// QueryExecutionTotal is a cumulative counter sourced from the
+	// neo4j_db_query_execution_success_total Prometheus metric. It represents
+	// the total number of successfully executed queries since the instance
+	// started, not a per-second rate.
+	QueryExecutionTotal float64 `json:"query_execution_total"`
+	AvgLatencyMS        float64 `json:"avg_latency_ms"`
 }
 
 // ConnectionMetrics contains connection pool information.
@@ -219,7 +223,7 @@ func (p *prometheusService) GetInstanceHealth(ctx context.Context, instanceID st
 	}
 
 	if successCount, err := p.GetMetricValue(ctx, rawMetrics, "neo4j_db_query_execution_success_total", nil); err == nil {
-		metrics.Query.QueriesPerSecond = successCount
+		metrics.Query.QueryExecutionTotal = successCount
 	} else {
 		p.logger.WarnContext(ctx, "failed to get query count", slog.String("error", err.Error()))
 	}
@@ -268,7 +272,7 @@ func (p *prometheusService) GetMetricValue(ctx context.Context, metrics *Prometh
 	}
 	metricList, ok := metrics.Metrics[name]
 	if !ok {
-		p.logger.ErrorContext(ctx, "metric not found", slog.String("metric", name))
+		p.logger.DebugContext(ctx, "metric not found", slog.String("metric", name))
 		return 0, fmt.Errorf("metric %s not found", name)
 	}
 
