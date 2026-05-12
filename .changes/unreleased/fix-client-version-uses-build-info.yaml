@@ -1,0 +1,2 @@
+kind: Fixed
+body: "ClientVersion now uses debug.ReadBuildInfo() to reflect the version a consumer actually imported (e.g. \"v1.10.0\"), rather than the hardcoded \"development\" string. Falls back to \"development\" in local and test builds where build info is unavailable."
