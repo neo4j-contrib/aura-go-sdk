@@ -604,11 +604,12 @@ func TestInstanceService_Resume_QuickCancellation(t *testing.T) {
 	responseBody, _ := json.Marshal(GetInstanceResponse{
 		Data: InstanceData{ID: instanceID, Status: "resuming"},
 	})
-	mock := &mockAPIService{
+	mock := &mockAPIServiceWithDelay{
 		response: &api.Response{StatusCode: 200, Body: responseBody},
+		delay:    0,
 	}
 
-	service := createTestInstanceService(mock)
+	service := createTestInstanceServiceWithTimeout(mock, 30*time.Second)
 	_, err := service.Resume(ctx, instanceID)
 
 	if err == nil {
@@ -689,18 +690,19 @@ func TestInstanceService_Overwrite_CancellationDuringValidation(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel() // already cancelled
 
-	mock := &mockAPIService{
+	mock := &mockAPIServiceWithDelay{
 		response: &api.Response{StatusCode: 200, Body: []byte(`{"data":"job-123"}`)},
+		delay:    0,
 	}
 
-	service := createTestInstanceService(mock)
+	service := createTestInstanceServiceWithTimeout(mock, 30*time.Second)
 	_, err := service.OverwriteFromInstance(ctx, "aaaa1234", "bbbb5678")
 
 	if err == nil {
 		t.Fatal("expected context error")
 	}
-	if mock.lastMethod != "" {
-		t.Error("API should not be called when context already cancelled")
+	if !errors.Is(err, context.Canceled) {
+		t.Errorf("expected context.Canceled, got: %v", err)
 	}
 }
 

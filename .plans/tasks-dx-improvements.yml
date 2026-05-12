@@ -54,13 +54,13 @@ tasks:
       opens with a ctx.Err() check that is racy, redundant with context.WithTimeout, and
       contrary to idiomatic Go. Remove all 25 pre-checks. The context cancellation will
       propagate naturally through the HTTP layer.
-    status: pending
+    status: completed
     dependencies: []
     acceptance_criteria:
       - "No ctx.Err() pre-check blocks remain in any service method (grep confirms zero matches)"
       - "go test -race ./... passes with no regressions"
       - "Context cancellation tests still pass (context propagates through HTTP correctly)"
-    completed_at: null
+    completed_at: "2026-05-12T07:58:00Z"
 
   - id: task-005
     title: "Replace fmt.Errorf with errors.New for static error strings"

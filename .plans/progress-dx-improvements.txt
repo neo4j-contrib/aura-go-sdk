@@ -63,3 +63,36 @@ Key Decisions:
 - Replaced hand-rolled substring search with strings.Contains
 
 Next Task: task-004
+================================================================================
+TASK-004: Remove redundant ctx.Err() pre-checks from all service methods
+Date: 2026-05-12T07:58:00Z
+================================================================================
+
+Summary:
+Removed all 25 ctx.Err() pre-check blocks from every service method across
+instances, tenants, snapshots, cmek, graphanalytics, and prometheus. These
+checks are racy (not atomic with the subsequent HTTP call), redundant with
+context.WithTimeout, and contrary to idiomatic Go. Context cancellation now
+propagates naturally through the HTTP layer. Three tests that relied on the
+pre-check behaviour were updated to use mockAPIServiceWithDelay (which checks
+ctx.Err() inside the mock) instead of mockAPIService (which ignores context).
+
+Files Changed:
+- instances.go (removed 9 ctx.Err() pre-check blocks)
+- tenants.go (removed 3 ctx.Err() pre-check blocks)
+- snapshots.go (removed 4 ctx.Err() pre-check blocks)
+- cmek.go (removed 1 ctx.Err() pre-check block)
+- graphanalytics.go (removed 5 ctx.Err() pre-check blocks)
+- prometheus.go (removed 3 ctx.Err() pre-check blocks)
+- instances_test.go (updated Resume_QuickCancellation and Overwrite_CancellationDuringValidation to use mockAPIServiceWithDelay)
+- cmek_test.go (updated List_ContextCancelled to use mockAPIServiceWithDelay)
+
+Key Decisions:
+- Tests that checked ctx.Err() return before the API call was made needed the mock
+  upgraded to mockAPIServiceWithDelay (delay=0), which checks ctx.Err() inside
+  executeWithDelay — the same mechanism the real HTTP client uses.
+- TestInstanceService_Overwrite_CancellationDuringValidation dropped the assertion
+  "API should not be called" (which depended on the pre-check) and now simply
+  asserts context.Canceled is returned.
+
+Next Task: task-005

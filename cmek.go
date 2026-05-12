@@ -39,10 +39,6 @@ type cmekService struct {
 
 // List returns all customer-managed encryption keys, optionally filtered by tenant.
 func (c *cmekService) List(ctx context.Context, tenantID string) (*GetCmeksResponse, error) {
-	if err := ctx.Err(); err != nil {
-		c.logger.ErrorContext(ctx, "context already cancelled before function", slog.String("error", err.Error()))
-		return nil, err
-	}
 	ctx, cancel := context.WithTimeout(ctx, c.timeout)
 	defer cancel()
 

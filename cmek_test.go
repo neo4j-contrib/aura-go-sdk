@@ -161,11 +161,12 @@ func TestCmekService_List_ContextCancelled(t *testing.T) {
 	cancel()
 
 	responseBody, _ := json.Marshal(GetCmeksResponse{Data: []GetCmeksData{}})
-	mock := &mockAPIService{
+	mock := &mockAPIServiceWithDelay{
 		response: &api.Response{StatusCode: 200, Body: responseBody},
+		delay:    0,
 	}
 
-	service := createTestCmekService(mock)
+	service := createTestCmekServiceWithTimeout(mock, 30*time.Second)
 
 	start := time.Now()
 	_, err := service.List(ctx, "")
