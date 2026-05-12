@@ -111,6 +111,54 @@ client, err := aura.NewClient(
 )
 ```
 
+### Custom HTTP Transport
+
+Use `WithHTTPClient` to inject a custom `*http.Client`. This is useful for
+configuring mTLS, HTTP proxies, or controlling low-level transport settings:
+
+```go
+import "net/http"
+
+transport := &http.Transport{
+    MaxIdleConns:    100,
+    IdleConnTimeout: 90 * time.Second,
+}
+httpClient := &http.Client{Transport: transport}
+
+client, err := aura.NewClient(
+    aura.WithCredentials("client-id", "client-secret"),
+    aura.WithHTTPClient(httpClient),
+)
+```
+
+### Custom User-Agent
+
+Use `WithUserAgent` to override the default `User-Agent` header. This is
+useful when your application needs to be identifiable in API server logs:
+
+```go
+client, err := aura.NewClient(
+    aura.WithCredentials("client-id", "client-secret"),
+    aura.WithUserAgent("my-app/2.1.0"),
+)
+```
+
+### Default Headers
+
+Use `WithDefaultHeaders` to attach custom headers to every API request.
+`Authorization`, `Content-Type`, and `User-Agent` are silently ignored to
+prevent accidental overrides of security-critical headers:
+
+```go
+client, err := aura.NewClient(
+    aura.WithCredentials("client-id", "client-secret"),
+    aura.WithDefaultHeaders(map[string]string{
+        "X-Request-Source": "my-service",
+        "X-Correlation-ID": "abc-123",
+    }),
+)
+```
+
 ---
 
 ## Context and Timeouts
@@ -870,16 +918,20 @@ changie batch   # collects .changes/unreleased/*.yaml → .changes/vX.Y.Z.md
 changie merge   # folds that file into CHANGELOG.md
 ```
 
-**2. Bump the version constant**
+**2. Bump the version fallback**
 
-Edit `client.go` and update `AuraAPIClientVersion` to match the version changie just created:
+Edit `client.go` and update the `auraAPIClientVersionFallback` constant to match
+the version changie just created:
 
 ```go
-const AuraAPIClientVersion = "v1.9.0"  // ← update this
+const auraAPIClientVersionFallback = "v1.9.0"  // ← update this
 ```
 
-> The release workflow verifies that the pushed tag and this constant are identical.
-> If they differ the workflow fails before creating any GitHub Release.
+`AuraAPIClientVersion` is a package-level var that is populated at init time
+from the module's build info. In devel and test builds where build info is
+unavailable, it falls back to `auraAPIClientVersionFallback`. The release
+workflow verifies that the pushed tag and this fallback value are identical; if
+they differ the workflow fails before creating any GitHub Release.
 
 **3. Commit and tag**
 

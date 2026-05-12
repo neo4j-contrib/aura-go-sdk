@@ -362,3 +362,26 @@ Key Decisions:
 - All feedback loops (build, test -race, golangci-lint, fmt) passed with no regressions
 
 Next Task: task-015
+================================================================================
+TASK-015: Update README for breaking changes and new options
+Date: 2026-05-12T16:00:00Z
+================================================================================
+
+Summary:
+Updated README.md to reflect all breaking changes and new options introduced
+in this feature branch. Added three new Configuration subsections with complete
+Go examples for WithHTTPClient, WithUserAgent, and WithDefaultHeaders. Verified
+that client.CMEK.List, QueryExecutionTotal, and defer client.Close() were
+already correct (updated by their respective tasks). Updated the CI & Releases
+"Bump the version" step to reference the unexported auraAPIClientVersionFallback
+constant instead of the now-var AuraAPIClientVersion.
+
+Files Changed:
+- README.md (modified: added WithHTTPClient, WithUserAgent, WithDefaultHeaders sections; updated CI release instructions)
+
+Key Decisions:
+- The three new option examples each stand alone as minimal, complete snippets showing only the new option alongside WithCredentials — avoids noise from unrelated options
+- The CI release section now explains the var/init pattern and why the fallback constant is what maintainers must edit
+- No Table of Contents changes were needed since the ToC lists section headers, not subsections
+
+Next Task: All tasks complete

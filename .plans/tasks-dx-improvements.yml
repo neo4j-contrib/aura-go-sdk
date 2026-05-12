@@ -235,7 +235,7 @@ tasks:
       Update README.md to reflect all breaking renames (client.CMEK, QueryExecutionTotal)
       and document the four new options (WithHTTPClient, WithUserAgent, WithDefaultHeaders,
       and close/defer pattern). Ensure all code examples compile against the updated API.
-    status: pending
+    status: completed
     dependencies:
       - task-008
       - task-011
@@ -247,4 +247,4 @@ tasks:
       - "README Configuration section has examples for WithHTTPClient, WithUserAgent, WithDefaultHeaders"
       - "README Quick Start example includes `defer client.Close()`"
       - "No stale option or field names remain in any README example"
-    completed_at: null
+    completed_at: "2026-05-12T16:00:00Z"
