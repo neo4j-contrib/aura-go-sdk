@@ -756,3 +756,220 @@ func (m *mockAPIServiceContextCheck) Delete(ctx context.Context, _ string) (*api
 }
 
 func (m *mockAPIServiceContextCheck) Close() {}
+
+// ============================================================================
+// Extended Create/Update Field Tests
+// ============================================================================
+
+func intPtr(i int) *int    { return &i }
+func boolPtr(b bool) *bool { return &b }
+
+// TestInstanceService_Create_WithExtendedFields verifies that optional fields are
+// serialised into the request body when set.
+func TestInstanceService_Create_WithExtendedFields(t *testing.T) {
+	createRequest := &CreateInstanceConfigData{
+		Name: "ext-instance", TenantID: "ad69ff24-12fc-5a34-af02-ff8d3cc23611",
+		CloudProvider: "gcp", Region: "us-central1", Type: "enterprise-db", Memory: "8GB",
+		CDCEnrichmentMode:    "DIFF",
+		SecondariesCount:     intPtr(1),
+		VectorOptimized:      boolPtr(true),
+		GraphAnalyticsPlugin: boolPtr(true),
+	}
+
+	responseBody, _ := json.Marshal(CreateInstanceResponse{
+		Data: CreateInstanceData{ID: "new-id", Name: "ext-instance"},
+	})
+	mock := &mockAPIService{response: &api.Response{StatusCode: 200, Body: responseBody}}
+
+	service := createTestInstanceService(mock)
+	_, err := service.Create(context.Background(), createRequest)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	var sent CreateInstanceConfigData
+	if err := json.Unmarshal([]byte(mock.lastBody), &sent); err != nil {
+		t.Fatalf("failed to unmarshal request body: %v", err)
+	}
+	if sent.CDCEnrichmentMode != "DIFF" {
+		t.Errorf("expected cdc_enrichment_mode 'DIFF', got '%s'", sent.CDCEnrichmentMode)
+	}
+	if sent.SecondariesCount == nil || *sent.SecondariesCount != 1 {
+		t.Errorf("expected secondaries_count 1, got %v", sent.SecondariesCount)
+	}
+	if sent.VectorOptimized == nil || !*sent.VectorOptimized {
+		t.Errorf("expected vector_optimized true, got %v", sent.VectorOptimized)
+	}
+	if sent.GraphAnalyticsPlugin == nil || !*sent.GraphAnalyticsPlugin {
+		t.Errorf("expected graph_analytics_plugin true, got %v", sent.GraphAnalyticsPlugin)
+	}
+}
+
+// TestInstanceService_CreateFromInstance_Success verifies cloning from a source instance.
+func TestInstanceService_CreateFromInstance_Success(t *testing.T) {
+	baseConfig := &CreateInstanceConfigData{
+		Name: "clone-instance", TenantID: "ad69ff24-12fc-5a34-af02-ff8d3cc23611",
+		CloudProvider: "gcp", Region: "us-central1", Type: "enterprise-db", Memory: "8GB",
+	}
+
+	responseBody, _ := json.Marshal(CreateInstanceResponse{
+		Data: CreateInstanceData{ID: "clone-id", Name: "clone-instance"},
+	})
+	mock := &mockAPIService{response: &api.Response{StatusCode: 200, Body: responseBody}}
+
+	service := createTestInstanceService(mock)
+	_, err := service.CreateFromInstance(context.Background(), "bbbb5678", baseConfig)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if mock.lastMethod != "POST" {
+		t.Errorf("expected POST, got %s", mock.lastMethod)
+	}
+	if mock.lastPath != "instances" {
+		t.Errorf("expected path 'instances', got '%s'", mock.lastPath)
+	}
+
+	var sent createInstanceFromSourceRequest
+	if err := json.Unmarshal([]byte(mock.lastBody), &sent); err != nil {
+		t.Fatalf("failed to unmarshal request body: %v", err)
+	}
+	if sent.SourceInstanceID != "bbbb5678" {
+		t.Errorf("expected source_instance_id 'bbbb5678', got '%s'", sent.SourceInstanceID)
+	}
+	if sent.SourceSnapshotID != "" {
+		t.Errorf("expected source_snapshot_id to be empty, got '%s'", sent.SourceSnapshotID)
+	}
+}
+
+// TestInstanceService_CreateFromSnapshot_Success verifies cloning from a snapshot.
+func TestInstanceService_CreateFromSnapshot_Success(t *testing.T) {
+	snapshotID := "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+	baseConfig := &CreateInstanceConfigData{
+		Name: "snap-clone", TenantID: "ad69ff24-12fc-5a34-af02-ff8d3cc23611",
+		CloudProvider: "gcp", Region: "us-central1", Type: "enterprise-db", Memory: "8GB",
+	}
+
+	responseBody, _ := json.Marshal(CreateInstanceResponse{
+		Data: CreateInstanceData{ID: "snap-clone-id", Name: "snap-clone"},
+	})
+	mock := &mockAPIService{response: &api.Response{StatusCode: 200, Body: responseBody}}
+
+	service := createTestInstanceService(mock)
+	_, err := service.CreateFromSnapshot(context.Background(), snapshotID, baseConfig)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if mock.lastMethod != "POST" {
+		t.Errorf("expected POST, got %s", mock.lastMethod)
+	}
+
+	var sent createInstanceFromSourceRequest
+	if err := json.Unmarshal([]byte(mock.lastBody), &sent); err != nil {
+		t.Fatalf("failed to unmarshal request body: %v", err)
+	}
+	if sent.SourceSnapshotID != snapshotID {
+		t.Errorf("expected source_snapshot_id '%s', got '%s'", snapshotID, sent.SourceSnapshotID)
+	}
+	if sent.SourceInstanceID != "" {
+		t.Errorf("expected source_instance_id to be empty, got '%s'", sent.SourceInstanceID)
+	}
+}
+
+// TestInstanceService_CreateFromInstance_Validation verifies input validation.
+func TestInstanceService_CreateFromInstance_Validation(t *testing.T) {
+	validConfig := &CreateInstanceConfigData{
+		Name: "test", TenantID: "ad69ff24-12fc-5a34-af02-ff8d3cc23611",
+		CloudProvider: "gcp", Region: "us-central1", Type: "enterprise-db", Memory: "8GB",
+	}
+	tests := []struct {
+		name             string
+		sourceInstanceID string
+		config           *CreateInstanceConfigData
+		errContains      string
+	}{
+		{"nil config", "bbbb5678", nil, "must not be nil"},
+		{"empty source ID", "", validConfig, "must provide sourceInstanceID"},
+		{"invalid source ID format", "invalid", validConfig, "invalid source instance ID"},
+	}
+	mock := &mockAPIService{}
+	service := createTestInstanceService(mock)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := service.CreateFromInstance(context.Background(), tt.sourceInstanceID, tt.config)
+			if err == nil {
+				t.Fatal("expected error")
+			}
+			if !strings.Contains(err.Error(), tt.errContains) {
+				t.Errorf("expected error containing '%s', got: %v", tt.errContains, err)
+			}
+		})
+	}
+}
+
+// TestInstanceService_CreateFromSnapshot_Validation verifies input validation.
+func TestInstanceService_CreateFromSnapshot_Validation(t *testing.T) {
+	validConfig := &CreateInstanceConfigData{
+		Name: "test", TenantID: "ad69ff24-12fc-5a34-af02-ff8d3cc23611",
+		CloudProvider: "gcp", Region: "us-central1", Type: "enterprise-db", Memory: "8GB",
+	}
+	tests := []struct {
+		name             string
+		sourceSnapshotID string
+		config           *CreateInstanceConfigData
+		errContains      string
+	}{
+		{"nil config", "a1b2c3d4-e5f6-7890-abcd-ef1234567890", nil, "must not be nil"},
+		{"empty snapshot ID", "", validConfig, "must provide sourceSnapshotID"},
+		{"invalid snapshot ID format", "not-a-uuid", validConfig, "invalid source snapshot ID"},
+	}
+	mock := &mockAPIService{}
+	service := createTestInstanceService(mock)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := service.CreateFromSnapshot(context.Background(), tt.sourceSnapshotID, tt.config)
+			if err == nil {
+				t.Fatal("expected error")
+			}
+			if !strings.Contains(err.Error(), tt.errContains) {
+				t.Errorf("expected error containing '%s', got: %v", tt.errContains, err)
+			}
+		})
+	}
+}
+
+// TestInstanceService_Update_WithExtendedFields verifies that cdc_enrichment_mode and
+// secondaries_count are serialised into the PATCH request body when set.
+func TestInstanceService_Update_WithExtendedFields(t *testing.T) {
+	instanceID := "f1f1b2b2"
+	updateRequest := &UpdateInstanceData{
+		CDCEnrichmentMode: "FULL",
+		SecondariesCount:  intPtr(2),
+	}
+
+	responseBody, _ := json.Marshal(GetInstanceResponse{
+		Data: InstanceData{ID: instanceID, CDCEnrichment: "FULL", Secondaries: 2, Status: "updating"},
+	})
+	mock := &mockAPIService{response: &api.Response{StatusCode: 200, Body: responseBody}}
+
+	service := createTestInstanceService(mock)
+	result, err := service.Update(context.Background(), instanceID, updateRequest)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	var sent UpdateInstanceData
+	if err := json.Unmarshal([]byte(mock.lastBody), &sent); err != nil {
+		t.Fatalf("failed to unmarshal request body: %v", err)
+	}
+	if sent.CDCEnrichmentMode != "FULL" {
+		t.Errorf("expected cdc_enrichment_mode 'FULL', got '%s'", sent.CDCEnrichmentMode)
+	}
+	if sent.SecondariesCount == nil || *sent.SecondariesCount != 2 {
+		t.Errorf("expected secondaries_count 2, got %v", sent.SecondariesCount)
+	}
+	if result.Data.CDCEnrichment != "FULL" {
+		t.Errorf("expected response CDCEnrichment 'FULL', got '%s'", result.Data.CDCEnrichment)
+	}
+}

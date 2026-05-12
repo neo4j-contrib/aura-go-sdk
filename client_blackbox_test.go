@@ -120,6 +120,18 @@ func (m *mockInstanceService) OverwriteFromSnapshot(_ context.Context, id, srcSn
 	return m.OverwriteResp, m.OverwriteErr
 }
 
+func (m *mockInstanceService) CreateFromInstance(_ context.Context, _ string, _ *aura.CreateInstanceConfigData) (*aura.CreateInstanceResponse, error) {
+	m.LastMethod = "CreateFromInstance"
+	m.CallCount++
+	return m.CreateResp, m.CreateErr
+}
+
+func (m *mockInstanceService) CreateFromSnapshot(_ context.Context, _ string, _ *aura.CreateInstanceConfigData) (*aura.CreateInstanceResponse, error) {
+	m.LastMethod = "CreateFromSnapshot"
+	m.CallCount++
+	return m.CreateResp, m.CreateErr
+}
+
 // --- Tenants -----------------------------------------------------------------
 
 type mockTenantService struct {
@@ -1855,4 +1867,18 @@ func (m *mockCancelAwareInstanceService) OverwriteFromSnapshot(ctx context.Conte
 		return nil, ctx.Err()
 	}
 	return &aura.OverwriteInstanceResponse{}, nil
+}
+
+func (m *mockCancelAwareInstanceService) CreateFromInstance(ctx context.Context, _ string, _ *aura.CreateInstanceConfigData) (*aura.CreateInstanceResponse, error) {
+	if ctx.Err() != nil {
+		return nil, ctx.Err()
+	}
+	return &aura.CreateInstanceResponse{}, nil
+}
+
+func (m *mockCancelAwareInstanceService) CreateFromSnapshot(ctx context.Context, _ string, _ *aura.CreateInstanceConfigData) (*aura.CreateInstanceResponse, error) {
+	if ctx.Err() != nil {
+		return nil, ctx.Err()
+	}
+	return &aura.CreateInstanceResponse{}, nil
 }
