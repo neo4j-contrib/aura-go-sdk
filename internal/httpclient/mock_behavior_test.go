@@ -201,7 +201,6 @@ func TestBehavior_NonSuccessStatusCodes_NotErrors(t *testing.T) {
 	statuses := []int{400, 401, 403, 404, 422, 500, 503}
 
 	for _, code := range statuses {
-		code := code
 		t.Run(http.StatusText(code), func(t *testing.T) {
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(code)

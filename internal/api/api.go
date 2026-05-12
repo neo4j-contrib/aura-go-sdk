@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"maps"
 	"net/http"
 	"net/url"
 	"strings"
@@ -150,9 +151,7 @@ func (s *apiRequestService) doAuthenticatedRequest(ctx context.Context, method, 
 	// Start with any caller-supplied default headers, then overwrite with the
 	// required protocol headers so they can never be replaced.
 	headers := make(map[string]string, len(s.defaultHeaders)+3)
-	for k, v := range s.defaultHeaders {
-		headers[k] = v
-	}
+	maps.Copy(headers, s.defaultHeaders)
 	headers["Content-Type"] = "application/json"
 	headers["User-Agent"] = s.userAgent
 	headers["Authorization"] = tokenType + " " + token
