@@ -23,27 +23,21 @@ jobs:
           cache: true
 
       # -----------------------------------------------------------------
+      # Stamp the release tag into ClientVersion in client.go so that
+      # the User-Agent header and version log reflect the actual release.
+      # -----------------------------------------------------------------
+      - name: Set ClientVersion to release tag
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          sed -i "s/var ClientVersion = \"[^\"]*\"/var ClientVersion = \"${TAG}\"/" client.go
+          grep ClientVersion client.go
+          echo "ClientVersion set to $TAG"
+
+      # -----------------------------------------------------------------
       # Gate: tests must pass before any release artefact is created
       # -----------------------------------------------------------------
       - name: Run tests
         run: go test -race $(go list ./... | grep -v /examples/)
-
-      # -----------------------------------------------------------------
-      # Sanity check: the tag must match AuraAPIClientVersion in code.
-      # This catches the common mistake of tagging before bumping the
-      # constant, which would embed the wrong version in every User-Agent
-      # header shipped to consumers.
-      # -----------------------------------------------------------------
-      - name: Verify version constant matches tag
-        run: |
-          TAG="${GITHUB_REF_NAME}"
-          CODE=$(grep -oP '(?<=AuraAPIClientVersion = ")[^"]+' client.go)
-          if [ "$TAG" != "$CODE" ]; then
-            echo "❌  Tag '$TAG' does not match AuraAPIClientVersion '$CODE' in client_types.go"
-            echo "    Update the constant and re-tag, or delete this tag."
-            exit 1
-          fi
-          echo "✓  Tag and AuraAPIClientVersion both read $TAG"
 
       # -----------------------------------------------------------------
       # Extract the changelog section for this version.
@@ -66,7 +60,7 @@ jobs:
           ' CHANGELOG.md | sed '/./,$!d' | sed -e :a -e '/^\n*$/{$d;N;ba}' > release_notes.md
 
           if [ ! -s release_notes.md ]; then
-            echo "⚠️  No changelog entry found for $VERSION — using default message."
+            echo "No changelog entry found for $VERSION -- using default message."
             echo "See CHANGELOG.md for full history." > release_notes.md
           fi
 
