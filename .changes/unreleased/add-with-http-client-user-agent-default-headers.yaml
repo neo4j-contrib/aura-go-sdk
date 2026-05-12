@@ -1,2 +1,0 @@
-kind: Added
-body: "Three new functional options: WithHTTPClient injects a custom *http.Client transport; WithUserAgent overrides the default User-Agent header; WithDefaultHeaders sets additional headers on every API request (Authorization, Content-Type, and User-Agent are silently ignored to prevent credential leakage)."

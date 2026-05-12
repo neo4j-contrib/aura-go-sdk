@@ -1,2 +1,0 @@
-kind: Added
-body: "AuraAPIClient.Close() drains idle HTTP connections held by the underlying transport. Call via defer after NewClient to avoid leaking file descriptors."
