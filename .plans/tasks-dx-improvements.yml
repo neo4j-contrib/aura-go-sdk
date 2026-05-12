@@ -164,7 +164,7 @@ tasks:
       Expose a Close() method on AuraAPIClient that delegates to c.api.Close(). Document
       the method with a godoc comment explaining it drains idle connections and should be
       called via defer when the client is no longer needed.
-    status: pending
+    status: completed
     dependencies:
       - task-010
     acceptance_criteria:
@@ -172,7 +172,7 @@ tasks:
       - "Godoc comment explains the purpose and idiomatic defer usage"
       - "A test verifies calling Close() twice does not panic"
       - "README Quick Start example includes `defer client.Close()`"
-    completed_at: null
+    completed_at: "2026-05-12T12:00:00Z"
 
   - id: task-012
     title: "Add WithHTTPClient, WithUserAgent, and WithDefaultHeaders options"

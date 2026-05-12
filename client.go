@@ -182,6 +182,19 @@ func WithInsecureBaseURL(baseURL string) Option {
 	}
 }
 
+// Close drains idle HTTP connections held by the underlying transport. It
+// should be called via defer when the client is no longer needed to avoid
+// leaking file descriptors.
+//
+//	client, err := aura.NewClient(aura.WithCredentials(id, secret))
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//	defer client.Close()
+func (c *AuraAPIClient) Close() {
+	c.api.Close()
+}
+
 // NewClient creates a new Aura API client with functional options.
 func NewClient(opts ...Option) (*AuraAPIClient, error) {
 	o := defaultOptions()

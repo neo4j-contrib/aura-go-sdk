@@ -247,3 +247,29 @@ Key Decisions:
 - All mock Close() methods are no-ops — mocks don't own real connections
 
 Next Task: task-011
+================================================================================
+TASK-011: Add AuraAPIClient.Close() public method
+Date: 2026-05-12T12:00:00Z
+================================================================================
+
+Summary:
+Exposed a public Close() method on AuraAPIClient that delegates to c.api.Close()
+(implemented in task-010). Added a godoc comment with a runnable example showing
+idiomatic defer usage. Added two blackbox tests: one verifying Close() does not
+panic on first call, another verifying it does not panic when called a second
+time. Updated the README Quick Start example to include `defer client.Close()`
+immediately after client creation.
+
+Files Changed:
+- client.go (modified: added Close() method with godoc comment)
+- client_blackbox_test.go (modified: added TestBlackBox_Close_DoesNotPanic and TestBlackBox_Close_CalledTwiceDoesNotPanic)
+- README.md (modified: added `defer client.Close()` to Quick Start example)
+
+Key Decisions:
+- Placed Close() between the last option constructor (WithInsecureBaseURL) and
+  NewClient so it's grouped with other client-level methods, not buried after NewClient
+- Used panic/recover pattern in tests rather than interface mocking — tests the
+  real implementation end-to-end at the blackbox level
+- Godoc includes a code block so `go doc` renders the example correctly
+
+Next Task: task-012

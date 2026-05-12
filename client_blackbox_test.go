@@ -535,6 +535,36 @@ func TestBlackBox_NewClient_OptionAppliedInOrder(t *testing.T) {
 }
 
 // =============================================================================
+// Close
+// =============================================================================
+
+func TestBlackBox_Close_DoesNotPanic(t *testing.T) {
+	client := newTestClient(t)
+
+	// Calling Close() once must not panic.
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("Close() panicked: %v", r)
+		}
+	}()
+	client.Close()
+}
+
+func TestBlackBox_Close_CalledTwiceDoesNotPanic(t *testing.T) {
+	client := newTestClient(t)
+
+	// Calling Close() a second time must not panic even though idle
+	// connections are already drained.
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("second Close() panicked: %v", r)
+		}
+	}()
+	client.Close()
+	client.Close()
+}
+
+// =============================================================================
 // Service interface injection
 //
 // These tests confirm that exported service fields accept any implementation of
