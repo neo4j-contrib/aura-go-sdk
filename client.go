@@ -70,7 +70,7 @@ type AuraAPIClient struct {
 	Tenants        TenantService
 	Instances      InstanceService
 	Snapshots      SnapshotService
-	Cmek           CmekService
+	CMEK           CMEKService
 	GraphAnalytics GDSSessionService
 	Prometheus     PrometheusService
 }
@@ -328,7 +328,7 @@ func NewClient(opts ...Option) (*AuraAPIClient, error) {
 		timeout: o.config.apiTimeout,
 		logger:  clientLogger.With(slog.String("service", "snapshotService")),
 	}
-	service.Cmek = &cmekService{
+	service.CMEK = &cmekService{
 		api:     apiSvc,
 		timeout: o.config.apiTimeout,
 		logger:  clientLogger.With(slog.String("service", "cmekService")),

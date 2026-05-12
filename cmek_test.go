@@ -32,8 +32,8 @@ func createTestCmekServiceWithTimeout(mock api.RequestService, timeout time.Dura
 
 // TestCmekService_List_Success verifies successful CMEK listing
 func TestCmekService_List_Success(t *testing.T) {
-	expectedResponse := GetCmeksResponse{
-		Data: []GetCmeksData{
+	expectedResponse := GetCMEKsResponse{
+		Data: []GetCMEKsData{
 			{ID: "cmek-1", Name: "Production Key", TenantID: "tenant-1"},
 			{ID: "cmek-2", Name: "Development Key", TenantID: "tenant-1"},
 			{ID: "cmek-3", Name: "Testing Key", TenantID: "tenant-2"},
@@ -65,8 +65,8 @@ func TestCmekService_List_Success(t *testing.T) {
 // TestCmekService_List_WithTenantFilter verifies tenant ID filtering
 func TestCmekService_List_WithTenantFilter(t *testing.T) {
 	TenantID := "c1e2c556-a924-5fac-b7f8-bb624ad9761d"
-	responseBody, _ := json.Marshal(GetCmeksResponse{
-		Data: []GetCmeksData{
+	responseBody, _ := json.Marshal(GetCMEKsResponse{
+		Data: []GetCMEKsData{
 			{ID: "cmek-filtered-1", Name: "Filtered Key 1", TenantID: TenantID},
 		},
 	})
@@ -113,7 +113,7 @@ func TestCmekService_List_InvalidTenantID(t *testing.T) {
 
 // TestCmekService_List_EmptyResult verifies empty CMEK list
 func TestCmekService_List_EmptyResult(t *testing.T) {
-	responseBody, _ := json.Marshal(GetCmeksResponse{Data: []GetCmeksData{}})
+	responseBody, _ := json.Marshal(GetCMEKsResponse{Data: []GetCMEKsData{}})
 	mock := &mockAPIService{
 		response: &api.Response{StatusCode: 200, Body: responseBody},
 	}
@@ -152,7 +152,7 @@ func TestCmekService_List_AuthenticationError(t *testing.T) {
 }
 
 // ============================================================================
-// Context-Specific Tests for CmekService
+// Context-Specific Tests for CMEKService
 // ============================================================================
 
 // TestCmekService_List_ContextCancelled verifies cancellation handling
@@ -160,7 +160,7 @@ func TestCmekService_List_ContextCancelled(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	responseBody, _ := json.Marshal(GetCmeksResponse{Data: []GetCmeksData{}})
+	responseBody, _ := json.Marshal(GetCMEKsResponse{Data: []GetCMEKsData{}})
 	mock := &mockAPIServiceWithDelay{
 		response: &api.Response{StatusCode: 200, Body: responseBody},
 		delay:    0,
@@ -185,7 +185,7 @@ func TestCmekService_List_ContextCancelled(t *testing.T) {
 
 // TestCmekService_List_ContextTimeout verifies timeout enforcement
 func TestCmekService_List_ContextTimeout(t *testing.T) {
-	responseBody, _ := json.Marshal(GetCmeksResponse{Data: []GetCmeksData{}})
+	responseBody, _ := json.Marshal(GetCMEKsResponse{Data: []GetCMEKsData{}})
 	mock := &mockAPIServiceWithDelay{
 		response: &api.Response{StatusCode: 200, Body: responseBody},
 		delay:    2 * time.Second,

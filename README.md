@@ -473,7 +473,7 @@ fmt.Printf("Instance ID: %s\nStatus: %s\n", result.Data.ID, result.Data.Status)
 ctx := context.Background()
 
 // Pass an empty string to list all CMEKs regardless of tenant
-cmeks, err := client.Cmek.List(ctx, "")
+cmeks, err := client.CMEK.List(ctx, "")
 if err != nil {
     log.Fatalf("Error: %v", err)
 }
@@ -488,7 +488,7 @@ for _, cmek := range cmeks.Data {
 ```go
 ctx := context.Background()
 
-cmeks, err := client.Cmek.List(ctx, "your-tenant-id")
+cmeks, err := client.CMEK.List(ctx, "your-tenant-id")
 if err != nil {
     log.Fatalf("Error: %v", err)
 }

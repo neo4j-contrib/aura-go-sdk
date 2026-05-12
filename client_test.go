@@ -46,8 +46,8 @@ func TestNewClient_SubServicesInitialized(t *testing.T) {
 	if client.Snapshots == nil {
 		t.Error("expected Snapshots service to be initialized")
 	}
-	if client.Cmek == nil {
-		t.Error("expected Cmek service to be initialized")
+	if client.CMEK == nil {
+		t.Error("expected CMEK service to be initialized")
 	}
 	if client.GraphAnalytics == nil {
 		t.Error("expected GraphAnalytics service to be initialized")

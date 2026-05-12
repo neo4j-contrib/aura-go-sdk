@@ -209,8 +209,8 @@ func TestNewClient_AllServicesExposed(t *testing.T) {
 	if client.Snapshots == nil {
 		t.Error("Snapshots service must be non-nil")
 	}
-	if client.Cmek == nil {
-		t.Error("Cmek service must be non-nil")
+	if client.CMEK == nil {
+		t.Error("CMEK service must be non-nil")
 	}
 	if client.GraphAnalytics == nil {
 		t.Error("GraphAnalytics service must be non-nil")
@@ -1057,9 +1057,9 @@ func TestCmek_List_NoTenantFilter(t *testing.T) {
 		writeJSON(w, http.StatusOK, payload)
 	}))
 
-	result, err := newClient(t, srv).Cmek.List(context.Background(), "")
+	result, err := newClient(t, srv).CMEK.List(context.Background(), "")
 	if err != nil {
-		t.Fatalf("Cmek.List: %v", err)
+		t.Fatalf("CMEK.List: %v", err)
 	}
 	if len(result.Data) != 2 {
 		t.Errorf("expected 2 CMEK entries, got %d", len(result.Data))
@@ -1079,9 +1079,9 @@ func TestCmek_List_WithTenantFilter(t *testing.T) {
 		writeJSON(w, http.StatusOK, payload)
 	}))
 
-	result, err := newClient(t, srv).Cmek.List(context.Background(), validTenantID)
+	result, err := newClient(t, srv).CMEK.List(context.Background(), validTenantID)
 	if err != nil {
-		t.Fatalf("Cmek.List with tenant: %v", err)
+		t.Fatalf("CMEK.List with tenant: %v", err)
 	}
 	if len(result.Data) != 1 {
 		t.Errorf("expected 1 CMEK entry, got %d", len(result.Data))
@@ -1093,7 +1093,7 @@ func TestCmek_List_WithTenantFilter(t *testing.T) {
 
 func TestCmek_List_InvalidTenantID(t *testing.T) {
 	client, _ := aura.NewClient(aura.WithCredentials("id", "secret"))
-	_, err := client.Cmek.List(context.Background(), "not-a-uuid-at-all")
+	_, err := client.CMEK.List(context.Background(), "not-a-uuid-at-all")
 	if err == nil {
 		t.Fatal("expected validation error for invalid tenant ID format")
 	}

@@ -1,0 +1,2 @@
+kind: Changed
+body: "Renamed CmekService to CMEKService, client.Cmek to client.CMEK, GetCmeksResponse to GetCMEKsResponse, and GetCmeksData to GetCMEKsData to follow Go acronym naming conventions. This is a breaking change."

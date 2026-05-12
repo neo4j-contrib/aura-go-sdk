@@ -203,14 +203,14 @@ func (m *mockSnapshotService) Restore(_ context.Context, instanceID, snapshotID 
 // --- CMEK --------------------------------------------------------------------
 
 type mockCmekService struct {
-	ListResp *aura.GetCmeksResponse
+	ListResp *aura.GetCMEKsResponse
 	ListErr  error
 
 	LastTenantID string
 	CallCount    int
 }
 
-func (m *mockCmekService) List(_ context.Context, tenantID string) (*aura.GetCmeksResponse, error) {
+func (m *mockCmekService) List(_ context.Context, tenantID string) (*aura.GetCMEKsResponse, error) {
 	m.LastTenantID = tenantID
 	m.CallCount++
 	return m.ListResp, m.ListErr
@@ -372,8 +372,8 @@ func TestBlackBox_NewClient_ServicesNonNil(t *testing.T) {
 	if client.Snapshots == nil {
 		t.Error("Snapshots service is nil")
 	}
-	if client.Cmek == nil {
-		t.Error("Cmek service is nil")
+	if client.CMEK == nil {
+		t.Error("CMEK service is nil")
 	}
 	if client.GraphAnalytics == nil {
 		t.Error("GraphAnalytics service is nil")
@@ -883,16 +883,16 @@ func TestBlackBox_ServiceInjection_Snapshots(t *testing.T) {
 
 func TestBlackBox_ServiceInjection_Cmek(t *testing.T) {
 	client := newTestClient(t)
-	var _ aura.CmekService = (*mockCmekService)(nil) // compile-time check
+	var _ aura.CMEKService = (*mockCmekService)(nil) // compile-time check
 
 	mock := &mockCmekService{
-		ListResp: &aura.GetCmeksResponse{
-			Data: []aura.GetCmeksData{{ID: "cmek-1", Name: "my-key", TenantID: "tenant-1"}},
+		ListResp: &aura.GetCMEKsResponse{
+			Data: []aura.GetCMEKsData{{ID: "cmek-1", Name: "my-key", TenantID: "tenant-1"}},
 		},
 	}
-	client.Cmek = mock
+	client.CMEK = mock
 
-	result, err := client.Cmek.List(context.Background(), "tenant-1")
+	result, err := client.CMEK.List(context.Background(), "tenant-1")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1382,15 +1382,15 @@ func TestBlackBox_Snapshots_Restore_Success(t *testing.T) {
 
 func TestBlackBox_Cmek_List_Success(t *testing.T) {
 	client := newTestClient(t)
-	client.Cmek = &mockCmekService{
-		ListResp: &aura.GetCmeksResponse{
-			Data: []aura.GetCmeksData{
+	client.CMEK = &mockCmekService{
+		ListResp: &aura.GetCMEKsResponse{
+			Data: []aura.GetCMEKsData{
 				{ID: "k1", Name: "key-one", TenantID: "t1"},
 			},
 		},
 	}
 
-	result, err := client.Cmek.List(context.Background(), "t1")
+	result, err := client.CMEK.List(context.Background(), "t1")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1401,11 +1401,11 @@ func TestBlackBox_Cmek_List_Success(t *testing.T) {
 
 func TestBlackBox_Cmek_List_Error(t *testing.T) {
 	client := newTestClient(t)
-	client.Cmek = &mockCmekService{
+	client.CMEK = &mockCmekService{
 		ListErr: &aura.Error{StatusCode: 403, Message: "Forbidden"},
 	}
 
-	_, err := client.Cmek.List(context.Background(), "t1")
+	_, err := client.CMEK.List(context.Background(), "t1")
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}

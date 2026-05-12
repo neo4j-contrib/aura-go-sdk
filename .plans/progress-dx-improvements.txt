@@ -329,3 +329,36 @@ Key Decisions:
 - When a custom http.Client is provided its Timeout is the caller's responsibility (documented in a code comment); the cfg.Timeout is not applied to avoid surprising overrides
 
 Next Task: task-014
+================================================================================
+TASK-014: Rename CmekService, Cmek field, and GetCmeks* types to CMEK acronym convention
+Date: 2026-05-12T15:00:00Z
+================================================================================
+
+Summary:
+Applied Go acronym naming convention throughout the CMEK surface: renamed the
+CmekService interface to CMEKService, the AuraAPIClient.Cmek field to CMEK,
+GetCmeksResponse to GetCMEKsResponse, and GetCmeksData to GetCMEKsData. The
+concrete cmekService struct (unexported) was left unchanged — no rename needed.
+Test helper functions (createTestCmekService, mockCmekService) are unexported and
+were also left as-is. All exported references across production code, integration
+tests, blackbox tests, and README were updated. A changie fragment was created
+marking this as a breaking Changed entry.
+
+Files Changed:
+- cmek.go (modified: renamed GetCmeksResponse -> GetCMEKsResponse, GetCmeksData -> GetCMEKsData, updated method signature and local var)
+- interfaces.go (modified: renamed CmekService -> CMEKService, updated List return type, updated compile-time check)
+- client.go (modified: renamed Cmek field -> CMEK with type CMEKService; updated service.CMEK wire-up)
+- cmek_test.go (modified: updated GetCMEKsResponse and GetCMEKsData references; updated comment)
+- client_test.go (modified: updated client.CMEK nil check and error message)
+- client_blackbox_test.go (modified: updated all GetCMEKsResponse, GetCMEKsData, CMEKService, client.CMEK references)
+- integration_test.go (modified: updated client.CMEK and error message strings)
+- context_test.go (modified: updated test case name string)
+- README.md (modified: updated client.CMEK.List in both CMEK examples)
+- .changes/unreleased/rename-cmek-to-acronym-convention.yaml (created: breaking Changed fragment)
+
+Key Decisions:
+- GetCmeksData was plural in the original code; kept plural as GetCMEKsData (not GetCMEKData) to preserve semantics
+- Unexported identifiers (mockCmekService, createTestCmekService, cmekService struct) were intentionally not renamed — they are internal and Go conventions only mandate acronym casing for exported identifiers
+- All feedback loops (build, test -race, golangci-lint, fmt) passed with no regressions
+
+Next Task: task-015

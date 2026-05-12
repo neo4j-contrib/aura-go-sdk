@@ -54,7 +54,7 @@ func TestAllServices_ContextCancellation(t *testing.T) {
 			},
 		},
 		{
-			name: "CmekService.List",
+			name: "CMEKService.List",
 			operation: func() error {
 				service := &cmekService{api: mock, timeout: 30 * time.Second, logger: testLogger()}
 				_, err := service.List(ctx, "")

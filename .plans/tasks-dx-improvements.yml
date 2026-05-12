@@ -219,7 +219,7 @@ tasks:
       GetCmeksData -> GetCMEKData. Update interfaces.go compile-time checks, client.go
       service wire-up, cmek.go types, and any test files. Add a changie fragment for this
       breaking change.
-    status: pending
+    status: completed
     dependencies: []
     acceptance_criteria:
       - "No exported identifier with 'Cmek' (mixed-case) remains"
@@ -227,7 +227,7 @@ tasks:
       - "GetCMEKsResponse and GetCMEKData are the exported response types"
       - "All tests pass after rename"
       - "A changie fragment is added as a breaking Changed entry"
-    completed_at: null
+    completed_at: "2026-05-12T15:00:00Z"
 
   - id: task-015
     title: "Update README for breaking changes and new options"

@@ -47,10 +47,10 @@ type SnapshotService interface {
 	Restore(ctx context.Context, instanceID string, snapshotID string) (*RestoreSnapshotResponse, error)
 }
 
-// CmekService defines operations for customer-managed encryption keys
-type CmekService interface {
+// CMEKService defines operations for customer-managed encryption keys
+type CMEKService interface {
 	// List returns all customer-managed encryption keys, optionally filtered by tenant
-	List(ctx context.Context, tenantID string) (*GetCmeksResponse, error)
+	List(ctx context.Context, tenantID string) (*GetCMEKsResponse, error)
 }
 
 // GDSSessionService defines operations for Graph Data Science sessions
@@ -82,7 +82,7 @@ var (
 	_ TenantService     = (*tenantService)(nil)
 	_ InstanceService   = (*instanceService)(nil)
 	_ SnapshotService   = (*snapshotService)(nil)
-	_ CmekService       = (*cmekService)(nil)
+	_ CMEKService       = (*cmekService)(nil)
 	_ GDSSessionService = (*gdsSessionService)(nil)
 	_ PrometheusService = (*prometheusService)(nil)
 )
