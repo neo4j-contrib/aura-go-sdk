@@ -44,3 +44,24 @@ go fmt ./...
 - All service methods validate IDs before calling the API; empty check first, then format check
 - Error messages follow the pattern `"invalid <thing> ID: <wrapped error>"`
 - Log `ErrorContext` on API errors; `DebugContext` on success paths; `InfoContext` for mutating operations
+
+## Aura API
+
+- Module path: `github.com/neo4j-contrib/aura-go-sdk`
+- Base URL: `https://api.neo4j.io`
+- API version: `v1` (hardcoded in `client.go`; a future v2 will be a separate module, not a path suffix)
+- Auth: OAuth2 client-credentials flow; token endpoint is `POST /oauth/token`
+- Pagination: none — all list endpoints return the full result set in one response
+- Rate limiting: 429 responses include `Retry-After`; the `retryablehttp` layer handles retries automatically
+- Spec: https://neo4j.com/docs/aura/api/specification/
+
+## Known Inconsistencies
+
+- `AuraAPIClient.GraphAnalytics` field (public) vs `GDSSessionService` interface and `gdsSessionService` struct — the field was named before the service was formalised. Do not rename it unilaterally; it is a known breaking-change candidate for a future major version.
+
+## PR Conventions
+
+- One logical change per PR; breaking changes (renamed types, removed fields, interface additions) get their own PR
+- A changie fragment in `.changes/unreleased/` is required for every user-visible change — run `changie new` and commit the generated YAML alongside your code
+- PRs that touch only docs, CI, or tests may add the `no-changelog` label to bypass the changelog check workflow
+- Required checks before review: `go test -race ./...`, `golangci-lint run`, `go build ./...` (includes `examples/`)
