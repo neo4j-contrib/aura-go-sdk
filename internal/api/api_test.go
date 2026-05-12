@@ -282,6 +282,101 @@ func TestAPIService_Headers_AuthorizationFormat(t *testing.T) {
 	}
 }
 
+func TestAPIService_DefaultHeaders_ReachServer(t *testing.T) {
+	mock := testutil.NewMockHTTPService()
+	mock.WithResponse(http.StatusOK, `{"data":[]}`)
+	svc := newTestServiceWithToken(mock)
+	svc.defaultHeaders = map[string]string{
+		"X-Request-ID": "req-abc-123",
+		"X-Tenant":     "my-tenant",
+	}
+
+	_, err := svc.Get(context.Background(), "instances")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if mock.LastHeaders["X-Request-ID"] != "req-abc-123" {
+		t.Errorf("expected X-Request-ID 'req-abc-123', got '%s'", mock.LastHeaders["X-Request-ID"])
+	}
+	if mock.LastHeaders["X-Tenant"] != "my-tenant" {
+		t.Errorf("expected X-Tenant 'my-tenant', got '%s'", mock.LastHeaders["X-Tenant"])
+	}
+}
+
+func TestAPIService_DefaultHeaders_CannotOverrideProtected(t *testing.T) {
+	mock := testutil.NewMockHTTPService()
+	mock.WithResponse(http.StatusOK, `{"data":[]}`)
+	svc := newTestServiceWithToken(mock)
+	svc.userAgent = "aura-go-client/v1.0"
+	// Attempt to override all three protected headers via defaultHeaders.
+	// The values set here must NOT appear in the outgoing request.
+	svc.defaultHeaders = map[string]string{
+		"Authorization": "Bearer sneaky",
+		"Content-Type":  "text/plain",
+		"User-Agent":    "evil-agent/1.0",
+	}
+
+	_, err := svc.Get(context.Background(), "instances")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if mock.LastHeaders["Authorization"] != "Bearer test-access-token" {
+		t.Errorf("Authorization was overridden; got '%s'", mock.LastHeaders["Authorization"])
+	}
+	if mock.LastHeaders["Content-Type"] != "application/json" {
+		t.Errorf("Content-Type was overridden; got '%s'", mock.LastHeaders["Content-Type"])
+	}
+	if mock.LastHeaders["User-Agent"] != "aura-go-client/v1.0" {
+		t.Errorf("User-Agent was overridden; got '%s'", mock.LastHeaders["User-Agent"])
+	}
+}
+
+func TestAPIService_DefaultHeaders_MergedOnEveryMethod(t *testing.T) {
+	customHeader := map[string]string{"X-Correlation-ID": "corr-999"}
+
+	methods := []struct {
+		name string
+		call func(svc *apiRequestService) error
+	}{
+		{"GET", func(svc *apiRequestService) error {
+			_, err := svc.Get(context.Background(), "instances")
+			return err
+		}},
+		{"POST", func(svc *apiRequestService) error {
+			_, err := svc.Post(context.Background(), "instances", `{}`)
+			return err
+		}},
+		{"PUT", func(svc *apiRequestService) error {
+			_, err := svc.Put(context.Background(), "instances/id", `{}`)
+			return err
+		}},
+		{"PATCH", func(svc *apiRequestService) error {
+			_, err := svc.Patch(context.Background(), "instances/id", `{}`)
+			return err
+		}},
+		{"DELETE", func(svc *apiRequestService) error {
+			_, err := svc.Delete(context.Background(), "instances/id")
+			return err
+		}},
+	}
+
+	for _, m := range methods {
+		t.Run(m.name, func(t *testing.T) {
+			mock := testutil.NewMockHTTPService()
+			mock.WithResponse(http.StatusOK, `{"data":[]}`)
+			svc := newTestServiceWithToken(mock)
+			svc.defaultHeaders = customHeader
+
+			if err := m.call(svc); err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if mock.LastHeaders["X-Correlation-ID"] != "corr-999" {
+				t.Errorf("%s: expected X-Correlation-ID 'corr-999', got '%s'", m.name, mock.LastHeaders["X-Correlation-ID"])
+			}
+		})
+	}
+}
+
 // ============================================================================
 // Response handling
 // ============================================================================

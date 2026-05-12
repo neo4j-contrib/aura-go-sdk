@@ -289,14 +289,21 @@ func NewClient(opts ...Option) (*AuraAPIClient, error) {
 		slog.Duration("apiTimeout", o.config.apiTimeout),
 	)
 
+	userAgent := "aura-go-client/" + ClientVersion
+	if o.config.userAgent != "" {
+		userAgent = o.config.userAgent
+	}
+
 	apiSvc := api.NewRequestService(api.Config{
-		ClientID:     o.config.clientID,
-		ClientSecret: o.config.clientSecret,
-		BaseURL:      o.config.baseURL,
-		APIVersion:   auraAPIVersion,
-		Timeout:      o.config.apiTimeout,
-		MaxRetry:     o.config.apiRetryMax,
-		UserAgent:    "aura-go-client/" + ClientVersion,
+		ClientID:       o.config.clientID,
+		ClientSecret:   o.config.clientSecret,
+		BaseURL:        o.config.baseURL,
+		APIVersion:     auraAPIVersion,
+		Timeout:        o.config.apiTimeout,
+		MaxRetry:       o.config.apiRetryMax,
+		UserAgent:      userAgent,
+		HTTPClient:     o.config.httpClient,
+		DefaultHeaders: o.config.defaultHeaders,
 	}, o.logger)
 
 	clientLogger := o.logger.With(slog.String("component", "AuraAPIClient"))

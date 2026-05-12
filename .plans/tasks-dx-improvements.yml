@@ -200,7 +200,7 @@ tasks:
       into httpclient.NewHTTPService (replacing the internally-constructed transport when set)
       and to merge DefaultHeaders into every authenticated request header map. Ensure protected
       headers cannot be overridden.
-    status: pending
+    status: completed
     dependencies:
       - task-012
     acceptance_criteria:
@@ -209,7 +209,7 @@ tasks:
       - "DefaultHeaders are merged into the header map on every doAuthenticatedRequest call"
       - "Authorization, Content-Type, and User-Agent in DefaultHeaders are silently skipped"
       - "Integration test or unit test verifies a custom header reaches the server"
-    completed_at: null
+    completed_at: "2026-05-12T14:00:00Z"
 
   - id: task-014
     title: "Rename CmekService, Cmek field, and GetCmeks* types to CMEK acronym convention"

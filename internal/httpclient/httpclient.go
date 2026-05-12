@@ -36,7 +36,11 @@ func networkOnlyRetryPolicy(ctx context.Context, resp *http.Response, err error)
 // Retries are attempted only on network-level errors (no response received);
 // HTTP error responses (including 5xx) are always returned to the caller.
 // The caller-supplied logger is used for debug output.
-func NewHTTPService(timeout time.Duration, maxRetry int, logger *slog.Logger) HTTPService {
+//
+// When customClient is non-nil it is used as the base http.Client inside the
+// retryable wrapper (replacing the default transport). When nil the service
+// constructs a default client with production-suitable connection pool settings.
+func NewHTTPService(timeout time.Duration, maxRetry int, logger *slog.Logger, customClient *http.Client) HTTPService {
 	retryClient := retryablehttp.NewClient()
 	retryClient.RetryMax = maxRetry
 	retryClient.RetryWaitMin = 1 * time.Second
@@ -44,20 +48,27 @@ func NewHTTPService(timeout time.Duration, maxRetry int, logger *slog.Logger) HT
 	retryClient.Logger = nil // suppress retryablehttp's own logger; we use slog
 	retryClient.CheckRetry = networkOnlyRetryPolicy
 
-	// Configure an explicit transport with production-suitable connection pool
-	// settings. Go's default transport caps MaxIdleConnsPerHost at 2, which
-	// causes connection exhaustion under concurrent load since all requests go
-	// to the same host. These values are sized for a typical management-plane
-	// workload; tune MaxIdleConnsPerHost upward if you issue many parallel calls.
-	retryClient.HTTPClient = &http.Client{
-		Timeout: timeout,
-		Transport: &http.Transport{
-			MaxIdleConns:          100,
-			MaxIdleConnsPerHost:   20,
-			IdleConnTimeout:       90 * time.Second,
-			TLSHandshakeTimeout:   10 * time.Second,
-			ExpectContinueTimeout: 1 * time.Second,
-		},
+	if customClient != nil {
+		// Use the caller's client as-is. The caller is responsible for setting
+		// a Timeout on the provided *http.Client; the cfg.Timeout value is not
+		// applied automatically when a custom client is supplied.
+		retryClient.HTTPClient = customClient
+	} else {
+		// Configure an explicit transport with production-suitable connection pool
+		// settings. Go's default transport caps MaxIdleConnsPerHost at 2, which
+		// causes connection exhaustion under concurrent load since all requests go
+		// to the same host. These values are sized for a typical management-plane
+		// workload; tune MaxIdleConnsPerHost upward if you issue many parallel calls.
+		retryClient.HTTPClient = &http.Client{
+			Timeout: timeout,
+			Transport: &http.Transport{
+				MaxIdleConns:          100,
+				MaxIdleConnsPerHost:   20,
+				IdleConnTimeout:       90 * time.Second,
+				TLSHandshakeTimeout:   10 * time.Second,
+				ExpectContinueTimeout: 1 * time.Second,
+			},
+		}
 	}
 
 	return &httpService{

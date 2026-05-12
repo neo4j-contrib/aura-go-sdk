@@ -12,9 +12,11 @@ package aura_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
 	"time"
@@ -675,6 +677,109 @@ func TestBlackBox_WithDefaultHeaders_ProtectedHeadersCaseInsensitive(t *testing.
 	}
 	if client == nil {
 		t.Fatal("expected non-nil client")
+	}
+}
+
+// =============================================================================
+// WithDefaultHeaders — end-to-end: headers reach the mock HTTP server
+// =============================================================================
+
+// TestBlackBox_WithDefaultHeaders_ReachServer verifies that headers supplied via
+// WithDefaultHeaders are present on every API request sent by the client.
+// It uses an httptest.Server to act as a stand-in Aura API and inspects the
+// incoming request headers directly.
+func TestBlackBox_WithDefaultHeaders_ReachServer(t *testing.T) {
+	const customHeaderKey = "X-Request-ID"
+	const customHeaderVal = "test-req-42"
+
+	// tokenResp is the minimal OAuth token response the client needs before it
+	// will attempt any authenticated API call.
+	tokenResp, _ := json.Marshal(map[string]any{
+		"token_type":   "Bearer",
+		"access_token": "test-token",
+		"expires_in":   int64(3600),
+	})
+
+	var capturedCustomHeader string
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/oauth/token":
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write(tokenResp)
+		default:
+			// Capture the custom header from the authenticated API request.
+			capturedCustomHeader = r.Header.Get(customHeaderKey)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"data":[]}`))
+		}
+	}))
+	defer srv.Close()
+
+	client, err := aura.NewClient(
+		aura.WithCredentials("id", "secret"),
+		aura.WithInsecureBaseURL(srv.URL),
+		aura.WithDefaultHeaders(map[string]string{
+			customHeaderKey: customHeaderVal,
+		}),
+	)
+	if err != nil {
+		t.Fatalf("NewClient failed: %v", err)
+	}
+	defer client.Close()
+
+	// Trigger a real API call so headers are sent to the server.
+	_, _ = client.Instances.List(context.Background())
+
+	if capturedCustomHeader != customHeaderVal {
+		t.Errorf("expected %s header %q, got %q", customHeaderKey, customHeaderVal, capturedCustomHeader)
+	}
+}
+
+// TestBlackBox_WithUserAgent_ReachServer verifies that the User-Agent override
+// supplied via WithUserAgent reaches the server on every API request.
+func TestBlackBox_WithUserAgent_ReachServer(t *testing.T) {
+	const customUA = "my-app/2.0"
+
+	tokenResp, _ := json.Marshal(map[string]any{
+		"token_type":   "Bearer",
+		"access_token": "test-token",
+		"expires_in":   int64(3600),
+	})
+
+	var capturedUA string
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/oauth/token":
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write(tokenResp)
+		default:
+			capturedUA = r.Header.Get("User-Agent")
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"data":[]}`))
+		}
+	}))
+	defer srv.Close()
+
+	client, err := aura.NewClient(
+		aura.WithCredentials("id", "secret"),
+		aura.WithInsecureBaseURL(srv.URL),
+		aura.WithUserAgent(customUA),
+	)
+	if err != nil {
+		t.Fatalf("NewClient failed: %v", err)
+	}
+	defer client.Close()
+
+	_, _ = client.Instances.List(context.Background())
+
+	if capturedUA != customUA {
+		t.Errorf("expected User-Agent %q, got %q", customUA, capturedUA)
 	}
 }
 
