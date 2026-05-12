@@ -328,14 +328,83 @@ fmt.Printf("  Password: %s\n", instance.Data.Password)
 // The password is only shown once during creation.
 ```
 
+Optional fields on `CreateInstanceConfigData` enable additional capabilities at creation time:
+
+```go
+secondaries := 1
+vectorOptimized := true
+graphAnalytics := true
+
+config := &aura.CreateInstanceConfigData{
+    Name:                 "my-neo4j-db",
+    TenantID:             "your-tenant-id",
+    CloudProvider:        "gcp",
+    Region:               "europe-west1",
+    Type:                 "enterprise-db",
+    Memory:               "8GB",
+    CDCEnrichmentMode:    "DIFF",       // "" | "DIFF" | "FULL"
+    SecondariesCount:     &secondaries,
+    VectorOptimized:      &vectorOptimized,
+    GraphAnalyticsPlugin: &graphAnalytics,
+}
+```
+
+### Clone an Instance from Another Instance
+
+```go
+ctx := context.Background()
+
+config := &aura.CreateInstanceConfigData{
+    Name:          "my-clone",
+    TenantID:      "your-tenant-id",
+    CloudProvider: "gcp",
+    Region:        "europe-west1",
+    Type:          "enterprise-db",
+    Memory:        "8GB",
+}
+
+instance, err := client.Instances.CreateFromInstance(ctx, "source-instance-id", config)
+if err != nil {
+    log.Fatalf("Error: %v", err)
+}
+
+fmt.Printf("Clone created: %s\n", instance.Data.ID)
+```
+
+### Clone an Instance from a Snapshot
+
+```go
+ctx := context.Background()
+
+config := &aura.CreateInstanceConfigData{
+    Name:          "my-snapshot-clone",
+    TenantID:      "your-tenant-id",
+    CloudProvider: "gcp",
+    Region:        "europe-west1",
+    Type:          "enterprise-db",
+    Memory:        "8GB",
+}
+
+instance, err := client.Instances.CreateFromSnapshot(ctx, "snapshot-id", config)
+if err != nil {
+    log.Fatalf("Error: %v", err)
+}
+
+fmt.Printf("Clone created: %s\n", instance.Data.ID)
+```
+
 ### Update an Instance
 
 ```go
 ctx := context.Background()
 
+secondaries := 2
+
 updateData := &aura.UpdateInstanceData{
-    Name:   "my-renamed-instance",
-    Memory: "16GB",
+    Name:              "my-renamed-instance",
+    Memory:            "16GB",
+    CDCEnrichmentMode: "FULL",   // "" | "DIFF" | "FULL"
+    SecondariesCount:  &secondaries,
 }
 
 instance, err := client.Instances.Update(ctx, "instance-id", updateData)
