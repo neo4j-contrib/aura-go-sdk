@@ -1751,8 +1751,8 @@ func TestBlackBox_Constants_StatusValues(t *testing.T) {
 }
 
 func TestBlackBox_Constants_ClientVersion_NonEmpty(t *testing.T) {
-	if aura.AuraAPIClientVersion == "" {
-		t.Error("AuraAPIClientVersion must not be empty")
+	if aura.ClientVersion == "" {
+		t.Error("ClientVersion must not be empty")
 	}
 }
 

@@ -235,8 +235,8 @@ func TestStatusConstants_AreAccessible(t *testing.T) {
 }
 
 func TestAuraAPIClientVersion_IsAccessible(t *testing.T) {
-	if aura.AuraAPIClientVersion == "" {
-		t.Error("AuraAPIClientVersion must not be empty")
+	if aura.ClientVersion == "" {
+		t.Error("ClientVersion must not be empty")
 	}
 }
 

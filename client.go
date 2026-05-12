@@ -20,7 +20,6 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"runtime/debug"
 	"strings"
 	"time"
 
@@ -35,21 +34,6 @@ import (
 // It is intentionally not user-configurable — a new major API version
 // will be delivered as a separate module (e.g. aura-api-client/v2).
 const auraAPIVersion = "v1"
-
-// auraAPIClientVersionFallback is the hardcoded fallback used when
-// debug.ReadBuildInfo() is unavailable (devel builds, go test, go run).
-const auraAPIClientVersionFallback = "v1.10.0"
-
-// AuraAPIClientVersion is the version of this client library. It is populated
-// at init time from the module's build info, falling back to the literal version
-// in devel/test builds where build info is unavailable.
-var AuraAPIClientVersion = auraAPIClientVersionFallback
-
-func init() {
-	if info, ok := debug.ReadBuildInfo(); ok && info.Main.Version != "" && info.Main.Version != "(devel)" {
-		AuraAPIClientVersion = info.Main.Version
-	}
-}
 
 // -ldflags "-X 'main.Version=9999'"
 // This gets set as part of the Github workflow
@@ -85,6 +69,7 @@ type config struct {
 	httpClient     *http.Client      // optional custom HTTP client (injected transport)
 	userAgent      string            // optional User-Agent override
 	defaultHeaders map[string]string // optional headers added to every API request
+	clientVersion  string            // the version of this aura client
 }
 
 // Option is a functional option for configuring the AuraAPIClient.
@@ -107,9 +92,11 @@ func defaultOptions() *options {
 
 	return &options{
 		config: config{
-			baseURL:     "https://api.neo4j.io",
-			apiTimeout:  120 * time.Second,
-			apiRetryMax: 3,
+			baseURL:       "https://api.neo4j.io",
+			apiTimeout:    120 * time.Second,
+			apiRetryMax:   3,
+			clientVersion: ClientVersion,
+			userAgent:     "aura-go-client/" + ClientVersion,
 		},
 		logger: slog.New(handler),
 	}
@@ -257,6 +244,7 @@ func (c *AuraAPIClient) Close() {
 
 // NewClient creates a new Aura API client with functional options.
 func NewClient(opts ...Option) (*AuraAPIClient, error) {
+	// set the default options.  These will be overridden where this is a supplied option
 	o := defaultOptions()
 
 	for _, opt := range opts {
@@ -283,16 +271,19 @@ func NewClient(opts ...Option) (*AuraAPIClient, error) {
 		return nil, errors.New("API timeout must be greater than zero")
 	}
 
+	// Technically the user agent could be empty. Our usage analysis relies on this being set so
+	// we don't allow it to be empty
+	// Custom userAgent maybe withdrawn.
+	if o.config.userAgent == "" {
+		o.logger.Error("validation failed", slog.String("reason", "User agent cannot be empty"))
+		return nil, errors.New("User agent cannot be empty")
+	}
+
 	o.logger.Debug("configuration validated",
 		slog.String("baseURL", o.config.baseURL),
 		slog.String("apiVersion", auraAPIVersion),
 		slog.Duration("apiTimeout", o.config.apiTimeout),
 	)
-
-	userAgent := "aura-go-client/" + ClientVersion
-	if o.config.userAgent != "" {
-		userAgent = o.config.userAgent
-	}
 
 	apiSvc := api.NewRequestService(api.Config{
 		ClientID:       o.config.clientID,
@@ -301,7 +292,7 @@ func NewClient(opts ...Option) (*AuraAPIClient, error) {
 		APIVersion:     auraAPIVersion,
 		Timeout:        o.config.apiTimeout,
 		MaxRetry:       o.config.apiRetryMax,
-		UserAgent:      userAgent,
+		UserAgent:      o.config.userAgent,
 		HTTPClient:     o.config.httpClient,
 		DefaultHeaders: o.config.defaultHeaders,
 	}, o.logger)
