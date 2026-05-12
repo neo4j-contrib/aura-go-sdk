@@ -14,6 +14,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"net/http"
 	"os"
 	"testing"
 	"time"
@@ -531,6 +532,149 @@ func TestBlackBox_NewClient_OptionAppliedInOrder(t *testing.T) {
 	}
 	if err.Error() != "timeout must be greater than zero" {
 		t.Errorf("unexpected error message: %q", err.Error())
+	}
+}
+
+// =============================================================================
+// WithHTTPClient option
+// =============================================================================
+
+func TestBlackBox_WithHTTPClient_Nil_ReturnsError(t *testing.T) {
+	_, err := aura.NewClient(
+		aura.WithCredentials("id", "secret"),
+		aura.WithHTTPClient(nil),
+	)
+	if err == nil {
+		t.Fatal("expected error for nil HTTP client")
+	}
+	if err.Error() != "HTTP client cannot be nil" {
+		t.Errorf("unexpected error message: %q", err.Error())
+	}
+}
+
+func TestBlackBox_WithHTTPClient_NonNil_Accepted(t *testing.T) {
+	client, err := aura.NewClient(
+		aura.WithCredentials("id", "secret"),
+		aura.WithHTTPClient(&http.Client{}),
+	)
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+	if client == nil {
+		t.Fatal("expected non-nil client")
+	}
+}
+
+// =============================================================================
+// WithUserAgent option
+// =============================================================================
+
+func TestBlackBox_WithUserAgent_Empty_ReturnsError(t *testing.T) {
+	_, err := aura.NewClient(
+		aura.WithCredentials("id", "secret"),
+		aura.WithUserAgent(""),
+	)
+	if err == nil {
+		t.Fatal("expected error for empty user agent")
+	}
+	if err.Error() != "user agent must not be empty" {
+		t.Errorf("unexpected error message: %q", err.Error())
+	}
+}
+
+func TestBlackBox_WithUserAgent_NonEmpty_Accepted(t *testing.T) {
+	client, err := aura.NewClient(
+		aura.WithCredentials("id", "secret"),
+		aura.WithUserAgent("my-app/1.0"),
+	)
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+	if client == nil {
+		t.Fatal("expected non-nil client")
+	}
+}
+
+// =============================================================================
+// WithDefaultHeaders option
+// =============================================================================
+
+func TestBlackBox_WithDefaultHeaders_Nil_IsNoOp(t *testing.T) {
+	client, err := aura.NewClient(
+		aura.WithCredentials("id", "secret"),
+		aura.WithDefaultHeaders(nil),
+	)
+	if err != nil {
+		t.Fatalf("expected no error for nil headers, got: %v", err)
+	}
+	if client == nil {
+		t.Fatal("expected non-nil client")
+	}
+}
+
+func TestBlackBox_WithDefaultHeaders_Empty_IsNoOp(t *testing.T) {
+	client, err := aura.NewClient(
+		aura.WithCredentials("id", "secret"),
+		aura.WithDefaultHeaders(map[string]string{}),
+	)
+	if err != nil {
+		t.Fatalf("expected no error for empty headers, got: %v", err)
+	}
+	if client == nil {
+		t.Fatal("expected non-nil client")
+	}
+}
+
+func TestBlackBox_WithDefaultHeaders_ValidHeaders_Accepted(t *testing.T) {
+	client, err := aura.NewClient(
+		aura.WithCredentials("id", "secret"),
+		aura.WithDefaultHeaders(map[string]string{
+			"X-Request-ID": "abc-123",
+			"X-Tenant":     "my-tenant",
+		}),
+	)
+	if err != nil {
+		t.Fatalf("expected no error for valid headers, got: %v", err)
+	}
+	if client == nil {
+		t.Fatal("expected non-nil client")
+	}
+}
+
+func TestBlackBox_WithDefaultHeaders_ProtectedHeadersDropped(t *testing.T) {
+	// Protected headers should be silently dropped; construction must succeed.
+	client, err := aura.NewClient(
+		aura.WithCredentials("id", "secret"),
+		aura.WithDefaultHeaders(map[string]string{
+			"Authorization": "Bearer sneaky-token",
+			"Content-Type":  "text/plain",
+			"User-Agent":    "evil-agent/1.0",
+		}),
+	)
+	if err != nil {
+		t.Fatalf("expected no error (protected headers silently dropped), got: %v", err)
+	}
+	if client == nil {
+		t.Fatal("expected non-nil client")
+	}
+}
+
+func TestBlackBox_WithDefaultHeaders_ProtectedHeadersCaseInsensitive(t *testing.T) {
+	// Mixed-case variants of protected keys must also be dropped without error.
+	client, err := aura.NewClient(
+		aura.WithCredentials("id", "secret"),
+		aura.WithDefaultHeaders(map[string]string{
+			"authorization": "Bearer lower",
+			"CONTENT-TYPE":  "text/html",
+			"User-agent":    "mixed-case/1.0",
+			"X-Custom":      "kept",
+		}),
+	)
+	if err != nil {
+		t.Fatalf("expected no error for mixed-case protected headers, got: %v", err)
+	}
+	if client == nil {
+		t.Fatal("expected non-nil client")
 	}
 }
 

@@ -273,3 +273,26 @@ Key Decisions:
 - Godoc includes a code block so `go doc` renders the example correctly
 
 Next Task: task-012
+================================================================================
+TASK-012: Add WithHTTPClient, WithUserAgent, and WithDefaultHeaders options
+Date: 2026-05-12T13:00:00Z
+================================================================================
+
+Summary:
+Added three new functional Option constructors to client.go. WithHTTPClient injects
+a custom *http.Client (returns error if nil). WithUserAgent overrides the default
+User-Agent header (returns error if empty). WithDefaultHeaders sets headers on every
+API request (no-op for nil/empty maps; silently drops Authorization, Content-Type,
+and User-Agent keys via case-insensitive comparison). All three values are stored in
+new fields on the config struct. Wiring through to api.Config is deferred to task-013.
+
+Files Changed:
+- client.go (modified: added "net/http" import; added httpClient, userAgent, defaultHeaders to config; added WithHTTPClient, WithUserAgent, WithDefaultHeaders Option functions; added protectedHeaders package var)
+- client_blackbox_test.go (modified: added "net/http" import; added 8 new blackbox tests covering nil/empty validation, valid inputs, protected header dropping, and case-insensitive key matching)
+
+Key Decisions:
+- protectedHeaders is a package-level var (map[string]struct{}) for O(1) lookup; keys stored lowercased so a single strings.ToLower on the input key suffices
+- WithDefaultHeaders stores nil in config.defaultHeaders when all supplied keys are protected (all filtered out); this is safe since the field is only read during wiring in task-013
+- No changie fragment needed: these are new additive API symbols with no breaking impact
+
+Next Task: task-013

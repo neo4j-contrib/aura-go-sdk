@@ -182,7 +182,7 @@ tasks:
       WithDefaultHeaders(map[string]string) sets headers on every API request. WithDefaultHeaders
       must silently ignore Authorization, Content-Type, and User-Agent keys. Store these in
       the config struct.
-    status: pending
+    status: completed
     dependencies: []
     acceptance_criteria:
       - "WithHTTPClient returns an error if the argument is nil"
@@ -190,7 +190,7 @@ tasks:
       - "WithDefaultHeaders is a no-op if the map is empty; ignores protected header keys"
       - "All three options are accepted by NewClient without error when valid"
       - "Options tests cover nil/empty validation"
-    completed_at: null
+    completed_at: "2026-05-12T13:00:00Z"
 
   - id: task-013
     title: "Wire HTTPClient, UserAgent, and DefaultHeaders through api.Config into httpclient"

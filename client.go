@@ -18,6 +18,7 @@ package aura
 import (
 	"errors"
 	"log/slog"
+	"net/http"
 	"os"
 	"runtime/debug"
 	"strings"
@@ -76,11 +77,14 @@ type AuraAPIClient struct {
 
 // config holds internal configuration (unexported).
 type config struct {
-	baseURL      string        // the base URL of the Aura API
-	apiTimeout   time.Duration // how long to wait for a response from an Aura API endpoint
-	apiRetryMax  int           // the number of retries to attempt
-	clientID     string        // client ID used to obtain an OAuth token
-	clientSecret string        // client secret used to obtain an OAuth token
+	baseURL        string            // the base URL of the Aura API
+	apiTimeout     time.Duration     // how long to wait for a response from an Aura API endpoint
+	apiRetryMax    int               // the number of retries to attempt
+	clientID       string            // client ID used to obtain an OAuth token
+	clientSecret   string            // client secret used to obtain an OAuth token
+	httpClient     *http.Client      // optional custom HTTP client (injected transport)
+	userAgent      string            // optional User-Agent override
+	defaultHeaders map[string]string // optional headers added to every API request
 }
 
 // Option is a functional option for configuring the AuraAPIClient.
@@ -178,6 +182,62 @@ func WithInsecureBaseURL(baseURL string) Option {
 			return errors.New("base URL must not be empty")
 		}
 		o.config.baseURL = baseURL
+		return nil
+	}
+}
+
+// WithHTTPClient sets a custom *http.Client to use for all API requests. This
+// lets callers inject a custom transport (e.g. for mTLS, proxies, or testing).
+// Returns an error if client is nil.
+func WithHTTPClient(client *http.Client) Option {
+	return func(o *options) error {
+		if client == nil {
+			return errors.New("HTTP client cannot be nil")
+		}
+		o.config.httpClient = client
+		return nil
+	}
+}
+
+// WithUserAgent overrides the default User-Agent header sent with every request.
+// Returns an error if ua is empty.
+func WithUserAgent(ua string) Option {
+	return func(o *options) error {
+		if ua == "" {
+			return errors.New("user agent must not be empty")
+		}
+		o.config.userAgent = ua
+		return nil
+	}
+}
+
+// protectedHeaders is the set of header keys that WithDefaultHeaders silently
+// drops to prevent callers from inadvertently overriding security-sensitive or
+// protocol-critical headers.
+var protectedHeaders = map[string]struct{}{
+	"authorization": {},
+	"content-type":  {},
+	"user-agent":    {},
+}
+
+// WithDefaultHeaders adds the given headers to every API request. It is a no-op
+// when headers is nil or empty. Keys matching Authorization, Content-Type, or
+// User-Agent (case-insensitive) are silently ignored to protect credentials and
+// protocol semantics.
+func WithDefaultHeaders(headers map[string]string) Option {
+	return func(o *options) error {
+		if len(headers) == 0 {
+			return nil
+		}
+		filtered := make(map[string]string, len(headers))
+		for k, v := range headers {
+			if _, protected := protectedHeaders[strings.ToLower(k)]; !protected {
+				filtered[k] = v
+			}
+		}
+		if len(filtered) > 0 {
+			o.config.defaultHeaders = filtered
+		}
 		return nil
 	}
 }
