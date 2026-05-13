@@ -296,6 +296,9 @@ fmt.Printf("Connection URL: %s\n", instance.Data.ConnectionURL)
 fmt.Printf("Memory: %s\n", instance.Data.Memory)
 fmt.Printf("Type: %s\n", instance.Data.Type)
 fmt.Printf("Region: %s\n", instance.Data.Region)
+if instance.Data.CreatedAt != nil {
+    fmt.Printf("Created At: %s\n", instance.Data.CreatedAt.Format(time.RFC3339))
+}
 ```
 
 ### Create a New Instance
