@@ -141,6 +141,7 @@ type InstanceData struct {
 	MetricsURL      string         `json:"metrics_integration_url"`
 	Secondaries     int            `json:"secondaries_count"`
 	VectorOptimized bool           `json:"vector_optimized"`
+	CreatedAt       *time.Time     `json:"created_at,omitempty"`
 }
 
 type overwriteInstanceRequest struct {
