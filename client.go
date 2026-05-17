@@ -126,6 +126,13 @@ func defaultOptions() *options {
 // WithCredentials sets the client ID and secret used for OAuth authentication.
 func WithCredentials(clientID, clientSecret string) Option {
 	return func(o *options) error {
+		// check clientID / clientSecret are not emtpy
+		if clientID == "" {
+			return errors.New("client id must not be emtpy ")
+		}
+		if clientSecret == "" {
+			return errors.New("client secret must not be emtpy ")
+		}
 		o.config.clientID = clientID
 		o.config.clientSecret = clientSecret
 		return nil
