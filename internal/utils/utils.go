@@ -85,13 +85,14 @@ func ValidateInstanceID(instanceID string) error {
 	return nil
 }
 
-// TruncateString returns the first n runes of s. If s contains n or fewer
-// runes it is returned unchanged. Using rune counts rather than byte offsets
-// ensures that multibyte UTF-8 characters are never split.
+// TruncateString iterate only as far as needed rather than allocated full run slice
 func TruncateString(s string, n int) string {
-	runes := []rune(s)
-	if n >= len(runes) {
-		return s
+	i := 0
+	for j := range s {
+		if i == n {
+			return s[:j]
+		}
+		i++
 	}
-	return string(runes[:n])
+	return s
 }
