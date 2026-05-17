@@ -264,6 +264,19 @@ func (am *authManager) ensureValidToken(ctx context.Context, baseURL string, htt
 		return "", "", fmt.Errorf("failed to parse token response: %w", err)
 	}
 
+	// Check that we have a bearer token as this is the only supported token type
+	// returned by the Aura API.  Anything else could indicate interference
+	if tokenResp.TokenType != "Bearer" {
+		return "", "", fmt.Errorf("token type is not valid: %s", tokenResp.TokenType)
+	}
+
+	// Check tokenResp.ExpiresIn
+	// A value of 0 or negative causes the SDK to re-fetch a token on every single API request (token endpoint flood).
+	// A very large value keeps a revoked token in use indefinitely.
+	if tokenResp.ExpiresIn <= 0 || tokenResp.ExpiresIn > 86400*365 {
+		return "", "", fmt.Errorf("invalid expires_in value: %d", tokenResp.ExpiresIn)
+	}
+
 	am.token = tokenResp.AccessToken
 	am.tokenType = tokenResp.TokenType
 	am.expiresAt = time.Now().Unix() + tokenResp.ExpiresIn

@@ -5,6 +5,7 @@ package httpclient
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"io"
 	"log/slog"
@@ -59,6 +60,7 @@ func NewHTTPService(timeout time.Duration, maxRetry int, logger *slog.Logger, cu
 		// causes connection exhaustion under concurrent load since all requests go
 		// to the same host. These values are sized for a typical management-plane
 		// workload; tune MaxIdleConnsPerHost upward if you issue many parallel calls.
+		// Although Go 1.18+ defaults to TLS 1.2, it's non-obvious so we explicity set min TLS to 1.2
 		retryClient.HTTPClient = &http.Client{
 			Timeout: timeout,
 			Transport: &http.Transport{
@@ -67,6 +69,7 @@ func NewHTTPService(timeout time.Duration, maxRetry int, logger *slog.Logger, cu
 				IdleConnTimeout:       90 * time.Second,
 				TLSHandshakeTimeout:   10 * time.Second,
 				ExpectContinueTimeout: 1 * time.Second,
+				TLSClientConfig:       &tls.Config{MinVersion: tls.VersionTLS12},
 			},
 		}
 	}
