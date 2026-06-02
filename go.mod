@@ -1,4 +1,4 @@
-module github.com/neo4j-contrib/aura-go-sdk
+module github.com/neo4j-contrib/aura-go-sdk/v2
 
 go 1.24
 

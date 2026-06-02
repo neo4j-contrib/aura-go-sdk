@@ -13,8 +13,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/neo4j-contrib/aura-go-sdk/internal/httpclient"
-	"github.com/neo4j-contrib/aura-go-sdk/internal/testutil"
+	"github.com/neo4j-contrib/aura-go-sdk/v2/internal/httpclient"
+	"github.com/neo4j-contrib/aura-go-sdk/v2/internal/testutil"
 )
 
 func testLogger() *slog.Logger {

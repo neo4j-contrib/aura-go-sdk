@@ -10,7 +10,7 @@ import (
 	"os"
 	"time"
 
-	aura "github.com/neo4j-contrib/aura-go-sdk"
+	aura "github.com/neo4j-contrib/aura-go-sdk/v2"
 )
 
 // Polls until instance state is running

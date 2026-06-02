@@ -19,7 +19,7 @@ import (
 	"testing"
 	"time"
 
-	aura "github.com/neo4j-contrib/aura-go-sdk"
+	aura "github.com/neo4j-contrib/aura-go-sdk/v2"
 )
 
 // ─── Test server helpers ─────────────────────────────────────────────────────

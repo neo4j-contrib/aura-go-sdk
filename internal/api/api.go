@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/neo4j-contrib/aura-go-sdk/internal/httpclient"
-	"github.com/neo4j-contrib/aura-go-sdk/internal/utils"
+	"github.com/neo4j-contrib/aura-go-sdk/v2/internal/httpclient"
+	"github.com/neo4j-contrib/aura-go-sdk/v2/internal/utils"
 )
 
 // Error implements the error interface.

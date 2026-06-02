@@ -8,7 +8,7 @@ import (
 	"log/slog"
 	"os"
 
-	aura "github.com/neo4j-contrib/aura-go-sdk"
+	aura "github.com/neo4j-contrib/aura-go-sdk/v2"
 )
 
 func main() {
