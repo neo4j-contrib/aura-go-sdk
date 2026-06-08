@@ -320,3 +320,61 @@ func TestWithMaxRetry_Zero(t *testing.T) {
 		t.Error("expected client to be nil")
 	}
 }
+
+// TestWithMaxResponseSize_Valid verifies a positive size is accepted
+func TestWithMaxResponseSize_Valid(t *testing.T) {
+	client, err := NewClient(
+		WithCredentials("test-id", "test-secret"),
+		WithMaxResponseSize(5*1024*1024),
+	)
+
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if client == nil {
+		t.Error("expected client to be non-nil")
+	}
+}
+
+// TestWithMaxResponseSize_Zero validates error for zero max response size
+func TestWithMaxResponseSize_Zero(t *testing.T) {
+	client, err := NewClient(
+		WithCredentials("test-id", "test-secret"),
+		WithMaxResponseSize(0),
+	)
+
+	if err == nil {
+		t.Error("expected error for zero max response size, got nil")
+	}
+	if err.Error() != "max response size must be greater than zero" {
+		t.Errorf("expected max response size error, got '%s'", err.Error())
+	}
+	if client != nil {
+		t.Error("expected client to be nil")
+	}
+}
+
+// TestWithMaxResponseSize_Negative validates error for negative max response size
+func TestWithMaxResponseSize_Negative(t *testing.T) {
+	client, err := NewClient(
+		WithCredentials("test-id", "test-secret"),
+		WithMaxResponseSize(-1024),
+	)
+
+	if err == nil {
+		t.Error("expected error for negative max response size, got nil")
+	}
+	if client != nil {
+		t.Error("expected client to be nil")
+	}
+}
+
+// TestDefaultOptions_MaxResponseSize verifies the default max response size is 10MB
+func TestDefaultOptions_MaxResponseSize(t *testing.T) {
+	opts := defaultOptions()
+
+	const expected = 10 * 1024 * 1024
+	if opts.config.maxResponseSize != expected {
+		t.Errorf("expected default maxResponseSize %d, got %d", expected, opts.config.maxResponseSize)
+	}
+}

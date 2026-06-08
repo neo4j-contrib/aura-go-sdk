@@ -82,15 +82,16 @@ type AuraAPIClient struct {
 
 // config holds internal configuration (unexported).
 type config struct {
-	baseURL        string            // the base URL of the Aura API
-	apiTimeout     time.Duration     // how long to wait for a response from an Aura API endpoint
-	apiRetryMax    int               // the number of retries to attempt
-	clientID       string            // client ID used to obtain an OAuth token
-	clientSecret   string            // client secret used to obtain an OAuth token
-	httpClient     *http.Client      // optional custom HTTP client (injected transport)
-	userAgent      string            // optional User-Agent override
-	defaultHeaders map[string]string // optional headers added to every API request
-	clientVersion  string            // the version of this aura client
+	baseURL         string            // the base URL of the Aura API
+	apiTimeout      time.Duration     // how long to wait for a response from an Aura API endpoint
+	apiRetryMax     int               // the number of retries to attempt
+	clientID        string            // client ID used to obtain an OAuth token
+	clientSecret    string            // client secret used to obtain an OAuth token
+	httpClient      *http.Client      // optional custom HTTP client (injected transport)
+	userAgent       string            // optional User-Agent override
+	defaultHeaders  map[string]string // optional headers added to every API request
+	clientVersion   string            // the version of this aura client
+	maxResponseSize int               // the max size of a response from the Aura API
 }
 
 // Option is a functional option for configuring the AuraAPIClient.
@@ -113,11 +114,12 @@ func defaultOptions() *options {
 
 	return &options{
 		config: config{
-			baseURL:       "https://api.neo4j.io",
-			apiTimeout:    120 * time.Second,
-			apiRetryMax:   3,
-			clientVersion: ClientVersion,
-			userAgent:     "aura-go-sdk/" + ClientVersion,
+			baseURL:         "https://api.neo4j.io",
+			apiTimeout:      120 * time.Second,
+			apiRetryMax:     3,
+			clientVersion:   ClientVersion,
+			userAgent:       "aura-go-sdk/" + ClientVersion,
+			maxResponseSize: 10 * 1024 * 1024, // 10 Mb
 		},
 		logger: slog.New(handler),
 	}
@@ -167,6 +169,18 @@ func WithLogger(logger *slog.Logger) Option {
 			return errors.New("logger cannot be nil")
 		}
 		o.logger = logger
+		return nil
+	}
+}
+
+// WithMaxResponseSize overrides the default maximum response body size (default: 10MB).
+// Responses larger than this limit are rejected with an error.
+func WithMaxResponseSize(responseSize int) Option {
+	return func(o *options) error {
+		if responseSize <= 0 {
+			return errors.New("max response size must be greater than zero")
+		}
+		o.config.maxResponseSize = responseSize
 		return nil
 	}
 }
@@ -313,15 +327,16 @@ func NewClient(opts ...Option) (*AuraAPIClient, error) {
 	)
 
 	apiSvc := api.NewRequestService(api.Config{
-		ClientID:       o.config.clientID,
-		ClientSecret:   o.config.clientSecret,
-		BaseURL:        o.config.baseURL,
-		APIVersion:     auraAPIVersion,
-		Timeout:        o.config.apiTimeout,
-		MaxRetry:       o.config.apiRetryMax,
-		UserAgent:      o.config.userAgent,
-		HTTPClient:     o.config.httpClient,
-		DefaultHeaders: o.config.defaultHeaders,
+		ClientID:        o.config.clientID,
+		ClientSecret:    o.config.clientSecret,
+		BaseURL:         o.config.baseURL,
+		APIVersion:      auraAPIVersion,
+		Timeout:         o.config.apiTimeout,
+		MaxRetry:        o.config.apiRetryMax,
+		UserAgent:       o.config.userAgent,
+		HTTPClient:      o.config.httpClient,
+		DefaultHeaders:  o.config.defaultHeaders,
+		MaxResponseSize: o.config.maxResponseSize,
 	}, o.logger)
 
 	clientLogger := o.logger.With(slog.String("component", "AuraAPIClient"))

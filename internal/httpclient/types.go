@@ -39,9 +39,10 @@ type HTTPService interface {
 // pooling. All URLs are passed in fully-formed by the caller — this layer has
 // no knowledge of base URLs, API versions, or any other higher-level routing.
 type httpService struct {
-	timeout time.Duration
-	client  *retryablehttp.Client
-	logger  *slog.Logger
+	maxResponseSize int
+	timeout         time.Duration
+	client          *retryablehttp.Client
+	logger          *slog.Logger
 }
 
 // Compile-time interface compliance check.
