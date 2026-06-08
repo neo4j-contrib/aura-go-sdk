@@ -32,15 +32,16 @@ type ErrorDetail struct {
 
 // Config holds configuration for the API service.
 type Config struct {
-	ClientID       string
-	ClientSecret   string
-	BaseURL        string
-	APIVersion     string
-	Timeout        time.Duration
-	MaxRetry       int
-	UserAgent      string            // e.g. "aura-go-client/v1.8.0"; defaults to "aura-go-client" if empty
-	HTTPClient     *http.Client      // optional custom HTTP client; when non-nil it replaces the default transport
-	DefaultHeaders map[string]string // optional headers merged into every authenticated request
+	ClientID        string
+	ClientSecret    string
+	BaseURL         string
+	APIVersion      string
+	Timeout         time.Duration
+	MaxRetry        int
+	UserAgent       string            // e.g. "aura-go-client/v1.8.0"; defaults to "aura-go-client" if empty
+	HTTPClient      *http.Client      // optional custom HTTP client; when non-nil it replaces the default transport
+	DefaultHeaders  map[string]string // optional headers merged into every authenticated request
+	MaxResponseSize int
 }
 
 // apiRequestService is the concrete implementation of RequestService.

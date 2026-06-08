@@ -41,7 +41,7 @@ func networkOnlyRetryPolicy(ctx context.Context, resp *http.Response, err error)
 // When customClient is non-nil it is used as the base http.Client inside the
 // retryable wrapper (replacing the default transport). When nil the service
 // constructs a default client with production-suitable connection pool settings.
-func NewHTTPService(timeout time.Duration, maxRetry int, logger *slog.Logger, customClient *http.Client) HTTPService {
+func NewHTTPService(timeout time.Duration, maxRetry int, maxResponseSize int, logger *slog.Logger, customClient *http.Client) HTTPService {
 	retryClient := retryablehttp.NewClient()
 	retryClient.RetryMax = maxRetry
 	retryClient.RetryWaitMin = 1 * time.Second
@@ -75,9 +75,10 @@ func NewHTTPService(timeout time.Duration, maxRetry int, logger *slog.Logger, cu
 	}
 
 	return &httpService{
-		timeout: timeout,
-		client:  retryClient,
-		logger:  logger,
+		maxResponseSize: maxResponseSize,
+		timeout:         timeout,
+		client:          retryClient,
+		logger:          logger,
 	}
 }
 
@@ -116,7 +117,7 @@ func (s *httpService) Delete(ctx context.Context, url string, headers map[string
 
 // doRequest is the shared implementation for all HTTP methods. It builds the
 // request, attaches headers and the caller's context, executes it via the
-// retryable client, and reads the response body up to DefaultMaxResponseSize.
+// retryable client.
 func (s *httpService) doRequest(ctx context.Context, method, url string, headers map[string]string, body string) (*HTTPResponse, error) {
 	var bodyReader io.Reader
 	if body != "" {
@@ -144,10 +145,17 @@ func (s *httpService) doRequest(ctx context.Context, method, url string, headers
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	limitedReader := io.LimitReader(resp.Body, DefaultMaxResponseSize)
+	// We read slightly more than the configured max response size
+	// as that allows us to then test if the response was indeed larger
+	limitedReader := io.LimitReader(resp.Body, int64(s.maxResponseSize)+1024)
 	responseBody, err := io.ReadAll(limitedReader)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	// Check to see response was larger than the limit
+	if len(responseBody) > s.maxResponseSize {
+		return nil, fmt.Errorf("response body exceeded limit")
 	}
 
 	s.logger.DebugContext(ctx, "HTTP response received",

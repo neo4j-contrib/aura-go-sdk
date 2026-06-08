@@ -21,7 +21,7 @@ func testLogger() *slog.Logger {
 // newTestService returns an HTTPService with a short timeout, no retries, and
 // a warn-level logger — suitable for fast unit tests.
 func newTestService() HTTPService {
-	return NewHTTPService(5*time.Second, 0, testLogger(), nil)
+	return NewHTTPService(5*time.Second, 0, 10*1024*1024, testLogger(), nil)
 }
 
 // ─── GET ──────────────────────────────────────────────────────────────────────
@@ -235,6 +235,44 @@ func TestResponse_LargeBody_ReadFully(t *testing.T) {
 	}
 	if len(resp.Body) != size {
 		t.Errorf("expected body size %d, got %d", size, len(resp.Body))
+	}
+}
+
+// ─── Response size limit ──────────────────────────────────────────────────────
+
+func TestResponse_ExceedsMaxResponseSize_ReturnsError(t *testing.T) {
+	const limit = 100
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(strings.Repeat("x", limit+1)))
+	}))
+	defer srv.Close()
+
+	svc := NewHTTPService(5*time.Second, 0, limit, testLogger(), nil)
+	_, err := svc.Get(context.Background(), srv.URL, nil)
+	if err == nil {
+		t.Fatal("expected error for response body exceeding max size")
+	}
+	if !strings.Contains(err.Error(), "response body exceeded limit") {
+		t.Errorf("unexpected error message: %v", err)
+	}
+}
+
+func TestResponse_AtMaxResponseSize_Succeeds(t *testing.T) {
+	const limit = 100
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(strings.Repeat("x", limit)))
+	}))
+	defer srv.Close()
+
+	svc := NewHTTPService(5*time.Second, 0, limit, testLogger(), nil)
+	resp, err := svc.Get(context.Background(), srv.URL, nil)
+	if err != nil {
+		t.Fatalf("unexpected error for response at exact limit: %v", err)
+	}
+	if len(resp.Body) != limit {
+		t.Errorf("expected body size %d, got %d", limit, len(resp.Body))
 	}
 }
 

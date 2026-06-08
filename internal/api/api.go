@@ -68,7 +68,7 @@ func (e *Error) IsBadRequest() bool {
 // retryable wrapper, letting callers inject custom transports (mTLS, proxies,
 // testing). When nil a default client with production-suitable settings is used.
 func NewRequestService(cfg Config, logger *slog.Logger) RequestService {
-	httpSvc := httpclient.NewHTTPService(cfg.Timeout, cfg.MaxRetry, logger, cfg.HTTPClient)
+	httpSvc := httpclient.NewHTTPService(cfg.Timeout, cfg.MaxRetry, cfg.MaxResponseSize, logger, cfg.HTTPClient)
 
 	userAgent := cfg.UserAgent
 	if userAgent == "" {

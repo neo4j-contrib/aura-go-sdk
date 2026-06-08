@@ -82,6 +82,18 @@ client, err := aura.NewClient(
     aura.WithCredentials("client-id", "client-secret"),
     aura.WithTimeout(60 * time.Second),
     aura.WithMaxRetry(5),
+    aura.WithMaxResponseSize(20 * 1024 * 1024), // 20MB
+)
+```
+
+### Maximum Response Size
+
+Use `WithMaxResponseSize` to override the default 10MB response body limit. Responses larger than this limit are rejected with an error, protecting against unexpectedly large payloads:
+
+```go
+client, err := aura.NewClient(
+    aura.WithCredentials("client-id", "client-secret"),
+    aura.WithMaxResponseSize(20 * 1024 * 1024), // 20MB
 )
 ```
 
