@@ -16,7 +16,7 @@ import (
 
 	"log/slog"
 
-	"github.com/neo4j-contrib/aura-go-sdk/v2/internal/httpclient"
+	"github.com/neo4j-contrib/aura-go-sdk/internal/httpclient"
 )
 
 // newSvc creates an HTTPService suitable for behavioral tests.
