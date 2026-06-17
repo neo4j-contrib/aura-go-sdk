@@ -17,6 +17,7 @@ func TestNewClient_Success(t *testing.T) {
 	}
 	if client == nil {
 		t.Fatal("expected client to be non-nil")
+		return
 	}
 	if client.api == nil {
 		t.Error("expected api service to be initialized")
@@ -86,6 +87,7 @@ func TestNewClient_WithOrganization(t *testing.T) {
 	}
 	if client == nil {
 		t.Fatal("expected client to be non-nil")
+		return
 	}
 
 	// Verify the defaultOrgID was set during construction.

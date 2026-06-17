@@ -46,13 +46,3 @@ func resolveOrg(clientDefault string, opts []CallOption) string {
 	}
 	return clientDefault
 }
-
-// resolveProject returns the per-call project ID from opts if non-empty,
-// otherwise returns the supplied clientDefault.
-func resolveProject(clientDefault string, opts []CallOption) string {
-	cfg := applyOptions(opts)
-	if cfg.projectID != "" {
-		return cfg.projectID
-	}
-	return clientDefault
-}
