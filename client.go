@@ -24,7 +24,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/neo4j-contrib/aura-go-sdk/v2/internal/api"
+	"github.com/neo4j-contrib/aura-go-sdk/internal/api"
 )
 
 // ============================================================================
@@ -32,8 +32,9 @@ import (
 // ============================================================================
 
 // auraAPIVersion is the version of the Aura API this client targets.
-// It is intentionally not user-configurable — a new major API version
-// will be delivered as a separate module (e.g. aura-api-client/v2).
+// It is intentionally not user-configurable — Aura API v2beta1 is available
+// via the v2beta1 sub-package; a stable Aura API v2 will be delivered as a
+// Go module major version bump (github.com/neo4j-contrib/aura-go-sdk/v2).
 const auraAPIVersion = "v1"
 
 // clientVersionFallback is embedded in the User-Agent when the real module version cannot

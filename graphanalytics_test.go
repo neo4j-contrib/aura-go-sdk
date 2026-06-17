@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/neo4j-contrib/aura-go-sdk/v2/internal/api"
+	"github.com/neo4j-contrib/aura-go-sdk/internal/api"
 )
 
 // createTestGDSSessionService creates a gdsSessionService with a mock API service for testing

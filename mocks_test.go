@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/neo4j-contrib/aura-go-sdk/v2/internal/api"
+	"github.com/neo4j-contrib/aura-go-sdk/internal/api"
 )
 
 // testLogger creates a logger for testing that writes warn+ to stderr.

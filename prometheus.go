@@ -9,8 +9,8 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/neo4j-contrib/aura-go-sdk/v2/internal/api"
-	"github.com/neo4j-contrib/aura-go-sdk/v2/internal/utils"
+	"github.com/neo4j-contrib/aura-go-sdk/internal/api"
+	"github.com/neo4j-contrib/aura-go-sdk/internal/utils"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
 )
