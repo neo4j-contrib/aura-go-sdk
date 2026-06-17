@@ -18,6 +18,7 @@ Client Id and Secret are required and these can be obtained from the [Neo4j Aura
 - [CMEK Operations](#cmek-operations)
 - [GDS Session Operations](#gds-session-operations)
 - [Prometheus Metrics Operations](#prometheus-metrics-operations)
+- [v2beta1 API](#v2beta1-api)
 - [Error Handling](#error-handling)
 - [Best Practices](#best-practices)
 - [CI & Releases](#ci--releases)
@@ -717,6 +718,104 @@ if len(health.Recommendations) > 0 {
 ```
 
 For more detailed information on Prometheus operations, see the [Prometheus documentation](./docs/prometheus.md).
+
+---
+
+## v2beta1 API
+
+The `v2beta1` sub-package is a separate Go module that targets the Neo4j Aura v2beta1 API. It exposes organization and project management operations not available in the stable v1 API.
+
+### Installation
+
+The `v2beta1` package is part of the same module as the stable v1 client:
+
+```bash
+go get github.com/neo4j-contrib/aura-go-sdk
+```
+
+### Import
+
+```go
+import v2beta1 "github.com/neo4j-contrib/aura-go-sdk/v2beta1"
+```
+
+### Client construction
+
+```go
+client, err := v2beta1.NewClient(
+    v2beta1.WithCredentials("your-client-id", "your-client-secret"),
+    v2beta1.WithOrganization("your-org-uuid"),
+)
+if err != nil {
+    log.Fatalf("Failed to create client: %v", err)
+}
+defer client.Close()
+```
+
+`WithOrganization` sets the default organization ID used by every service call that does not supply a per-call `WithOrg` override. `WithDefaultProject` sets the default project ID in the same way. Both defaults can be updated after construction with `client.SetOrg(id)` and `client.SetProject(id)`.
+
+### List Organizations
+
+```go
+ctx := context.Background()
+
+orgs, err := client.Organizations.List(ctx)
+if err != nil {
+    log.Fatalf("Error: %v", err)
+}
+
+for _, org := range orgs.Data {
+    fmt.Printf("Organization: %s (ID: %s)\n", org.Name, org.ID)
+}
+```
+
+### Get Organization Details
+
+```go
+ctx := context.Background()
+
+// Using the client default set by WithOrganization:
+org, err := client.Organizations.Get(ctx)
+if err != nil {
+    log.Fatalf("Error: %v", err)
+}
+
+fmt.Printf("Organization: %s\n", org.Data.Name)
+
+// Overriding the default for a single call:
+org, err = client.Organizations.Get(ctx, v2beta1.WithOrg("other-org-uuid"))
+if err != nil {
+    log.Fatalf("Error: %v", err)
+}
+
+fmt.Printf("Organization: %s\n", org.Data.Name)
+```
+
+### List Projects
+
+```go
+ctx := context.Background()
+
+// Using the client default org ID:
+projects, err := client.Projects.List(ctx)
+if err != nil {
+    log.Fatalf("Error: %v", err)
+}
+
+for _, project := range projects.Data {
+    fmt.Printf("Project: %s (ID: %s)\n", project.Name, project.ID)
+}
+
+// Overriding the org ID for a single call:
+projects, err = client.Projects.List(ctx, v2beta1.WithOrg("other-org-uuid"))
+if err != nil {
+    log.Fatalf("Error: %v", err)
+}
+
+for _, project := range projects.Data {
+    fmt.Printf("Project: %s (ID: %s)\n", project.Name, project.ID)
+}
+```
 
 ---
 
