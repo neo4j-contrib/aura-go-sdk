@@ -1,4 +1,3 @@
-// Package v2beta1 provides a Go client library for the Neo4j Aura v2beta1 API.
 package v2beta1
 
 import "context"
