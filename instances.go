@@ -48,11 +48,11 @@ type ListInstancesResponse struct {
 
 // ListInstanceData holds the summary fields returned for each instance in a list response.
 type ListInstanceData struct {
-	ID            string `json:"id"`
-	Name          string `json:"name"`
-	Created       string `json:"created_at"`
-	TenantID      string `json:"tenant_id"`
-	CloudProvider string `json:"cloud_provider"`
+	ID            string     `json:"id"`
+	Name          string     `json:"name"`
+	CreatedAt     *time.Time `json:"created_at,omitempty"`
+	TenantID      string     `json:"tenant_id"`
+	CloudProvider string     `json:"cloud_provider"`
 }
 
 // CreateInstanceConfigData holds the configuration required to provision a new instance.

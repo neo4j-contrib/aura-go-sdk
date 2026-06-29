@@ -38,23 +38,21 @@ type InstanceSummary struct {
 	Name          string         `json:"name"`
 	Status        InstanceStatus `json:"status"`
 	CloudProvider string         `json:"cloud_provider"`
-	Region        string         `json:"region"`
-	Type          string         `json:"type"`
-	Memory        string         `json:"memory"`
+	CreatedAt     *time.Time     `json:"created_at,omitempty"`
 }
 
 // InstanceDetails holds the full set of fields returned for a single instance lookup.
 type InstanceDetails struct {
-	ID            string         `json:"id"`
-	Name          string         `json:"name"`
-	Status        InstanceStatus `json:"status"`
-	CloudProvider string         `json:"cloud_provider"`
-	ConnectionURL string         `json:"connection_url"`
-	Region        string         `json:"region"`
-	Type          string         `json:"type"`
-	Memory        string         `json:"memory"`
-	Storage       *string        `json:"storage,omitempty"`
-	CreatedAt     *time.Time     `json:"created_at,omitempty"`
+	ID              string         `json:"id"`
+	Name            string         `json:"name"`
+	Status          InstanceStatus `json:"legacy_status"`
+	CloudProvider   string         `json:"cloud_provider"`
+	Region          string         `json:"region"`
+	Type            string         `json:"type"`
+	Memory          string         `json:"memory"`
+	Storage         *string        `json:"storage,omitempty"`
+	GraphAnalytics  string         `json:"graph_analytics"`
+	VectorOptimised string         `json:"vector_optimized"`
 }
 
 // ListInstancesResponse wraps the list of instances returned by the API.

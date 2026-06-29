@@ -82,7 +82,7 @@ func main() {
 
 	newInstance, err := client.Instances.Create(ctx, &v2beta1.CreateInstanceRequest{
 		Name:          "auraClientV2beta1Example",
-		Type:          "free-db",
+		Type:          "free",
 		CloudProvider: "gcp",
 		Region:        "europe-west1",
 		Memory:        "1GB",
