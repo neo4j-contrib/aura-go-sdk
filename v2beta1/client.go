@@ -66,6 +66,8 @@ type Client struct {
 	// Service fields — interface types for testability.
 	Organizations OrganizationService
 	Projects      ProjectService
+	Instances     InstanceService
+	Databases     DatabaseService
 
 	// Mutex-protected defaults for org and project ID resolution.
 	mu               sync.RWMutex
@@ -368,9 +370,21 @@ func NewClient(opts ...Option) (*Client, error) {
 		logger:  clientLogger.With(slog.String("service", "projectService")),
 		client:  client,
 	}
+	client.Instances = &instanceService{
+		api:     apiSvc,
+		timeout: o.config.apiTimeout,
+		logger:  clientLogger.With(slog.String("service", "instanceService")),
+		client:  client,
+	}
+	client.Databases = &databaseService{
+		api:     apiSvc,
+		timeout: o.config.apiTimeout,
+		logger:  clientLogger.With(slog.String("service", "databaseService")),
+		client:  client,
+	}
 
 	client.logger.Info("Aura v2beta1 API client initialized successfully",
-		slog.Int("services", 2),
+		slog.Int("services", 4),
 		slog.String("apiVersion", auraAPIVersion),
 	)
 

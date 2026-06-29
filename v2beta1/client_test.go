@@ -7,7 +7,7 @@ import (
 )
 
 // TestNewClient_Success verifies that NewClient constructs successfully with
-// valid credentials and that both service fields are non-nil.
+// valid credentials and that all service fields are non-nil.
 func TestNewClient_Success(t *testing.T) {
 	client, err := NewClient(
 		WithCredentials("test-id", "test-secret"),
@@ -30,6 +30,12 @@ func TestNewClient_Success(t *testing.T) {
 	}
 	if client.Projects == nil {
 		t.Error("expected Projects service to be initialized")
+	}
+	if client.Instances == nil {
+		t.Error("expected Instances service to be initialized")
+	}
+	if client.Databases == nil {
+		t.Error("expected Databases service to be initialized")
 	}
 }
 

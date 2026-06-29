@@ -19,6 +19,8 @@ Client Id and Secret are required and these can be obtained from the [Neo4j Aura
 - [GDS Session Operations](#gds-session-operations)
 - [Prometheus Metrics Operations](#prometheus-metrics-operations)
 - [v2beta1 API](#v2beta1-api)
+- [v2beta1 Instance Operations](#v2beta1-instance-operations)
+- [v2beta1 Database Backup Operations](#v2beta1-database-backup-operations)
 - [Error Handling](#error-handling)
 - [Best Practices](#best-practices)
 - [CI & Releases](#ci--releases)
@@ -815,6 +817,131 @@ if err != nil {
 for _, project := range projects.Data {
     fmt.Printf("Project: %s (ID: %s)\n", project.Name, project.ID)
 }
+```
+
+---
+
+## v2beta1 Instance Operations
+
+### List Instances
+
+```go
+ctx := context.Background()
+
+instances, err := client.Instances.List(ctx)
+if err != nil {
+    log.Fatalf("Error: %v", err)
+}
+
+for _, instance := range instances.Data {
+    fmt.Printf("Instance: %s (ID: %s) status: %s\n", instance.Name, instance.ID, instance.Status)
+}
+```
+
+### Get Instance Details
+
+```go
+ctx := context.Background()
+
+instance, err := client.Instances.Get(ctx, "a1b2c3d4-e5f6-7890-abcd-ef1234567890")
+if err != nil {
+    log.Fatalf("Error: %v", err)
+}
+
+fmt.Printf("Instance: %s status: %s connection: %s\n",
+    instance.Data.Name, instance.Data.Status, instance.Data.ConnectionURL)
+```
+
+### Create an Instance
+
+```go
+ctx := context.Background()
+
+req := &v2beta1.CreateInstanceRequest{
+    Name:          "my-instance",
+    CloudProvider: "gcp",
+    Region:        "europe-west1",
+    Type:          "enterprise-db",
+    Memory:        "8GB",
+    Version:       "5",
+}
+
+instance, err := client.Instances.Create(ctx, req)
+if err != nil {
+    log.Fatalf("Error: %v", err)
+}
+
+fmt.Printf("Created: %s (ID: %s)\n", instance.Data.Name, instance.Data.ID)
+// Save instance.Data.Password securely — it is only returned once.
+```
+
+### Update an Instance
+
+```go
+ctx := context.Background()
+
+req := &v2beta1.UpdateInstanceRequest{
+    Name:   "renamed-instance",
+    Memory: "16GB",
+}
+
+instance, err := client.Instances.Update(ctx, "a1b2c3d4-e5f6-7890-abcd-ef1234567890", req)
+if err != nil {
+    log.Fatalf("Error: %v", err)
+}
+
+fmt.Printf("Updated: %s memory: %s\n", instance.Data.Name, instance.Data.Memory)
+```
+
+### Delete an Instance
+
+```go
+ctx := context.Background()
+
+result, err := client.Instances.Delete(ctx, "a1b2c3d4-e5f6-7890-abcd-ef1234567890")
+if err != nil {
+    log.Fatalf("Error: %v", err)
+}
+
+fmt.Printf("Deleted instance: %s\n", result.Data.ID)
+```
+
+---
+
+## v2beta1 Database Backup Operations
+
+### List Backups
+
+```go
+ctx := context.Background()
+
+backups, err := client.Databases.ListBackups(ctx,
+    "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+)
+if err != nil {
+    log.Fatalf("Error: %v", err)
+}
+
+for _, backup := range backups.Data {
+    fmt.Printf("Backup: %s status: %s exportable: %v\n", backup.ID, backup.Status, backup.Exportable)
+}
+```
+
+### Create a Backup
+
+```go
+ctx := context.Background()
+
+backup, err := client.Databases.CreateBackup(ctx,
+    "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+)
+if err != nil {
+    log.Fatalf("Error: %v", err)
+}
+
+fmt.Printf("Backup created: %s status: %s\n", backup.Data.ID, backup.Data.Status)
 ```
 
 ---
