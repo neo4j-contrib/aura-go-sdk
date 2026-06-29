@@ -27,8 +27,7 @@ func WithProject(projectID string) CallOption {
 
 // applyOptions builds a callConfig by applying all provided CallOptions.
 // Call sites that need both org and project resolution should call this once
-// and inspect the returned struct directly, rather than calling resolveOrg
-// and resolveProject separately.
+// and inspect the returned struct directly.
 func applyOptions(opts []CallOption) callConfig {
 	cfg := callConfig{}
 	for _, o := range opts {
@@ -43,16 +42,6 @@ func resolveOrg(clientDefault string, opts []CallOption) string {
 	cfg := applyOptions(opts)
 	if cfg.orgID != "" {
 		return cfg.orgID
-	}
-	return clientDefault
-}
-
-// resolveProject returns the per-call project ID from opts if non-empty,
-// otherwise returns the supplied clientDefault.
-func resolveProject(clientDefault string, opts []CallOption) string {
-	cfg := applyOptions(opts)
-	if cfg.projectID != "" {
-		return cfg.projectID
 	}
 	return clientDefault
 }
