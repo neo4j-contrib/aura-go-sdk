@@ -14,8 +14,8 @@ import (
 )
 
 func pollInstance(ctx context.Context, client *v2beta1.Client, instanceID string, want v2beta1.InstanceStatus) error {
-	ctxPolling, cancel := context.WithTimeout(ctx, 10*time.Minute)
-	defer cancel()
+	ctxPolling, cancelPolling := context.WithTimeout(ctx, 10*time.Minute)
+	defer cancelPolling()
 
 	i := 1
 	for {
@@ -62,8 +62,8 @@ func main() {
 	}
 	defer client.Close()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 6*time.Second)
-	defer cancel()
+	ctx, cancelMain := context.WithTimeout(context.Background(), 15*time.Minute)
+	defer cancelMain()
 
 	instances, err := client.Instances.List(ctx)
 	if err != nil {

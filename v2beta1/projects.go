@@ -53,9 +53,12 @@ func (s *projectService) List(ctx context.Context, opts ...CallOption) (*ListPro
 	}
 
 	orgID := resolveOrg(clientDefault, opts)
-	if orgID == "" {
-		err := errors.New("organization ID is required: provide it via WithOrg call option or WithOrganization client option")
-		s.logger.ErrorContext(ctx, "missing organization ID", slog.String("error", err.Error()))
+
+	// Check IDs are supplied and valid
+	// Using new Validate function
+	if err := utils.Validate(ctx, s.logger,
+		utils.OrganizationID(orgID),
+	); err != nil {
 		return nil, err
 	}
 

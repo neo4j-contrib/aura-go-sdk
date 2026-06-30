@@ -212,14 +212,12 @@ func (s *instanceService) List(ctx context.Context, opts ...CallOption) (*ListIn
 
 	orgID, projectID := s.resolveIDs(opts)
 
-	if orgID == "" {
-		err := errors.New("organization ID is required: provide it via WithOrg call option or WithOrganization client option")
-		s.logger.ErrorContext(ctx, "missing organization ID", slog.String("error", err.Error()))
-		return nil, err
-	}
-	if projectID == "" {
-		err := errors.New("project ID is required: provide it via WithProject call option or WithDefaultProject client option")
-		s.logger.ErrorContext(ctx, "missing project ID", slog.String("error", err.Error()))
+	// Check orgID / projectID are supplied and valid
+	// Using new Validate function
+	if err := utils.Validate(ctx, s.logger,
+		utils.OrganizationID(orgID),
+		utils.ProjectID(projectID),
+	); err != nil {
 		return nil, err
 	}
 
@@ -248,27 +246,14 @@ func (s *instanceService) Get(ctx context.Context, instanceID string, opts ...Ca
 
 	orgID, projectID := s.resolveIDs(opts)
 
-	s.logger.Debug("orgID and projectID after resolveIDs:", slog.String("orgID", orgID), slog.String("projectID", projectID))
-
-	if orgID == "" {
-		err := errors.New("organization ID is required: provide it via WithOrg call option or WithOrganization client option")
-		s.logger.ErrorContext(ctx, "missing organization ID", slog.String("error", err.Error()))
+	// Check orgID , projectID, InstanceID are supplied and valid
+	// Using new Validate function
+	if err := utils.Validate(ctx, s.logger,
+		utils.OrganizationID(orgID),
+		utils.ProjectID(projectID),
+		utils.InstanceID(instanceID),
+	); err != nil {
 		return nil, err
-	}
-	if projectID == "" {
-		err := errors.New("project ID is required: provide it via WithProject call option or WithDefaultProject client option")
-		s.logger.ErrorContext(ctx, "missing project ID", slog.String("error", err.Error()))
-		return nil, err
-	}
-
-	if err := utils.ValidateProjectID(projectID); err != nil {
-		s.logger.ErrorContext(ctx, "invalid projectID ID", slog.String("error", err.Error()))
-		return nil, fmt.Errorf("invalid projectID ID: %w", err)
-	}
-
-	if err := utils.ValidateTenantID(instanceID); err != nil {
-		s.logger.ErrorContext(ctx, "invalid instance ID", slog.String("error", err.Error()))
-		return nil, fmt.Errorf("invalid instance ID: %w", err)
 	}
 
 	s.logger.DebugContext(ctx, "getting instance details", slog.String("orgID", orgID), slog.String("projectID", projectID), slog.String("instanceID", instanceID))
@@ -307,14 +292,12 @@ func (s *instanceService) Create(ctx context.Context, req *CreateInstanceRequest
 
 	orgID, projectID := s.resolveIDs(opts)
 
-	if orgID == "" {
-		err := errors.New("organization ID is required: provide it via WithOrg call option or WithOrganization client option")
-		s.logger.ErrorContext(ctx, "missing organization ID", slog.String("error", err.Error()))
-		return nil, err
-	}
-	if projectID == "" {
-		err := errors.New("project ID is required: provide it via WithProject call option or WithDefaultProject client option")
-		s.logger.ErrorContext(ctx, "missing project ID", slog.String("error", err.Error()))
+	// Check orgID , projectID are supplied and valid
+	// Using new Validate function
+	if err := utils.Validate(ctx, s.logger,
+		utils.OrganizationID(orgID),
+		utils.ProjectID(projectID),
+	); err != nil {
 		return nil, err
 	}
 
@@ -360,25 +343,14 @@ func (s *instanceService) Update(ctx context.Context, instanceID string, req *Up
 
 	orgID, projectID := s.resolveIDs(opts)
 
-	if orgID == "" {
-		err := errors.New("organization ID is required: provide it via WithOrg call option or WithOrganization client option")
-		s.logger.ErrorContext(ctx, "missing organization ID", slog.String("error", err.Error()))
+	// Check orgID , projectID, InstanceID are supplied and valid
+	// Using new Validate function
+	if err := utils.Validate(ctx, s.logger,
+		utils.OrganizationID(orgID),
+		utils.ProjectID(projectID),
+		utils.InstanceID(instanceID),
+	); err != nil {
 		return nil, err
-	}
-	if projectID == "" {
-		err := errors.New("project ID is required: provide it via WithProject call option or WithDefaultProject client option")
-		s.logger.ErrorContext(ctx, "missing project ID", slog.String("error", err.Error()))
-		return nil, err
-	}
-
-	if err := utils.ValidateProjectID(projectID); err != nil {
-		s.logger.ErrorContext(ctx, "invalid project ID", slog.String("error", err.Error()))
-		return nil, fmt.Errorf("invalid project ID: %w", err)
-	}
-
-	if err := utils.ValidateTenantID(instanceID); err != nil {
-		s.logger.ErrorContext(ctx, "invalid instance ID", slog.String("error", err.Error()))
-		return nil, fmt.Errorf("invalid instance ID: %w", err)
 	}
 
 	s.logger.InfoContext(ctx, "updating instance", slog.String("orgID", orgID), slog.String("projectID", projectID), slog.String("instanceID", instanceID))
@@ -412,25 +384,14 @@ func (s *instanceService) Delete(ctx context.Context, instanceID string, opts ..
 
 	orgID, projectID := s.resolveIDs(opts)
 
-	if orgID == "" {
-		err := errors.New("organization ID is required: provide it via WithOrg call option or WithOrganization client option")
-		s.logger.ErrorContext(ctx, "missing organization ID", slog.String("error", err.Error()))
+	// Check orgID , projectID, InstanceID are supplied and valid
+	// Using new Validate function
+	if err := utils.Validate(ctx, s.logger,
+		utils.OrganizationID(orgID),
+		utils.ProjectID(projectID),
+		utils.InstanceID(instanceID),
+	); err != nil {
 		return nil, err
-	}
-	if projectID == "" {
-		err := errors.New("project ID is required: provide it via WithProject call option or WithDefaultProject client option")
-		s.logger.ErrorContext(ctx, "missing project ID", slog.String("error", err.Error()))
-		return nil, err
-	}
-
-	if err := utils.ValidateProjectID(projectID); err != nil {
-		s.logger.ErrorContext(ctx, "invalid project ID", slog.String("error", err.Error()))
-		return nil, fmt.Errorf("invalid project ID: %w", err)
-	}
-
-	if err := utils.ValidateTenantID(instanceID); err != nil {
-		s.logger.ErrorContext(ctx, "invalid instance ID", slog.String("error", err.Error()))
-		return nil, fmt.Errorf("invalid instance ID: %w", err)
 	}
 
 	s.logger.InfoContext(ctx, "deleting instance", slog.String("orgID", orgID), slog.String("projectID", projectID), slog.String("instanceID", instanceID))

@@ -3,7 +3,6 @@ package v2beta1
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -114,18 +113,14 @@ func (s *databaseService) ListDatabases(ctx context.Context, instanceID string, 
 
 	orgID, projectID := s.resolveOrgProject(opts)
 
-	if err := utils.ValidateOrgID(orgID); err != nil {
-		s.logger.ErrorContext(ctx, "invalid instance ID", slog.String("error", err.Error()))
-		return nil, fmt.Errorf("invalid project ID: %w", err)
-	}
-	if err := utils.ValidateProjectID(projectID); err != nil {
-		s.logger.ErrorContext(ctx, "invalid instance ID", slog.String("error", err.Error()))
-		return nil, fmt.Errorf("invalid project ID: %w", err)
-	}
-
-	if err := utils.ValidateInstanceID(instanceID); err != nil {
-		s.logger.ErrorContext(ctx, "invalid instance ID", slog.String("error", err.Error()))
-		return nil, fmt.Errorf("invalid database ID: %w", err)
+	// Check orgID , projectID, InstanceID are supplied and valid
+	// Using new Validate function
+	if err := utils.Validate(ctx, s.logger,
+		utils.OrganizationID(orgID),
+		utils.ProjectID(projectID),
+		utils.InstanceID(instanceID),
+	); err != nil {
+		return nil, err
 	}
 
 	s.logger.DebugContext(ctx, "listing databases",
@@ -163,24 +158,15 @@ func (s *databaseService) ListBackups(ctx context.Context, instanceID, databaseI
 
 	orgID, projectID := s.resolveOrgProject(opts)
 
-	if orgID == "" {
-		err := errors.New("organization ID is required: provide it via WithOrg call option or WithOrganization client option")
-		s.logger.ErrorContext(ctx, "missing organization ID", slog.String("error", err.Error()))
+	// Check IDs are supplied and valid
+	// Using new Validate function
+	if err := utils.Validate(ctx, s.logger,
+		utils.OrganizationID(orgID),
+		utils.ProjectID(projectID),
+		utils.InstanceID(instanceID),
+		utils.DatabaseID(databaseID),
+	); err != nil {
 		return nil, err
-	}
-	if projectID == "" {
-		err := errors.New("project ID is required: provide it via WithProject call option or WithDefaultProject client option")
-		s.logger.ErrorContext(ctx, "missing project ID", slog.String("error", err.Error()))
-		return nil, err
-	}
-
-	if err := utils.ValidateTenantID(instanceID); err != nil {
-		s.logger.ErrorContext(ctx, "invalid instance ID", slog.String("error", err.Error()))
-		return nil, fmt.Errorf("invalid instance ID: %w", err)
-	}
-	if err := utils.ValidateTenantID(databaseID); err != nil {
-		s.logger.ErrorContext(ctx, "invalid database ID", slog.String("error", err.Error()))
-		return nil, fmt.Errorf("invalid database ID: %w", err)
 	}
 
 	s.logger.DebugContext(ctx, "listing database backups",
@@ -221,24 +207,15 @@ func (s *databaseService) CreateBackup(ctx context.Context, instanceID, database
 
 	orgID, projectID := s.resolveOrgProject(opts)
 
-	if orgID == "" {
-		err := errors.New("organization ID is required: provide it via WithOrg call option or WithOrganization client option")
-		s.logger.ErrorContext(ctx, "missing organization ID", slog.String("error", err.Error()))
+	// Check IDs are supplied and valid
+	// Using new Validate function
+	if err := utils.Validate(ctx, s.logger,
+		utils.OrganizationID(orgID),
+		utils.ProjectID(projectID),
+		utils.InstanceID(instanceID),
+		utils.DatabaseID(databaseID),
+	); err != nil {
 		return nil, err
-	}
-	if projectID == "" {
-		err := errors.New("project ID is required: provide it via WithProject call option or WithDefaultProject client option")
-		s.logger.ErrorContext(ctx, "missing project ID", slog.String("error", err.Error()))
-		return nil, err
-	}
-
-	if err := utils.ValidateTenantID(instanceID); err != nil {
-		s.logger.ErrorContext(ctx, "invalid instance ID", slog.String("error", err.Error()))
-		return nil, fmt.Errorf("invalid instance ID: %w", err)
-	}
-	if err := utils.ValidateTenantID(databaseID); err != nil {
-		s.logger.ErrorContext(ctx, "invalid database ID", slog.String("error", err.Error()))
-		return nil, fmt.Errorf("invalid database ID: %w", err)
 	}
 
 	s.logger.DebugContext(ctx, "creating database backup",
