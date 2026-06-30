@@ -17,9 +17,10 @@ func main() {
 	clientSecret := os.Getenv("AURA_CLIENT_SECRET")
 	orgID := os.Getenv("AURA_ORG_ID")
 	projectID := os.Getenv("AURA_PROJECT_ID")
+	instanceID := os.Getenv("AURA_INSTANCE_ID")
 
-	if clientID == "" || clientSecret == "" || orgID == "" || projectID == "" {
-		log.Fatal("Missing required environment variables: AURA_CLIENT_ID, AURA_CLIENT_SECRET, AURA_ORG_ID, AURA_PROJECT_ID")
+	if clientID == "" || clientSecret == "" || orgID == "" || projectID == "" || instanceID == "" {
+		log.Fatal("Missing required environment variables: AURA_CLIENT_ID, AURA_CLIENT_SECRET, AURA_ORG_ID, AURA_PROJECT_ID, AURA_INSTANCE_ID")
 	}
 
 	opts := &slog.HandlerOptions{Level: slog.LevelWarn}
@@ -40,19 +41,15 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 6*time.Second)
 	defer cancel()
 
-	instances, err := client.Instances.List(ctx)
+	databases, err := client.Databases.ListDatabases(ctx, instanceID)
 	if err != nil {
-		log.Fatalf("Failed to list instances: %v", err)
+		log.Fatalf("Failed to list databases: %v", err)
 	}
 
-	for _, inst := range instances.Data {
-		fmt.Printf("- Name: %s: ID:%s CSP:%s Status:%s\n",
-			inst.Name,
+	for _, inst := range databases.Data {
+		fmt.Printf("- ID:%s \n",
 			inst.ID,
-			inst.CloudProvider,
-			inst.Status,
 		)
-
 	}
 
 	fmt.Println("\nv2beta1 client is working correctly!")

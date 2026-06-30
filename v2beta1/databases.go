@@ -45,6 +45,21 @@ type CreateBackupResponse struct {
 	Data DatabaseBackup `json:"data"`
 }
 
+// GetDatabase wraps the list of databases  returned by the API.
+type GetDatabaseResponse struct {
+	Data DatabaseResponse `json:"data"`
+}
+
+// ListDatabases wraps the list of databases  returned by the API.
+type ListDatabasesResponse struct {
+	Data []DatabaseResponse `json:"data"`
+}
+
+// DatabaseResponse represents a single Aura database.
+type DatabaseResponse struct {
+	ID string `json:"id"`
+}
+
 // ============================================================================
 // Service
 // ============================================================================
@@ -61,6 +76,13 @@ func backupsPath(orgID, projectID, instanceID, databaseID string) string {
 	return fmt.Sprintf(
 		"organizations/%s/projects/%s/instances/%s/databases/%s/backups",
 		orgID, projectID, instanceID, databaseID,
+	)
+}
+
+func instancePath(orgID, projectID, instanceID string) string {
+	return fmt.Sprintf(
+		"organizations/%s/projects/%s/instances/%s/databases",
+		orgID, projectID, instanceID,
 	)
 }
 
@@ -84,6 +106,55 @@ func (s *databaseService) resolveOrgProject(opts []CallOption) (orgID, projectID
 		projectID = defaultProject
 	}
 	return
+}
+
+func (s *databaseService) ListDatabases(ctx context.Context, instanceID string, opts ...CallOption) (*ListDatabasesResponse, error) {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	orgID, projectID := s.resolveOrgProject(opts)
+
+	if err := utils.ValidateOrgID(orgID); err != nil {
+		s.logger.ErrorContext(ctx, "invalid instance ID", slog.String("error", err.Error()))
+		return nil, fmt.Errorf("invalid project ID: %w", err)
+	}
+	if err := utils.ValidateProjectID(projectID); err != nil {
+		s.logger.ErrorContext(ctx, "invalid instance ID", slog.String("error", err.Error()))
+		return nil, fmt.Errorf("invalid project ID: %w", err)
+	}
+
+	if err := utils.ValidateInstanceID(instanceID); err != nil {
+		s.logger.ErrorContext(ctx, "invalid instance ID", slog.String("error", err.Error()))
+		return nil, fmt.Errorf("invalid database ID: %w", err)
+	}
+
+	s.logger.DebugContext(ctx, "listing databases",
+		slog.String("orgID", orgID),
+		slog.String("projectID", projectID),
+		slog.String("instanceID", instanceID),
+	)
+
+	path := instancePath(orgID, projectID, instanceID)
+	resp, err := s.api.Get(ctx, path)
+	if err != nil {
+		s.logger.ErrorContext(ctx, "failed to list instance backups",
+			slog.String("instanceID", instanceID),
+			slog.String("error", err.Error()),
+		)
+		return nil, err
+	}
+
+	var result ListDatabasesResponse
+	if err := json.Unmarshal(resp.Body, &result); err != nil {
+		s.logger.ErrorContext(ctx, "failed to unmarshal list backups response", slog.String("error", err.Error()))
+		return nil, err
+	}
+
+	s.logger.DebugContext(ctx, "database backups listed successfully",
+		slog.String("instanceID", instanceID),
+		slog.Int("count", len(result.Data)),
+	)
+	return &result, nil
 }
 
 func (s *databaseService) ListBackups(ctx context.Context, instanceID, databaseID string, opts ...CallOption) (*ListBackupsResponse, error) {

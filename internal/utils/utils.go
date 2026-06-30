@@ -44,12 +44,13 @@ func CheckDate(t string) error {
 }
 
 // uuidRegex matches a standard 8-4-4-4-12 UUID. Compiled once at package init
-// and shared by ValidateTenantID and ValidateSnapshotID.
+// and shared by ValidateTenantID, ValidateSnapshotID, ValidateProjectID, and ValidateOrgID
 var uuidRegex = regexp.MustCompile(
 	`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`,
 )
 
 // ValidateTenantID returns an error if tenantID is empty or not a valid UUID.
+// Tenant is only used by v1 of Aura API
 func ValidateTenantID(tenantID string) error {
 	if tenantID == "" {
 		return fmt.Errorf("tenant ID must not be empty")
@@ -64,10 +65,21 @@ func ValidateTenantID(tenantID string) error {
 // It returns an error if projectID is empty or not a valid UUID.
 func ValidateProjectID(projectID string) error {
 	if projectID == "" {
-		return fmt.Errorf("tenant ID must not be empty")
+		return fmt.Errorf("project ID must not be empty: provide it via WithProject call option or WithDefaultProject client option")
 	}
 	if !uuidRegex.MatchString(projectID) {
-		return fmt.Errorf("tenant ID must be a valid UUID format (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)")
+		return fmt.Errorf("project ID must be a valid UUID format (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)")
+	}
+	return nil
+}
+
+// V2 Aura API expects Org Ids in most calls. This returns an error if OrgID is empty or not a valid UUID.
+func ValidateOrgID(orgID string) error {
+	if orgID == "" {
+		return fmt.Errorf("organization ID must not be empty provide it via WithOrg call option or WithOrganization client option")
+	}
+	if !uuidRegex.MatchString(orgID) {
+		return fmt.Errorf("organization ID must be a valid UUID format (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)")
 	}
 	return nil
 }
@@ -83,7 +95,9 @@ func ValidateSnapshotID(snapshotID string) error {
 	return nil
 }
 
-// uuidInstanceIDRegex matches an 8-character hex instance ID.
+// uuidInstanceIDRegex matches an 8-character hex  ID.
+// Used by ValidateInstanceID and ValidateDatabaseID
+
 var uuidInstanceIDRegex = regexp.MustCompile(`^[0-9a-fA-F]{8}$`)
 
 // ValidateInstanceID returns an error if instanceID is empty or not an 8-character hex string.
@@ -93,6 +107,17 @@ func ValidateInstanceID(instanceID string) error {
 	}
 	if !uuidInstanceIDRegex.MatchString(instanceID) {
 		return fmt.Errorf("instance ID must be in the format of a 8-character hex string (xxxxxxxx)")
+	}
+	return nil
+}
+
+// ValidateDatabaseID returns an error if databaseID is empty or not an 8-character hex string.
+func ValidateDatabaseID(databaseID string) error {
+	if databaseID == "" {
+		return fmt.Errorf("databaseID ID must not be empty")
+	}
+	if !uuidInstanceIDRegex.MatchString(databaseID) {
+		return fmt.Errorf("databaseID ID must be in the format of a 8-character hex string (xxxxxxxx)")
 	}
 	return nil
 }

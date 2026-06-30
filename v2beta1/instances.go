@@ -266,6 +266,11 @@ func (s *instanceService) Get(ctx context.Context, instanceID string, opts ...Ca
 		return nil, fmt.Errorf("invalid projectID ID: %w", err)
 	}
 
+	if err := utils.ValidateTenantID(instanceID); err != nil {
+		s.logger.ErrorContext(ctx, "invalid instance ID", slog.String("error", err.Error()))
+		return nil, fmt.Errorf("invalid instance ID: %w", err)
+	}
+
 	s.logger.DebugContext(ctx, "getting instance details", slog.String("orgID", orgID), slog.String("projectID", projectID), slog.String("instanceID", instanceID))
 
 	resp, err := s.api.Get(ctx, instanceBasePath(orgID, projectID, instanceID))
@@ -371,6 +376,11 @@ func (s *instanceService) Update(ctx context.Context, instanceID string, req *Up
 		return nil, fmt.Errorf("invalid project ID: %w", err)
 	}
 
+	if err := utils.ValidateTenantID(instanceID); err != nil {
+		s.logger.ErrorContext(ctx, "invalid instance ID", slog.String("error", err.Error()))
+		return nil, fmt.Errorf("invalid instance ID: %w", err)
+	}
+
 	s.logger.InfoContext(ctx, "updating instance", slog.String("orgID", orgID), slog.String("projectID", projectID), slog.String("instanceID", instanceID))
 
 	body, err := json.Marshal(req)
@@ -416,6 +426,11 @@ func (s *instanceService) Delete(ctx context.Context, instanceID string, opts ..
 	if err := utils.ValidateProjectID(projectID); err != nil {
 		s.logger.ErrorContext(ctx, "invalid project ID", slog.String("error", err.Error()))
 		return nil, fmt.Errorf("invalid project ID: %w", err)
+	}
+
+	if err := utils.ValidateTenantID(instanceID); err != nil {
+		s.logger.ErrorContext(ctx, "invalid instance ID", slog.String("error", err.Error()))
+		return nil, fmt.Errorf("invalid instance ID: %w", err)
 	}
 
 	s.logger.InfoContext(ctx, "deleting instance", slog.String("orgID", orgID), slog.String("projectID", projectID), slog.String("instanceID", instanceID))

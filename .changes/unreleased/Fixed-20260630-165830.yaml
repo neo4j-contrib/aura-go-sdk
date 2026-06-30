@@ -1,0 +1,3 @@
+kind: Fixed
+body: Fix missing instanceID validation in v2beta1 InstanceService Get, Update, and Delete methods
+time: 2026-06-30T16:58:30.550989+01:00
