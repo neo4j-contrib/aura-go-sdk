@@ -12,6 +12,21 @@ import (
 )
 
 // ============================================================================
+// General helpers
+// ============================================================================
+
+// Helper function for Go time dates
+// Pass a date/time like this 2024-01-01T00:00:00Z
+// And it's returned as Go time.Time
+func mustParseTime(s string) time.Time {
+	t, err := time.Parse(time.RFC3339, s)
+	if err != nil {
+		panic(err)
+	}
+	return t
+}
+
+// ============================================================================
 // Constructor helpers
 // ============================================================================
 
@@ -38,7 +53,7 @@ func TestInstanceService_List_Success(t *testing.T) {
 
 	expected := ListInstancesResponse{
 		Data: []InstanceSummary{
-			{ID: instanceID, Name: "test-instance", Status: InstanceStatusRunning, CloudProvider: "aws", Region: "us-east-1", Type: "enterprise-db", Memory: "4GB"},
+			{ID: instanceID, Name: "test-instance", Status: InstanceStatusRunning, CloudProvider: "aws", CreatedAt: mustParseTime("2024-01-01T00:00:00Z")},
 		},
 	}
 	body, _ := json.Marshal(expected)
@@ -261,7 +276,6 @@ func TestInstanceService_Get_Success(t *testing.T) {
 			Region:        "us-central1",
 			Type:          "enterprise-db",
 			Memory:        "8GB",
-			ConnectionURL: "neo4j+s://abcdef.databases.neo4j.io",
 		},
 	}
 	body, _ := json.Marshal(expected)
@@ -290,9 +304,7 @@ func TestInstanceService_Get_Success(t *testing.T) {
 	if result.Data.Name != "prod-instance" {
 		t.Errorf("expected instance name %q, got %q", "prod-instance", result.Data.Name)
 	}
-	if result.Data.ConnectionURL != "neo4j+s://abcdef.databases.neo4j.io" {
-		t.Errorf("expected connection URL %q, got %q", "neo4j+s://abcdef.databases.neo4j.io", result.Data.ConnectionURL)
-	}
+
 }
 
 func TestInstanceService_Get_InvalidID(t *testing.T) {

@@ -11,6 +11,17 @@ import (
 	"github.com/neo4j-contrib/aura-go-sdk/internal/api"
 )
 
+// Helper function for Go time dates
+// Pass a date/time like this 2024-01-01T00:00:00Z
+// And it's returned as Go time.Time
+func mustParseTime(s string) *time.Time {
+	t, err := time.Parse(time.RFC3339, s)
+	if err != nil {
+		panic(err)
+	}
+	return &t
+}
+
 // createTestInstanceService creates an instanceService with a mock API service for testing
 func createTestInstanceService(mock *mockAPIService) *instanceService {
 	return &instanceService{
@@ -34,8 +45,8 @@ func createTestInstanceServiceWithTimeout(mock api.RequestService, timeout time.
 func TestInstanceService_List_Success(t *testing.T) {
 	expectedResponse := ListInstancesResponse{
 		Data: []ListInstanceData{
-			{ID: "instance-1", Name: "test-instance-1", Created: "2024-01-01T00:00:00Z", TenantID: "tenant-1", CloudProvider: "gcp"},
-			{ID: "instance-2", Name: "test-instance-2", Created: "2024-01-02T00:00:00Z", TenantID: "tenant-1", CloudProvider: "aws"},
+			{ID: "instance-1", Name: "test-instance-1", CreatedAt: mustParseTime("2024-01-01T00:00:00Z"), TenantID: "tenant-1", CloudProvider: "gcp"},
+			{ID: "instance-2", Name: "test-instance-2", CreatedAt: mustParseTime("2024-01-02T00:00:00Z"), TenantID: "tenant-1", CloudProvider: "aws"},
 		},
 	}
 
