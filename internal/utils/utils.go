@@ -60,6 +60,18 @@ func ValidateTenantID(tenantID string) error {
 	return nil
 }
 
+// V2 Aura API uses Project ID instead of Tenant. This is a copy of  ValidateTenantID using Projects to avoid confusion
+// It returns an error if projectID is empty or not a valid UUID.
+func ValidateProjectID(projectID string) error {
+	if projectID == "" {
+		return fmt.Errorf("tenant ID must not be empty")
+	}
+	if !uuidRegex.MatchString(projectID) {
+		return fmt.Errorf("tenant ID must be a valid UUID format (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)")
+	}
+	return nil
+}
+
 // ValidateSnapshotID returns an error if snapshotID is empty or not a valid UUID.
 func ValidateSnapshotID(snapshotID string) error {
 	if snapshotID == "" {

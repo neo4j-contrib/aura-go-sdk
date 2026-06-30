@@ -47,7 +47,7 @@ func main() {
 		log.Fatal("Missing required environment variables: AURA_CLIENT_ID, AURA_CLIENT_SECRET, AURA_ORG_ID, AURA_PROJECT_ID")
 	}
 
-	opts := &slog.HandlerOptions{Level: slog.LevelWarn}
+	opts := &slog.HandlerOptions{Level: slog.LevelDebug}
 	customLogger := slog.New(slog.NewTextHandler(os.Stderr, opts))
 
 	client, err := v2beta1.NewClient(
@@ -92,12 +92,14 @@ func main() {
 	}
 
 	fmt.Println("\nInstance created")
-	fmt.Printf("- %s: %s %s %s (%s)\n",
+	fmt.Printf("- %s: %s %s %s %s %s %s\n",
 		newInstance.Data.Name,
 		newInstance.Data.ID,
 		newInstance.Data.CloudProvider,
 		newInstance.Data.ConnectionURL,
 		newInstance.Data.Username,
+		newInstance.Data.Password,
+		newInstance.Data.ProjectID,
 	)
 
 	if err := pollInstance(ctx, client, newInstance.Data.ID, v2beta1.InstanceStatusRunning); err != nil {
