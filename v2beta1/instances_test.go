@@ -18,12 +18,12 @@ import (
 // Helper function for Go time dates
 // Pass a date/time like this 2024-01-01T00:00:00Z
 // And it's returned as Go time.Time
-func mustParseTime(s string) *time.Time {
+func mustParseTime(s string) time.Time {
 	t, err := time.Parse(time.RFC3339, s)
 	if err != nil {
 		panic(err)
 	}
-	return &t
+	return t
 }
 
 // ============================================================================

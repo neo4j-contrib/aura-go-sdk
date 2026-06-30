@@ -38,7 +38,7 @@ type InstanceSummary struct {
 	Name          string         `json:"name"`
 	Status        InstanceStatus `json:"status"`
 	CloudProvider string         `json:"cloud_provider"`
-	CreatedAt     *time.Time     `json:"created_at,omitempty"`
+	CreatedAt     time.Time      `json:"created_at"`
 }
 
 // InstanceDetails holds the full set of fields returned for a single instance lookup.
@@ -50,7 +50,7 @@ type InstanceDetails struct {
 	Region          string         `json:"region"`
 	Type            string         `json:"type"`
 	Memory          string         `json:"memory"`
-	Storage         *string        `json:"storage,omitempty"`
+	Storage         string         `json:"storage"`
 	GraphAnalytics  string         `json:"graph_analytics"`
 	VectorOptimised string         `json:"vector_optimized"`
 }
