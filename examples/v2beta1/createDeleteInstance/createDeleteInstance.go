@@ -47,7 +47,7 @@ func main() {
 		log.Fatal("Missing required environment variables: AURA_CLIENT_ID, AURA_CLIENT_SECRET, AURA_ORG_ID, AURA_PROJECT_ID")
 	}
 
-	opts := &slog.HandlerOptions{Level: slog.LevelDebug}
+	opts := &slog.HandlerOptions{Level: slog.LevelError}
 	customLogger := slog.New(slog.NewTextHandler(os.Stderr, opts))
 
 	client, err := v2beta1.NewClient(
