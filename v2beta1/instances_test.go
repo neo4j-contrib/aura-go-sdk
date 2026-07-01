@@ -49,7 +49,7 @@ func createTestInstanceServiceWithTimeout(mock api.RequestService, timeout time.
 func TestInstanceService_List_Success(t *testing.T) {
 	orgID := "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
 	projectID := "11111111-2222-3333-4444-555555555555"
-	instanceID := "cccccccc-dddd-eeee-ffff-000000000000"
+	instanceID := "abcdef01"
 
 	expected := ListInstancesResponse{
 		Data: []InstanceSummary{
@@ -265,7 +265,7 @@ func TestInstanceService_List_QuickCancellation(t *testing.T) {
 func TestInstanceService_Get_Success(t *testing.T) {
 	orgID := "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
 	projectID := "11111111-2222-3333-4444-555555555555"
-	instanceID := "cccccccc-dddd-eeee-ffff-000000000000"
+	instanceID := "abcdef01"
 
 	expected := GetInstanceResponse{
 		Data: InstanceDetails{
@@ -343,7 +343,7 @@ func TestInstanceService_Get_InvalidID(t *testing.T) {
 }
 
 func TestInstanceService_Get_MissingOrgID(t *testing.T) {
-	instanceID := "cccccccc-dddd-eeee-ffff-000000000000"
+	instanceID := "abcdef01"
 	mock := &mockAPIService{}
 	service := createTestInstanceService(mock)
 
@@ -365,7 +365,7 @@ func TestInstanceService_Get_MissingOrgID(t *testing.T) {
 
 func TestInstanceService_Get_MissingProjectID(t *testing.T) {
 	orgID := "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
-	instanceID := "cccccccc-dddd-eeee-ffff-000000000000"
+	instanceID := "abcdef01"
 	mock := &mockAPIService{}
 	service := createTestInstanceService(mock)
 	service.client = &Client{defaultOrgID: orgID}
@@ -389,7 +389,7 @@ func TestInstanceService_Get_MissingProjectID(t *testing.T) {
 func TestInstanceService_Get_NotFound(t *testing.T) {
 	orgID := "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
 	projectID := "11111111-2222-3333-4444-555555555555"
-	instanceID := "cccccccc-dddd-eeee-ffff-000000000000"
+	instanceID := "abcdef01"
 	mock := &mockAPIService{
 		err: &api.Error{StatusCode: 404, Message: "Instance not found"},
 	}
@@ -417,7 +417,7 @@ func TestInstanceService_Get_NotFound(t *testing.T) {
 func TestInstanceService_Get_AuthenticationError(t *testing.T) {
 	orgID := "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
 	projectID := "11111111-2222-3333-4444-555555555555"
-	instanceID := "cccccccc-dddd-eeee-ffff-000000000000"
+	instanceID := "abcdef01"
 	mock := &mockAPIService{
 		err: &api.Error{StatusCode: 401, Message: "Invalid credentials"},
 	}
@@ -442,7 +442,7 @@ func TestInstanceService_Get_AuthenticationError(t *testing.T) {
 func TestInstanceService_Get_ContextTimeout(t *testing.T) {
 	orgID := "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
 	projectID := "11111111-2222-3333-4444-555555555555"
-	instanceID := "cccccccc-dddd-eeee-ffff-000000000000"
+	instanceID := "abcdef01"
 	body, _ := json.Marshal(GetInstanceResponse{Data: InstanceDetails{ID: instanceID}})
 	mock := &mockAPIServiceWithDelay{
 		response: &api.Response{StatusCode: 200, Body: body},
@@ -474,7 +474,7 @@ func TestInstanceService_Get_QuickCancellation(t *testing.T) {
 
 	orgID := "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
 	projectID := "11111111-2222-3333-4444-555555555555"
-	instanceID := "cccccccc-dddd-eeee-ffff-000000000000"
+	instanceID := "abcdef01"
 	body, _ := json.Marshal(GetInstanceResponse{Data: InstanceDetails{ID: instanceID}})
 	mock := &mockAPIServiceWithDelay{
 		response: &api.Response{StatusCode: 200, Body: body},
@@ -501,7 +501,7 @@ func TestInstanceService_Get_QuickCancellation(t *testing.T) {
 func TestInstanceService_Create_Success(t *testing.T) {
 	orgID := "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
 	projectID := "11111111-2222-3333-4444-555555555555"
-	instanceID := "cccccccc-dddd-eeee-ffff-000000000000"
+	instanceID := "abcdef01"
 
 	req := &CreateInstanceRequest{
 		Name:          "new-instance",
@@ -813,7 +813,7 @@ func TestInstanceService_Create_QuickCancellation(t *testing.T) {
 func TestInstanceService_Update_Success(t *testing.T) {
 	orgID := "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
 	projectID := "11111111-2222-3333-4444-555555555555"
-	instanceID := "cccccccc-dddd-eeee-ffff-000000000000"
+	instanceID := "abcdef01"
 
 	req := &UpdateInstanceRequest{
 		Name:   "updated-name",
@@ -903,7 +903,7 @@ func TestInstanceService_Update_InvalidID(t *testing.T) {
 func TestInstanceService_Update_NilRequest(t *testing.T) {
 	orgID := "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
 	projectID := "11111111-2222-3333-4444-555555555555"
-	instanceID := "cccccccc-dddd-eeee-ffff-000000000000"
+	instanceID := "abcdef01"
 	mock := &mockAPIService{}
 
 	service := createTestInstanceService(mock)
@@ -923,7 +923,7 @@ func TestInstanceService_Update_NilRequest(t *testing.T) {
 }
 
 func TestInstanceService_Update_MissingOrgID(t *testing.T) {
-	instanceID := "cccccccc-dddd-eeee-ffff-000000000000"
+	instanceID := "abcdef01"
 	req := &UpdateInstanceRequest{Name: "updated"}
 	mock := &mockAPIService{}
 	service := createTestInstanceService(mock)
@@ -946,7 +946,7 @@ func TestInstanceService_Update_MissingOrgID(t *testing.T) {
 
 func TestInstanceService_Update_MissingProjectID(t *testing.T) {
 	orgID := "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
-	instanceID := "cccccccc-dddd-eeee-ffff-000000000000"
+	instanceID := "abcdef01"
 	req := &UpdateInstanceRequest{Name: "updated"}
 	mock := &mockAPIService{}
 	service := createTestInstanceService(mock)
@@ -971,7 +971,7 @@ func TestInstanceService_Update_MissingProjectID(t *testing.T) {
 func TestInstanceService_Update_ContextTimeout(t *testing.T) {
 	orgID := "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
 	projectID := "11111111-2222-3333-4444-555555555555"
-	instanceID := "cccccccc-dddd-eeee-ffff-000000000000"
+	instanceID := "abcdef01"
 	req := &UpdateInstanceRequest{Name: "updated"}
 	mock := &mockAPIServiceWithDelay{
 		response: &api.Response{StatusCode: 200, Body: []byte(`{}`)},
@@ -1003,7 +1003,7 @@ func TestInstanceService_Update_QuickCancellation(t *testing.T) {
 
 	orgID := "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
 	projectID := "11111111-2222-3333-4444-555555555555"
-	instanceID := "cccccccc-dddd-eeee-ffff-000000000000"
+	instanceID := "abcdef01"
 	req := &UpdateInstanceRequest{Name: "updated"}
 	mock := &mockAPIServiceWithDelay{
 		response: &api.Response{StatusCode: 200, Body: []byte(`{}`)},
@@ -1030,7 +1030,7 @@ func TestInstanceService_Update_QuickCancellation(t *testing.T) {
 func TestInstanceService_Delete_Success(t *testing.T) {
 	orgID := "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
 	projectID := "11111111-2222-3333-4444-555555555555"
-	instanceID := "cccccccc-dddd-eeee-ffff-000000000000"
+	instanceID := "abcdef01"
 
 	expected := DeleteInstanceResponse{
 		Data: InstanceDetails{ID: instanceID, Status: InstanceStatusDestroying},
@@ -1095,7 +1095,7 @@ func TestInstanceService_Delete_InvalidID(t *testing.T) {
 }
 
 func TestInstanceService_Delete_MissingOrgID(t *testing.T) {
-	instanceID := "cccccccc-dddd-eeee-ffff-000000000000"
+	instanceID := "abcdef01"
 	mock := &mockAPIService{}
 	service := createTestInstanceService(mock)
 
@@ -1117,7 +1117,7 @@ func TestInstanceService_Delete_MissingOrgID(t *testing.T) {
 
 func TestInstanceService_Delete_MissingProjectID(t *testing.T) {
 	orgID := "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
-	instanceID := "cccccccc-dddd-eeee-ffff-000000000000"
+	instanceID := "abcdef01"
 	mock := &mockAPIService{}
 	service := createTestInstanceService(mock)
 	service.client = &Client{defaultOrgID: orgID}
@@ -1141,7 +1141,7 @@ func TestInstanceService_Delete_MissingProjectID(t *testing.T) {
 func TestInstanceService_Delete_NotFound(t *testing.T) {
 	orgID := "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
 	projectID := "11111111-2222-3333-4444-555555555555"
-	instanceID := "cccccccc-dddd-eeee-ffff-000000000000"
+	instanceID := "abcdef01"
 	mock := &mockAPIService{
 		err: &api.Error{StatusCode: 404, Message: "Instance not found"},
 	}
@@ -1169,7 +1169,7 @@ func TestInstanceService_Delete_NotFound(t *testing.T) {
 func TestInstanceService_Delete_ContextTimeout(t *testing.T) {
 	orgID := "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
 	projectID := "11111111-2222-3333-4444-555555555555"
-	instanceID := "cccccccc-dddd-eeee-ffff-000000000000"
+	instanceID := "abcdef01"
 	mock := &mockAPIServiceWithDelay{
 		response: &api.Response{StatusCode: 200, Body: []byte(`{}`)},
 		delay:    2 * time.Second,
@@ -1200,7 +1200,7 @@ func TestInstanceService_Delete_QuickCancellation(t *testing.T) {
 
 	orgID := "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
 	projectID := "11111111-2222-3333-4444-555555555555"
-	instanceID := "cccccccc-dddd-eeee-ffff-000000000000"
+	instanceID := "abcdef01"
 	mock := &mockAPIServiceWithDelay{
 		response: &api.Response{StatusCode: 200, Body: []byte(`{}`)},
 		delay:    0,
