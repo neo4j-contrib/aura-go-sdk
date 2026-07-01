@@ -1,3 +1,0 @@
-kind: Added
-body: 'v2beta1: split database operations into separate Databases (List, Delete) and DatabaseBackups (List, Create) services; add full test coverage for all database endpoints'
-time: 2026-07-01T15:50:00.000000+01:00

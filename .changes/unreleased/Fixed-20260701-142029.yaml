@@ -1,3 +1,0 @@
-kind: Fixed
-body: 'Update v2beta1 test IDs to match new utils.Validate format requirements: org/project IDs use UUID format, instance/database IDs use 8-character hex format'
-time: 2026-07-01T14:20:29.318979+01:00
