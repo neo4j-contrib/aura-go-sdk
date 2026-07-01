@@ -1,3 +1,0 @@
-kind: Added
-body: Add DatabaseService.ListDatabases to v2beta1 to list all databases on an instance
-time: 2026-06-30T16:58:30.53928+01:00
