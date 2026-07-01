@@ -113,7 +113,7 @@ func (s *databaseService) ListDatabases(ctx context.Context, instanceID string, 
 
 	orgID, projectID := s.resolveOrgProject(opts)
 
-	// Check orgID , projectID, InstanceID are supplied and valid
+	// Check IDs are supplied and valid
 	// Using new Validate function
 	if err := utils.Validate(ctx, s.logger,
 		utils.OrganizationID(orgID),

@@ -212,7 +212,7 @@ func (s *instanceService) List(ctx context.Context, opts ...CallOption) (*ListIn
 
 	orgID, projectID := s.resolveIDs(opts)
 
-	// Check orgID / projectID are supplied and valid
+	// Check IDs are supplied and valid
 	// Using new Validate function
 	if err := utils.Validate(ctx, s.logger,
 		utils.OrganizationID(orgID),
@@ -246,7 +246,7 @@ func (s *instanceService) Get(ctx context.Context, instanceID string, opts ...Ca
 
 	orgID, projectID := s.resolveIDs(opts)
 
-	// Check orgID , projectID, InstanceID are supplied and valid
+	// Check IDs are supplied and valid
 	// Using new Validate function
 	if err := utils.Validate(ctx, s.logger,
 		utils.OrganizationID(orgID),
@@ -292,7 +292,7 @@ func (s *instanceService) Create(ctx context.Context, req *CreateInstanceRequest
 
 	orgID, projectID := s.resolveIDs(opts)
 
-	// Check orgID , projectID are supplied and valid
+	// Check IDs are supplied and valid
 	// Using new Validate function
 	if err := utils.Validate(ctx, s.logger,
 		utils.OrganizationID(orgID),
@@ -343,7 +343,7 @@ func (s *instanceService) Update(ctx context.Context, instanceID string, req *Up
 
 	orgID, projectID := s.resolveIDs(opts)
 
-	// Check orgID , projectID, InstanceID are supplied and valid
+	// Check IDs are supplied and valid
 	// Using new Validate function
 	if err := utils.Validate(ctx, s.logger,
 		utils.OrganizationID(orgID),
@@ -384,7 +384,7 @@ func (s *instanceService) Delete(ctx context.Context, instanceID string, opts ..
 
 	orgID, projectID := s.resolveIDs(opts)
 
-	// Check orgID , projectID, InstanceID are supplied and valid
+	// Check IDs are supplied and valid
 	// Using new Validate function
 	if err := utils.Validate(ctx, s.logger,
 		utils.OrganizationID(orgID),
