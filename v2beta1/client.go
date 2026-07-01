@@ -64,10 +64,11 @@ type Client struct {
 	logger *slog.Logger
 
 	// Service fields — interface types for testability.
-	Organizations OrganizationService
-	Projects      ProjectService
-	Instances     InstanceService
-	Databases     DatabaseService
+	Organizations   OrganizationService
+	Projects        ProjectService
+	Instances       InstanceService
+	Databases       DatabaseService
+	DatabaseBackups DatabaseBackupService
 
 	// Mutex-protected defaults for org and project ID resolution.
 	mu               sync.RWMutex
@@ -383,6 +384,12 @@ func NewClient(opts ...Option) (*Client, error) {
 		client:  client,
 	}
 
+	client.DatabaseBackups = &databaseBackupService{
+		api:     apiSvc,
+		timeout: o.config.apiTimeout,
+		logger:  clientLogger.With(slog.String("service", "databaseService")),
+		client:  client,
+	}
 	client.logger.Info("Aura v2beta1 API client initialized successfully",
 		slog.Int("services", 4),
 		slog.String("apiVersion", auraAPIVersion),

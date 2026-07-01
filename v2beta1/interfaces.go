@@ -33,20 +33,28 @@ type InstanceService interface {
 	Delete(ctx context.Context, instanceID string, opts ...CallOption) (*DeleteInstanceResponse, error)
 }
 
-// DatabaseService defines operations for managing Aura database backups.
+// DatabaseService defines operations for managing Aura databases.
 type DatabaseService interface {
-	// ListDatabases returns all databases on an instance
-	ListDatabases(ctx context.Context, instanceID string, opts ...CallOption) (*ListDatabasesResponse, error)
-	// ListBackups returns all backups for the specified database within an instance.
-	ListBackups(ctx context.Context, instanceID string, databaseID string, opts ...CallOption) (*ListBackupsResponse, error)
-	// CreateBackup triggers a new backup for the specified database within an instance.
-	CreateBackup(ctx context.Context, instanceID string, databaseID string, opts ...CallOption) (*CreateBackupResponse, error)
+	// List returns all databases on an instance
+	List(ctx context.Context, instanceID string, opts ...CallOption) (*ListDatabasesResponse, error)
+
+	// Delete removes a database from an Aura instance
+	Delete(ctx context.Context, instanceID, databaseID string, opts ...CallOption) (*DeleteDatabaseResponse, error)
+}
+
+// DatabaseBackup Service defines operations for managing Aura database backups.
+type DatabaseBackupService interface {
+	// List returns all backups for the specified database within an instance.
+	List(ctx context.Context, instanceID string, databaseID string, opts ...CallOption) (*ListBackupsResponse, error)
+	// Create triggers a new backup for the specified database within an instance.
+	Create(ctx context.Context, instanceID string, databaseID string, opts ...CallOption) (*CreateBackupResponse, error)
 }
 
 // Compile-time interface compliance checks
 var (
-	_ OrganizationService = (*organizationService)(nil)
-	_ ProjectService      = (*projectService)(nil)
-	_ InstanceService     = (*instanceService)(nil)
-	_ DatabaseService     = (*databaseService)(nil)
+	_ OrganizationService   = (*organizationService)(nil)
+	_ ProjectService        = (*projectService)(nil)
+	_ InstanceService       = (*instanceService)(nil)
+	_ DatabaseService       = (*databaseService)(nil)
+	_ DatabaseBackupService = (*databaseBackupService)(nil)
 )
