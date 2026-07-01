@@ -21,10 +21,10 @@ func createTestDatabaseServiceWithTimeout(mock api.RequestService, timeout time.
 
 func TestDatabaseListBackups_Success(t *testing.T) {
 	const (
-		orgID      = "test-org"
-		projectID  = "test-proj"
-		instanceID = "11111111-2222-3333-4444-555555555555"
-		databaseID = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		orgID      = "11111111-aabb-3333-4444-555555555555"
+		projectID  = "aaaaaaaa-aabb-3333-4444-ffff1111aaaa"
+		instanceID = "a1b2c3d4"
+		databaseID = "aa22ff99"
 	)
 
 	expected := ListBackupsResponse{
@@ -83,10 +83,10 @@ func TestDatabaseListBackups_Success(t *testing.T) {
 
 func TestDatabaseListBackups_EmptyResult(t *testing.T) {
 	const (
-		orgID      = "test-org"
-		projectID  = "test-proj"
-		instanceID = "11111111-2222-3333-4444-555555555555"
-		databaseID = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		orgID      = "11111111-aabb-3333-4444-555555555555"
+		projectID  = "aaaaaaaa-aabb-3333-4444-ffff1111aaaa"
+		instanceID = "a1b2c3d4"
+		databaseID = "aa22ff99"
 	)
 
 	body, _ := json.Marshal(ListBackupsResponse{Data: []DatabaseBackup{}})
@@ -118,9 +118,10 @@ func TestDatabaseListBackups_InvalidInstanceID(t *testing.T) {
 	}
 
 	const (
-		orgID      = "test-org"
-		projectID  = "test-proj"
-		databaseID = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		orgID      = "11111111-aabb-3333-4444-555555555555"
+		projectID  = "aaaaaaaa-aabb-3333-4444-ffff1111aaaa"
+		instanceID = "a1b2c3d4"
+		databaseID = "aa22ff99"
 	)
 
 	for _, tc := range tests {
@@ -155,9 +156,10 @@ func TestDatabaseListBackups_InvalidDatabaseID(t *testing.T) {
 	}
 
 	const (
-		orgID      = "test-org"
-		projectID  = "test-proj"
-		instanceID = "11111111-2222-3333-4444-555555555555"
+		orgID      = "11111111-aabb-3333-4444-555555555555"
+		projectID  = "aaaaaaaa-aabb-3333-4444-ffff1111aaaa"
+		instanceID = "a1b2c3d4"
+		databaseID = "aa22ff99"
 	)
 
 	for _, tc := range tests {
@@ -183,8 +185,10 @@ func TestDatabaseListBackups_InvalidDatabaseID(t *testing.T) {
 
 func TestDatabaseListBackups_MissingOrgID(t *testing.T) {
 	const (
-		instanceID = "11111111-2222-3333-4444-555555555555"
-		databaseID = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		orgID      = "11111111-aabb-3333-4444-555555555555"
+		projectID  = "aaaaaaaa-aabb-3333-4444-ffff1111aaaa"
+		instanceID = "a1b2c3d4"
+		databaseID = "aa22ff99"
 	)
 
 	mock := &mockAPIService{}
@@ -208,9 +212,10 @@ func TestDatabaseListBackups_MissingOrgID(t *testing.T) {
 
 func TestDatabaseListBackups_MissingProjectID(t *testing.T) {
 	const (
-		orgID      = "test-org"
-		instanceID = "11111111-2222-3333-4444-555555555555"
-		databaseID = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		orgID      = "11111111-aabb-3333-4444-555555555555"
+		projectID  = "aaaaaaaa-aabb-3333-4444-ffff1111aaaa"
+		instanceID = "a1b2c3d4"
+		databaseID = "aa22ff99"
 	)
 
 	mock := &mockAPIService{}
@@ -247,10 +252,10 @@ func TestDatabaseListBackups_MissingProjectID(t *testing.T) {
 
 func TestDatabaseListBackups_NotFound(t *testing.T) {
 	const (
-		orgID      = "test-org"
-		projectID  = "test-proj"
-		instanceID = "11111111-2222-3333-4444-555555555555"
-		databaseID = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		orgID      = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		projectID  = "11111111-2222-3333-4444-555555555555"
+		instanceID = "abcdef01"
+		databaseID = "12345678"
 	)
 
 	mock := &mockAPIService{
@@ -280,10 +285,10 @@ func TestDatabaseListBackups_NotFound(t *testing.T) {
 
 func TestDatabaseListBackups_AuthenticationError(t *testing.T) {
 	const (
-		orgID      = "test-org"
-		projectID  = "test-proj"
-		instanceID = "11111111-2222-3333-4444-555555555555"
-		databaseID = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		orgID      = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		projectID  = "11111111-2222-3333-4444-555555555555"
+		instanceID = "abcdef01"
+		databaseID = "12345678"
 	)
 
 	mock := &mockAPIService{
@@ -310,10 +315,10 @@ func TestDatabaseListBackups_AuthenticationError(t *testing.T) {
 
 func TestDatabaseListBackups_ContextTimeout(t *testing.T) {
 	const (
-		orgID      = "test-org"
-		projectID  = "test-proj"
-		instanceID = "11111111-2222-3333-4444-555555555555"
-		databaseID = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		orgID      = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		projectID  = "11111111-2222-3333-4444-555555555555"
+		instanceID = "abcdef01"
+		databaseID = "12345678"
 	)
 
 	body, _ := json.Marshal(ListBackupsResponse{Data: []DatabaseBackup{}})
@@ -346,10 +351,10 @@ func TestDatabaseListBackups_QuickCancellation(t *testing.T) {
 	time.Sleep(10 * time.Millisecond)
 
 	const (
-		orgID      = "test-org"
-		projectID  = "test-proj"
-		instanceID = "11111111-2222-3333-4444-555555555555"
-		databaseID = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		orgID      = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		projectID  = "11111111-2222-3333-4444-555555555555"
+		instanceID = "abcdef01"
+		databaseID = "12345678"
 	)
 
 	body, _ := json.Marshal(ListBackupsResponse{Data: []DatabaseBackup{}})
@@ -373,10 +378,10 @@ func TestDatabaseListBackups_QuickCancellation(t *testing.T) {
 
 func TestDatabaseCreateBackup_Success(t *testing.T) {
 	const (
-		orgID      = "test-org"
-		projectID  = "test-proj"
-		instanceID = "11111111-2222-3333-4444-555555555555"
-		databaseID = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		orgID      = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		projectID  = "11111111-2222-3333-4444-555555555555"
+		instanceID = "abcdef01"
+		databaseID = "12345678"
 	)
 
 	expected := CreateBackupResponse{
@@ -427,9 +432,9 @@ func TestDatabaseCreateBackup_InvalidInstanceID(t *testing.T) {
 	}
 
 	const (
-		orgID      = "test-org"
-		projectID  = "test-proj"
-		databaseID = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		orgID      = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		projectID  = "11111111-2222-3333-4444-555555555555"
+		databaseID = "12345678"
 	)
 
 	for _, tc := range tests {
@@ -464,9 +469,9 @@ func TestDatabaseCreateBackup_InvalidDatabaseID(t *testing.T) {
 	}
 
 	const (
-		orgID      = "test-org"
-		projectID  = "test-proj"
-		instanceID = "11111111-2222-3333-4444-555555555555"
+		orgID      = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		projectID  = "11111111-2222-3333-4444-555555555555"
+		instanceID = "abcdef01"
 	)
 
 	for _, tc := range tests {
@@ -492,8 +497,8 @@ func TestDatabaseCreateBackup_InvalidDatabaseID(t *testing.T) {
 
 func TestDatabaseCreateBackup_MissingOrgID(t *testing.T) {
 	const (
-		instanceID = "11111111-2222-3333-4444-555555555555"
-		databaseID = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		instanceID = "abcdef01"
+		databaseID = "12345678"
 	)
 
 	mock := &mockAPIService{}
@@ -517,9 +522,9 @@ func TestDatabaseCreateBackup_MissingOrgID(t *testing.T) {
 
 func TestDatabaseCreateBackup_MissingProjectID(t *testing.T) {
 	const (
-		orgID      = "test-org"
-		instanceID = "11111111-2222-3333-4444-555555555555"
-		databaseID = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		orgID      = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		instanceID = "abcdef01"
+		databaseID = "12345678"
 	)
 
 	mock := &mockAPIService{}
@@ -556,10 +561,10 @@ func TestDatabaseCreateBackup_MissingProjectID(t *testing.T) {
 
 func TestDatabaseCreateBackup_NotFound(t *testing.T) {
 	const (
-		orgID      = "test-org"
-		projectID  = "test-proj"
-		instanceID = "11111111-2222-3333-4444-555555555555"
-		databaseID = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		orgID      = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		projectID  = "11111111-2222-3333-4444-555555555555"
+		instanceID = "abcdef01"
+		databaseID = "12345678"
 	)
 
 	mock := &mockAPIService{
@@ -589,10 +594,10 @@ func TestDatabaseCreateBackup_NotFound(t *testing.T) {
 
 func TestDatabaseCreateBackup_AuthenticationError(t *testing.T) {
 	const (
-		orgID      = "test-org"
-		projectID  = "test-proj"
-		instanceID = "11111111-2222-3333-4444-555555555555"
-		databaseID = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		orgID      = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		projectID  = "11111111-2222-3333-4444-555555555555"
+		instanceID = "abcdef01"
+		databaseID = "12345678"
 	)
 
 	mock := &mockAPIService{
@@ -619,10 +624,10 @@ func TestDatabaseCreateBackup_AuthenticationError(t *testing.T) {
 
 func TestDatabaseCreateBackup_ContextTimeout(t *testing.T) {
 	const (
-		orgID      = "test-org"
-		projectID  = "test-proj"
-		instanceID = "11111111-2222-3333-4444-555555555555"
-		databaseID = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		orgID      = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		projectID  = "11111111-2222-3333-4444-555555555555"
+		instanceID = "abcdef01"
+		databaseID = "12345678"
 	)
 
 	body, _ := json.Marshal(CreateBackupResponse{})
@@ -655,10 +660,10 @@ func TestDatabaseCreateBackup_QuickCancellation(t *testing.T) {
 	time.Sleep(10 * time.Millisecond)
 
 	const (
-		orgID      = "test-org"
-		projectID  = "test-proj"
-		instanceID = "11111111-2222-3333-4444-555555555555"
-		databaseID = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		orgID      = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		projectID  = "11111111-2222-3333-4444-555555555555"
+		instanceID = "abcdef01"
+		databaseID = "12345678"
 	)
 
 	body, _ := json.Marshal(CreateBackupResponse{})
