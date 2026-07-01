@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"log/slog"
 	"regexp"
+	"strings"
 	"time"
 )
 
@@ -235,4 +236,39 @@ func TruncateString(s string, n int) string {
 		i++
 	}
 	return s
+}
+
+// ===============================================================================
+// Helper functions for building endpoint paths
+// ===============================================================================
+func resourcePath(parts ...string) string {
+	return strings.Join(parts, "/")
+}
+
+func ProjectsPath(orgID string) string {
+	return resourcePath("organizations", orgID, "projects")
+}
+
+func IndividualProjectPath(orgID, projectID string) string {
+	return resourcePath("organizations", orgID, "projects", projectID)
+}
+
+func InstancesPath(orgID, projectID, instanceID string) string {
+	return resourcePath("organizations", orgID, "projects", projectID, "instances")
+}
+
+func IndividualInstancesPath(orgID, projectID, instanceID string) string {
+	return resourcePath("organizations", orgID, "projects", projectID, "instances", instanceID)
+}
+
+func DatabasesPath(orgID, projectID, instanceID string) string {
+	return resourcePath("organizations", orgID, "projects", projectID, "instances", instanceID, "databases")
+}
+
+func IndividualDatabasePath(orgID, projectID, instanceID, databaseID string) string {
+	return resourcePath("organizations", orgID, "projects", projectID, "instances", instanceID, "databases", databaseID)
+}
+
+func BackupsPath(orgID, projectID, instanceID, databaseID string) string {
+	return resourcePath("organizations", orgID, "projects", projectID, "instances", instanceID, "databases", databaseID, "backups")
 }
