@@ -41,7 +41,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 6*time.Second)
 	defer cancel()
 
-	databases, err := client.Databases.ListDatabases(ctx, instanceID)
+	databases, err := client.Databases.List(ctx, instanceID)
 	if err != nil {
 		log.Fatalf("Failed to list databases: %v", err)
 	}
