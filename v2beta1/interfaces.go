@@ -37,7 +37,10 @@ type InstanceService interface {
 type DatabaseService interface {
 	// List returns all databases on an instance
 	List(ctx context.Context, instanceID string, opts ...CallOption) (*ListDatabasesResponse, error)
-
+	// Get returns information about a single database on an instance
+	Get(ctx context.Context, instanceID, databaseID string, opts ...CallOption) (*GetDatabaseResponse, error)
+	// Create provisions a new database for an instance
+	Create(ctx context.Context, instanceID string, opts ...CallOption) (*CreateDatabaseResponse, error)
 	// Delete removes a database from an Aura instance
 	Delete(ctx context.Context, instanceID, databaseID string, opts ...CallOption) (*DeleteDatabaseResponse, error)
 }
