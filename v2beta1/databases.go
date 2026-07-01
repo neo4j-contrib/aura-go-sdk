@@ -15,42 +15,23 @@ import (
 // Types
 // ============================================================================
 
-// BackupStatus represents the status of a database backup.
-type BackupStatus string
-
-const (
-	BackupStatusInProgress BackupStatus = "InProgress"
-	BackupStatusFailed     BackupStatus = "Failed"
-	BackupStatusCompleted  BackupStatus = "Completed"
-	BackupStatusPending    BackupStatus = "Pending"
-)
-
-// DatabaseBackup represents a single backup of an Aura database.
-type DatabaseBackup struct {
-	ID         string       `json:"id"`
-	Timestamp  string       `json:"timestamp"`
-	Status     BackupStatus `json:"status"`
-	Exportable bool         `json:"exportable"`
-}
-
-// ListBackupsResponse wraps the list of database backups returned by the API.
-type ListBackupsResponse struct {
-	Data []DatabaseBackup `json:"data"`
-}
-
-// CreateBackupResponse wraps the single database backup returned by the API
-// after a backup is triggered.
-type CreateBackupResponse struct {
-	Data DatabaseBackup `json:"data"`
-}
-
 // GetDatabase wraps the list of databases  returned by the API.
 type GetDatabaseResponse struct {
 	Data DatabaseResponse `json:"data"`
 }
 
+// CreateDatabaseResponse wraps the response from creating a database that is returned by the API.
+type CreateDatabaseResponse struct {
+	Data DatabaseResponse `json:"data"`
+}
+
 // ListDatabases wraps the list of databases  returned by the API.
 type ListDatabasesResponse struct {
+	Data []DatabaseResponse `json:"data"`
+}
+
+// DeleteDatabaseResponse wraps the delete database response returned by the API.
+type DeleteDatabaseResponse struct {
 	Data []DatabaseResponse `json:"data"`
 }
 
@@ -107,7 +88,53 @@ func (s *databaseService) resolveOrgProject(opts []CallOption) (orgID, projectID
 	return
 }
 
-func (s *databaseService) ListDatabases(ctx context.Context, instanceID string, opts ...CallOption) (*ListDatabasesResponse, error) {
+func (s *databaseService) Create(ctx context.Context, instanceID string, opts ...CallOption) (*CreateDatabaseResponse, error) {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	orgID, projectID := s.resolveOrgProject(opts)
+
+	// Check IDs are supplied and valid
+	// Using new Validate function
+	if err := utils.Validate(ctx, s.logger,
+		utils.OrganizationID(orgID),
+		utils.ProjectID(projectID),
+		utils.InstanceID(instanceID),
+	); err != nil {
+		return nil, err
+	}
+
+	s.logger.DebugContext(ctx, "creating database",
+		slog.String("orgID", orgID),
+		slog.String("projectID", projectID),
+		slog.String("instanceID", instanceID),
+	)
+
+	path := instancePath(orgID, projectID, instanceID)
+	resp, err := s.api.Post(ctx, path, "")
+	if err != nil {
+		s.logger.ErrorContext(ctx, "failed to create database",
+			slog.String("instanceID", instanceID),
+			slog.String("error", err.Error()),
+		)
+		return nil, err
+	}
+
+	var result CreateDatabaseResponse
+
+	if err := json.Unmarshal(resp.Body, &result); err != nil {
+		s.logger.ErrorContext(ctx, "failed to unmarshal create database response", slog.String("error", err.Error()))
+		return nil, err
+	}
+
+	s.logger.DebugContext(ctx, "database created  successfully",
+		slog.String("instanceID", instanceID),
+	)
+
+	return &result, nil
+}
+
+func (s *databaseService) List(ctx context.Context, instanceID string, opts ...CallOption) (*ListDatabasesResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -132,7 +159,7 @@ func (s *databaseService) ListDatabases(ctx context.Context, instanceID string, 
 	path := instancePath(orgID, projectID, instanceID)
 	resp, err := s.api.Get(ctx, path)
 	if err != nil {
-		s.logger.ErrorContext(ctx, "failed to list instance backups",
+		s.logger.ErrorContext(ctx, "failed to list instance databases",
 			slog.String("instanceID", instanceID),
 			slog.String("error", err.Error()),
 		)
@@ -141,18 +168,18 @@ func (s *databaseService) ListDatabases(ctx context.Context, instanceID string, 
 
 	var result ListDatabasesResponse
 	if err := json.Unmarshal(resp.Body, &result); err != nil {
-		s.logger.ErrorContext(ctx, "failed to unmarshal list backups response", slog.String("error", err.Error()))
+		s.logger.ErrorContext(ctx, "failed to unmarshal list databases response", slog.String("error", err.Error()))
 		return nil, err
 	}
 
-	s.logger.DebugContext(ctx, "database backups listed successfully",
+	s.logger.DebugContext(ctx, "databases listed successfully",
 		slog.String("instanceID", instanceID),
 		slog.Int("count", len(result.Data)),
 	)
 	return &result, nil
 }
 
-func (s *databaseService) ListBackups(ctx context.Context, instanceID, databaseID string, opts ...CallOption) (*ListBackupsResponse, error) {
+func (s *databaseService) Get(ctx context.Context, instanceID, databaseID string, opts ...CallOption) (*GetDatabaseResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -169,7 +196,7 @@ func (s *databaseService) ListBackups(ctx context.Context, instanceID, databaseI
 		return nil, err
 	}
 
-	s.logger.DebugContext(ctx, "listing database backups",
+	s.logger.DebugContext(ctx, "getting databases",
 		slog.String("orgID", orgID),
 		slog.String("projectID", projectID),
 		slog.String("instanceID", instanceID),
@@ -179,7 +206,7 @@ func (s *databaseService) ListBackups(ctx context.Context, instanceID, databaseI
 	path := backupsPath(orgID, projectID, instanceID, databaseID)
 	resp, err := s.api.Get(ctx, path)
 	if err != nil {
-		s.logger.ErrorContext(ctx, "failed to list database backups",
+		s.logger.ErrorContext(ctx, "failed to get database",
 			slog.String("instanceID", instanceID),
 			slog.String("databaseID", databaseID),
 			slog.String("error", err.Error()),
@@ -187,21 +214,20 @@ func (s *databaseService) ListBackups(ctx context.Context, instanceID, databaseI
 		return nil, err
 	}
 
-	var result ListBackupsResponse
+	var result GetDatabaseResponse
 	if err := json.Unmarshal(resp.Body, &result); err != nil {
-		s.logger.ErrorContext(ctx, "failed to unmarshal list backups response", slog.String("error", err.Error()))
+		s.logger.ErrorContext(ctx, "failed to unmarshal get database response", slog.String("error", err.Error()))
 		return nil, err
 	}
 
-	s.logger.DebugContext(ctx, "database backups listed successfully",
+	s.logger.DebugContext(ctx, "get database was successfull",
 		slog.String("instanceID", instanceID),
 		slog.String("databaseID", databaseID),
-		slog.Int("count", len(result.Data)),
 	)
 	return &result, nil
 }
 
-func (s *databaseService) CreateBackup(ctx context.Context, instanceID, databaseID string, opts ...CallOption) (*CreateBackupResponse, error) {
+func (s *databaseService) Delete(ctx context.Context, instanceID, databaseID string, opts ...CallOption) (*DeleteDatabaseResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -218,7 +244,7 @@ func (s *databaseService) CreateBackup(ctx context.Context, instanceID, database
 		return nil, err
 	}
 
-	s.logger.DebugContext(ctx, "creating database backup",
+	s.logger.DebugContext(ctx, "deleting database",
 		slog.String("orgID", orgID),
 		slog.String("projectID", projectID),
 		slog.String("instanceID", instanceID),
@@ -226,9 +252,9 @@ func (s *databaseService) CreateBackup(ctx context.Context, instanceID, database
 	)
 
 	path := backupsPath(orgID, projectID, instanceID, databaseID)
-	resp, err := s.api.Post(ctx, path, "")
+	resp, err := s.api.Delete(ctx, path)
 	if err != nil {
-		s.logger.ErrorContext(ctx, "failed to create database backup",
+		s.logger.ErrorContext(ctx, "failed to delete database",
 			slog.String("instanceID", instanceID),
 			slog.String("databaseID", databaseID),
 			slog.String("error", err.Error()),
@@ -236,16 +262,15 @@ func (s *databaseService) CreateBackup(ctx context.Context, instanceID, database
 		return nil, err
 	}
 
-	var result CreateBackupResponse
+	var result DeleteDatabaseResponse
 	if err := json.Unmarshal(resp.Body, &result); err != nil {
-		s.logger.ErrorContext(ctx, "failed to unmarshal create backup response", slog.String("error", err.Error()))
+		s.logger.ErrorContext(ctx, "failed to unmarshal delete database response", slog.String("error", err.Error()))
 		return nil, err
 	}
 
-	s.logger.InfoContext(ctx, "database backup created successfully",
+	s.logger.InfoContext(ctx, "database deleted  successfully",
 		slog.String("instanceID", instanceID),
 		slog.String("databaseID", databaseID),
-		slog.String("backupID", result.Data.ID),
 	)
 	return &result, nil
 }

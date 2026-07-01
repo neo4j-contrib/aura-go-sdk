@@ -20,6 +20,7 @@ Client Id and Secret are required and these can be obtained from the [Neo4j Aura
 - [Prometheus Metrics Operations](#prometheus-metrics-operations)
 - [v2beta1 API](#v2beta1-api)
 - [v2beta1 Instance Operations](#v2beta1-instance-operations)
+- [v2beta1 Database Operations](#v2beta1-database-operations)
 - [v2beta1 Database Backup Operations](#v2beta1-database-backup-operations)
 - [Error Handling](#error-handling)
 - [Best Practices](#best-practices)
@@ -908,17 +909,56 @@ fmt.Printf("Deleted instance: %s\n", result.Data.ID)
 
 ---
 
+## v2beta1 Database Operations
+
+`client.Databases` manages the databases within an Aura instance. Instance IDs and database IDs are both 8-character hex strings (e.g. `"abcdef01"`).
+
+### List Databases
+
+```go
+ctx := context.Background()
+
+databases, err := client.Databases.List(ctx, "abcdef01")
+if err != nil {
+    log.Fatalf("Error: %v", err)
+}
+
+for _, db := range databases.Data {
+    fmt.Printf("Database ID: %s\n", db.ID)
+}
+```
+
+### Delete a Database
+
+```go
+ctx := context.Background()
+
+// ⚠️ WARNING: This is irreversible!
+result, err := client.Databases.Delete(ctx, "abcdef01", "12345678")
+if err != nil {
+    log.Fatalf("Error: %v", err)
+}
+
+for _, db := range result.Data {
+    fmt.Printf("Deleted database: %s\n", db.ID)
+}
+```
+
+---
+
 ## v2beta1 Database Backup Operations
+> **Note:** This may get truncated to just client.Backups.  Not entirely sold on client.DatabaseBackups which is a bit jarring.  And we've already got client.snaphots. 
+> Just store away that the naming here could alter in the future
+
+
+`client.DatabaseBackups` manages backups for a specific database on an instance.
 
 ### List Backups
 
 ```go
 ctx := context.Background()
 
-backups, err := client.Databases.ListBackups(ctx,
-    "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-    "b2c3d4e5-f6a7-8901-bcde-f12345678901",
-)
+backups, err := client.DatabaseBackups.List(ctx, "abcdef01", "12345678")
 if err != nil {
     log.Fatalf("Error: %v", err)
 }
@@ -933,10 +973,7 @@ for _, backup := range backups.Data {
 ```go
 ctx := context.Background()
 
-backup, err := client.Databases.CreateBackup(ctx,
-    "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-    "b2c3d4e5-f6a7-8901-bcde-f12345678901",
-)
+backup, err := client.DatabaseBackups.Create(ctx, "abcdef01", "12345678")
 if err != nil {
     log.Fatalf("Error: %v", err)
 }
