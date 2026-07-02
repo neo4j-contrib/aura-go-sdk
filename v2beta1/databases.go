@@ -3,7 +3,6 @@ package v2beta1
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log/slog"
 	"time"
 
@@ -52,6 +51,7 @@ type databaseService struct {
 	client  *Client
 }
 
+/*
 func backupsPath(orgID, projectID, instanceID, databaseID string) string {
 	return fmt.Sprintf(
 		"organizations/%s/projects/%s/instances/%s/databases/%s/backups",
@@ -65,6 +65,7 @@ func instancePath(orgID, projectID, instanceID string) string {
 		orgID, projectID, instanceID,
 	)
 }
+*/
 
 // resolveOrgProject reads both defaults from the client under a single lock and
 // applies call options once, returning the effective org and project IDs.
@@ -110,7 +111,8 @@ func (s *databaseService) Create(ctx context.Context, instanceID string, opts ..
 		slog.String("instanceID", instanceID),
 	)
 
-	path := instancePath(orgID, projectID, instanceID)
+	path := utils.SingleInstancePath(orgID, projectID, instanceID)
+	// path := instancePath(orgID, projectID, instanceID)
 	resp, err := s.api.Post(ctx, path, "")
 	if err != nil {
 		s.logger.ErrorContext(ctx, "failed to create database",
@@ -156,7 +158,8 @@ func (s *databaseService) List(ctx context.Context, instanceID string, opts ...C
 		slog.String("instanceID", instanceID),
 	)
 
-	path := instancePath(orgID, projectID, instanceID)
+	path := utils.SingleInstancePath(orgID, projectID, instanceID)
+	//path := instancePath(orgID, projectID, instanceID)
 	resp, err := s.api.Get(ctx, path)
 	if err != nil {
 		s.logger.ErrorContext(ctx, "failed to list instance databases",
@@ -203,7 +206,8 @@ func (s *databaseService) Get(ctx context.Context, instanceID, databaseID string
 		slog.String("databaseID", databaseID),
 	)
 
-	path := backupsPath(orgID, projectID, instanceID, databaseID)
+	path := utils.BackupsPath(orgID, projectID, instanceID, databaseID)
+	// path := backupsPath(orgID, projectID, instanceID, databaseID)
 	resp, err := s.api.Get(ctx, path)
 	if err != nil {
 		s.logger.ErrorContext(ctx, "failed to get database",
@@ -251,7 +255,8 @@ func (s *databaseService) Delete(ctx context.Context, instanceID, databaseID str
 		slog.String("databaseID", databaseID),
 	)
 
-	path := backupsPath(orgID, projectID, instanceID, databaseID)
+	path := utils.BackupsPath(orgID, projectID, instanceID, databaseID)
+	// path := backupsPath(orgID, projectID, instanceID, databaseID)
 	resp, err := s.api.Delete(ctx, path)
 	if err != nil {
 		s.logger.ErrorContext(ctx, "failed to delete database",

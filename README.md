@@ -747,7 +747,7 @@ import v2beta1 "github.com/neo4j-contrib/aura-go-sdk/v2beta1"
 ```go
 client, err := v2beta1.NewClient(
     v2beta1.WithCredentials("your-client-id", "your-client-secret"),
-    v2beta1.WithOrganization("your-org-uuid"),
+    v2beta1.WithDefaultOrg("your-org-uuid"),
 )
 if err != nil {
     log.Fatalf("Failed to create client: %v", err)
@@ -755,7 +755,7 @@ if err != nil {
 defer client.Close()
 ```
 
-`WithOrganization` sets the default organization ID used by every service call that does not supply a per-call `WithOrg` override. `WithDefaultProject` sets the default project ID in the same way. Both defaults can be updated after construction with `client.SetOrg(id)` and `client.SetProject(id)`.
+`WithDefaultOrg` sets the default organization ID used by every service call that does not supply a per-call `WithOrg` override. `WithDefaultProject` sets the default project ID in the same way. Both defaults can be overridden per-call using WithOrg / WithProject
 
 ### List Organizations
 

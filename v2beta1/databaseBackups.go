@@ -101,7 +101,8 @@ func (s *databaseBackupService) List(ctx context.Context, instanceID, databaseID
 		slog.String("databaseID", databaseID),
 	)
 
-	path := backupsPath(orgID, projectID, instanceID, databaseID)
+	path := utils.BackupsPath(orgID, projectID, instanceID, databaseID)
+	//path := backupsPath(orgID, projectID, instanceID, databaseID)
 	resp, err := s.api.Get(ctx, path)
 	if err != nil {
 		s.logger.ErrorContext(ctx, "failed to list database backups",
@@ -150,7 +151,8 @@ func (s *databaseBackupService) Create(ctx context.Context, instanceID, database
 		slog.String("databaseID", databaseID),
 	)
 
-	path := backupsPath(orgID, projectID, instanceID, databaseID)
+	path := utils.BackupsPath(orgID, projectID, instanceID, databaseID)
+	// path := backupsPath(orgID, projectID, instanceID, databaseID)
 	resp, err := s.api.Post(ctx, path, "")
 	if err != nil {
 		s.logger.ErrorContext(ctx, "failed to create database backup",

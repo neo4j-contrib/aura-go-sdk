@@ -86,7 +86,7 @@ func TestNewClient_WithOrganization(t *testing.T) {
 
 	client, err := NewClient(
 		WithCredentials("test-id", "test-secret"),
-		WithOrganization(orgID),
+		WithDefaultOrg(orgID),
 	)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -110,7 +110,7 @@ func TestNewClient_WithOrganization(t *testing.T) {
 func TestNewClient_WithOrganization_Empty(t *testing.T) {
 	_, err := NewClient(
 		WithCredentials("test-id", "test-secret"),
-		WithOrganization(""),
+		WithDefaultOrg(""),
 	)
 	if err == nil {
 		t.Error("expected error for empty organization ID, got nil")

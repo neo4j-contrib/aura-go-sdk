@@ -270,9 +270,9 @@ func WithDefaultHeaders(headers map[string]string) Option {
 	}
 }
 
-// WithOrganization sets the default organization ID used when no per-call WithOrg
+// WithDefaultOrg sets the default organization ID used when no per-call WithOrg
 // option is supplied. The value is stored and readable by SetOrg later.
-func WithOrganization(orgID string) Option {
+func WithDefaultOrg(orgID string) Option {
 	return func(o *options) error {
 		if orgID == "" {
 			return errors.New("organization ID must not be empty")

@@ -245,30 +245,37 @@ func resourcePath(parts ...string) string {
 	return strings.Join(parts, "/")
 }
 
+// Returns endpoint path for projects under OrgID
 func ProjectsPath(orgID string) string {
 	return resourcePath("organizations", orgID, "projects")
 }
 
+// Returns endpoint path for a project
 func IndividualProjectPath(orgID, projectID string) string {
 	return resourcePath("organizations", orgID, "projects", projectID)
 }
 
+// Returns endpoint path for instances in an org/project
 func InstancesPath(orgID, projectID, instanceID string) string {
 	return resourcePath("organizations", orgID, "projects", projectID, "instances")
 }
 
-func IndividualInstancesPath(orgID, projectID, instanceID string) string {
+// Returns endpoint path for an instance
+func SingleInstancePath(orgID, projectID, instanceID string) string {
 	return resourcePath("organizations", orgID, "projects", projectID, "instances", instanceID)
 }
 
+// Returns endpoint path for the databases of an instance
 func DatabasesPath(orgID, projectID, instanceID string) string {
 	return resourcePath("organizations", orgID, "projects", projectID, "instances", instanceID, "databases")
 }
 
-func IndividualDatabasePath(orgID, projectID, instanceID, databaseID string) string {
+// Returns endpoint path for a database in an instance
+func SingleDatabasePath(orgID, projectID, instanceID, databaseID string) string {
 	return resourcePath("organizations", orgID, "projects", projectID, "instances", instanceID, "databases", databaseID)
 }
 
+// Returns endpoint path for backups of a database
 func BackupsPath(orgID, projectID, instanceID, databaseID string) string {
 	return resourcePath("organizations", orgID, "projects", projectID, "instances", instanceID, "databases", databaseID, "backups")
 }

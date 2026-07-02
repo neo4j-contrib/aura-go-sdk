@@ -159,7 +159,7 @@ func TestDatabaseList_MissingProjectID(t *testing.T) {
 	mock := &mockAPIService{}
 	client, err := NewClient(
 		WithCredentials("id", "secret"),
-		WithOrganization(orgID),
+		WithDefaultOrg(orgID),
 	)
 	if err != nil {
 		t.Fatalf("failed to create client: %v", err)
@@ -418,7 +418,7 @@ func TestDatabasesCreate_MissingProjectID(t *testing.T) {
 	mock := &mockAPIService{}
 	client, err := NewClient(
 		WithCredentials("id", "secret"),
-		WithOrganization(orgID),
+		WithDefaultOrg(orgID),
 	)
 	if err != nil {
 		t.Fatalf("failed to create client: %v", err)
@@ -721,7 +721,7 @@ func TestDatabasesGet_MissingProjectID(t *testing.T) {
 	mock := &mockAPIService{}
 	client, err := NewClient(
 		WithCredentials("id", "secret"),
-		WithOrganization(orgID),
+		WithDefaultOrg(orgID),
 	)
 	if err != nil {
 		t.Fatalf("failed to create client: %v", err)
@@ -1033,7 +1033,7 @@ func TestDatabasesDelete_MissingProjectID(t *testing.T) {
 	mock := &mockAPIService{}
 	client, err := NewClient(
 		WithCredentials("id", "secret"),
-		WithOrganization(orgID),
+		WithDefaultOrg(orgID),
 	)
 	if err != nil {
 		t.Fatalf("failed to create client: %v", err)
