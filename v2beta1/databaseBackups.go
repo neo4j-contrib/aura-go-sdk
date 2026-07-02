@@ -37,7 +37,7 @@ type ListBackupsResponse struct {
 	Data []DatabaseBackup `json:"data"`
 }
 
-// ListBackupsResponse wraps the list of database backups returned by the API.
+// GetBackupResponse wraps database backup returned by the API.
 type GetBackupResponse struct {
 	Data DatabaseBackup `json:"data"`
 }
@@ -108,7 +108,7 @@ func (s *databaseBackupService) List(ctx context.Context, instanceID, databaseID
 	)
 
 	path := utils.BackupsPath(orgID, projectID, instanceID, databaseID)
-	//path := backupsPath(orgID, projectID, instanceID, databaseID)
+
 	resp, err := s.api.Get(ctx, path)
 	if err != nil {
 		s.logger.ErrorContext(ctx, "failed to list database backups",
@@ -159,7 +159,7 @@ func (s *databaseBackupService) Create(ctx context.Context, instanceID, database
 	)
 
 	path := utils.BackupsPath(orgID, projectID, instanceID, databaseID)
-	// path := backupsPath(orgID, projectID, instanceID, databaseID)
+
 	resp, err := s.api.Post(ctx, path, "")
 	if err != nil {
 		s.logger.ErrorContext(ctx, "failed to create database backup",
@@ -186,8 +186,8 @@ func (s *databaseBackupService) Create(ctx context.Context, instanceID, database
 
 // Get information for a backup
 func (s *databaseBackupService) Get(ctx context.Context, instanceID, databaseID, backupID string, opts ...CallOption) (*GetBackupResponse, error) {
-	ctx, cancelBackupList := context.WithTimeout(ctx, s.timeout)
-	defer cancelBackupList()
+	ctx, cancelGetBackup := context.WithTimeout(ctx, s.timeout)
+	defer cancelGetBackup()
 
 	orgID, projectID := s.resolveOrgProject(opts)
 
@@ -203,7 +203,7 @@ func (s *databaseBackupService) Get(ctx context.Context, instanceID, databaseID,
 		return nil, err
 	}
 
-	s.logger.DebugContext(ctx, "listing database backups",
+	s.logger.DebugContext(ctx, "getting database backup information",
 		slog.String("orgID", orgID),
 		slog.String("projectID", projectID),
 		slog.String("instanceID", instanceID),
