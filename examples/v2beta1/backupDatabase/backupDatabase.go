@@ -52,6 +52,9 @@ func main() {
 	fmt.Printf("- backup id: %s \n", newBackup.Data.ID)
 
 	getBackup, err := client.DatabaseBackups.Get(ctx, instanceID, databaseID, newBackup.Data.ID)
+	if err != nil {
+		log.Fatalf("Failed to get database backup information: %v", err)
+	}
 
 	fmt.Printf("backup information: %s \n", getBackup.Data.ID)
 
