@@ -213,7 +213,6 @@ func TestDatabaseListBackups_MissingOrgID(t *testing.T) {
 func TestDatabaseListBackups_MissingProjectID(t *testing.T) {
 	const (
 		orgID      = "11111111-aabb-3333-4444-555555555555"
-		projectID  = "aaaaaaaa-aabb-3333-4444-ffff1111aaaa"
 		instanceID = "a1b2c3d4"
 		databaseID = "aa22ff99"
 	)
@@ -227,14 +226,14 @@ func TestDatabaseListBackups_MissingProjectID(t *testing.T) {
 		t.Fatalf("failed to create client: %v", err)
 	}
 
-	service := &databaseService{
+	service := &databaseBackupService{
 		api:     mock,
 		timeout: 30 * time.Second,
 		logger:  testLogger(),
 		client:  client,
 	}
 
-	result, err := service.List(context.Background(), instanceID)
+	result, err := service.List(context.Background(), instanceID, databaseID)
 
 	if err == nil {
 		t.Fatal("expected error for missing project ID, got nil")
@@ -676,6 +675,371 @@ func TestDatabaseCreate_QuickCancellation(t *testing.T) {
 	service.client = &Client{defaultOrgID: orgID, defaultProjectID: projectID}
 
 	_, err := service.Create(ctx, instanceID, databaseID)
+
+	if err == nil {
+		t.Fatal("expected deadline exceeded error")
+	}
+	if !errors.Is(err, context.DeadlineExceeded) && !errors.Is(err, context.Canceled) {
+		t.Errorf("expected context error, got: %v", err)
+	}
+}
+
+// ============================================================================
+// Get tests
+// ============================================================================
+
+func TestDatabaseGetBackup_Success(t *testing.T) {
+	const (
+		orgID      = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		projectID  = "11111111-2222-3333-4444-555555555555"
+		instanceID = "abcdef01"
+		databaseID = "12345678"
+		backupID   = "dddddddd-eeee-ffff-0000-111111111111"
+	)
+
+	expected := GetBackupResponse{
+		Data: DatabaseBackup{
+			ID:         backupID,
+			Timestamp:  "2026-06-29T12:00:00Z",
+			Status:     BackupStatusCompleted,
+			Exportable: true,
+		},
+	}
+
+	body, _ := json.Marshal(expected)
+	mock := &mockAPIService{
+		response: &api.Response{StatusCode: 200, Body: body},
+	}
+
+	service := createTestDatabaseBackupService(mock)
+	service.client = &Client{defaultOrgID: orgID, defaultProjectID: projectID}
+
+	result, err := service.Get(context.Background(), instanceID, databaseID, backupID)
+
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if mock.lastMethod != "GET" {
+		t.Errorf("expected GET method, got %s", mock.lastMethod)
+	}
+	expectedPath := "organizations/" + orgID + "/projects/" + projectID + "/instances/" + instanceID + "/databases/" + databaseID + "/backups/" + backupID
+	if mock.lastPath != expectedPath {
+		t.Errorf("expected path '%s', got '%s'", expectedPath, mock.lastPath)
+	}
+	if result.Data.ID != backupID {
+		t.Errorf("expected backup ID %q, got %q", backupID, result.Data.ID)
+	}
+	if result.Data.Status != BackupStatusCompleted {
+		t.Errorf("expected status %q, got %q", BackupStatusCompleted, result.Data.Status)
+	}
+	if !result.Data.Exportable {
+		t.Error("expected backup to be exportable")
+	}
+}
+
+func TestDatabaseGetBackup_InvalidInstanceID(t *testing.T) {
+	tests := []struct {
+		name       string
+		instanceID string
+	}{
+		{"empty", ""},
+		{"non-hex", "not-hex!"},
+		{"too-short", "1234"},
+		{"too-long", "abcdef012"},
+	}
+
+	const (
+		orgID      = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		projectID  = "11111111-2222-3333-4444-555555555555"
+		databaseID = "12345678"
+		backupID   = "dddddddd-eeee-ffff-0000-111111111111"
+	)
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mock := &mockAPIService{}
+			service := createTestDatabaseBackupService(mock)
+			service.client = &Client{defaultOrgID: orgID, defaultProjectID: projectID}
+
+			result, err := service.Get(context.Background(), tc.instanceID, databaseID, backupID)
+
+			if err == nil {
+				t.Fatal("expected error for invalid instance ID, got nil")
+			}
+			if result != nil {
+				t.Error("expected nil result on error")
+			}
+			if mock.lastPath != "" {
+				t.Errorf("expected no API call, but got path '%s'", mock.lastPath)
+			}
+		})
+	}
+}
+
+func TestDatabaseGetBackup_InvalidDatabaseID(t *testing.T) {
+	tests := []struct {
+		name       string
+		databaseID string
+	}{
+		{"empty", ""},
+		{"non-hex", "not-hex!"},
+		{"too-short", "1234"},
+		{"too-long", "abcdef012"},
+	}
+
+	const (
+		orgID      = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		projectID  = "11111111-2222-3333-4444-555555555555"
+		instanceID = "abcdef01"
+		backupID   = "dddddddd-eeee-ffff-0000-111111111111"
+	)
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mock := &mockAPIService{}
+			service := createTestDatabaseBackupService(mock)
+			service.client = &Client{defaultOrgID: orgID, defaultProjectID: projectID}
+
+			result, err := service.Get(context.Background(), instanceID, tc.databaseID, backupID)
+
+			if err == nil {
+				t.Fatal("expected error for invalid database ID, got nil")
+			}
+			if result != nil {
+				t.Error("expected nil result on error")
+			}
+			if mock.lastPath != "" {
+				t.Errorf("expected no API call, but got path '%s'", mock.lastPath)
+			}
+		})
+	}
+}
+
+func TestDatabaseGetBackup_InvalidBackupID(t *testing.T) {
+	tests := []struct {
+		name     string
+		backupID string
+	}{
+		{"empty", ""},
+		{"not-uuid", "not-a-uuid"},
+		{"short-hex", "abcdef01"},
+	}
+
+	const (
+		orgID      = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		projectID  = "11111111-2222-3333-4444-555555555555"
+		instanceID = "abcdef01"
+		databaseID = "12345678"
+	)
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mock := &mockAPIService{}
+			service := createTestDatabaseBackupService(mock)
+			service.client = &Client{defaultOrgID: orgID, defaultProjectID: projectID}
+
+			result, err := service.Get(context.Background(), instanceID, databaseID, tc.backupID)
+
+			if err == nil {
+				t.Fatal("expected error for invalid backup ID, got nil")
+			}
+			if result != nil {
+				t.Error("expected nil result on error")
+			}
+			if mock.lastPath != "" {
+				t.Errorf("expected no API call, but got path '%s'", mock.lastPath)
+			}
+		})
+	}
+}
+
+func TestDatabaseGetBackup_MissingOrgID(t *testing.T) {
+	const (
+		instanceID = "abcdef01"
+		databaseID = "12345678"
+		backupID   = "dddddddd-eeee-ffff-0000-111111111111"
+	)
+
+	mock := &mockAPIService{}
+	service := createTestDatabaseBackupService(mock)
+
+	result, err := service.Get(context.Background(), instanceID, databaseID, backupID)
+
+	if err == nil {
+		t.Fatal("expected error for missing org ID, got nil")
+	}
+	if result != nil {
+		t.Error("expected nil result when org ID is missing")
+	}
+	if !strings.Contains(err.Error(), "organization ID") {
+		t.Errorf("expected error to contain 'organization ID', got: %v", err)
+	}
+	if mock.lastPath != "" {
+		t.Errorf("expected no API call, but got path '%s'", mock.lastPath)
+	}
+}
+
+func TestDatabaseGetBackup_MissingProjectID(t *testing.T) {
+	const (
+		orgID      = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		instanceID = "abcdef01"
+		databaseID = "12345678"
+		backupID   = "dddddddd-eeee-ffff-0000-111111111111"
+	)
+
+	mock := &mockAPIService{}
+	client, err := NewClient(
+		WithCredentials("id", "secret"),
+		WithDefaultOrg(orgID),
+	)
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	service := &databaseBackupService{
+		api:     mock,
+		timeout: 30 * time.Second,
+		logger:  testLogger(),
+		client:  client,
+	}
+
+	result, err := service.Get(context.Background(), instanceID, databaseID, backupID)
+
+	if err == nil {
+		t.Fatal("expected error for missing project ID, got nil")
+	}
+	if result != nil {
+		t.Error("expected nil result when project ID is missing")
+	}
+	if !strings.Contains(err.Error(), "project ID") {
+		t.Errorf("expected error to contain 'project ID', got: %v", err)
+	}
+	if mock.lastPath != "" {
+		t.Errorf("expected no API call, but got path '%s'", mock.lastPath)
+	}
+}
+
+func TestDatabaseGetBackup_NotFound(t *testing.T) {
+	const (
+		orgID      = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		projectID  = "11111111-2222-3333-4444-555555555555"
+		instanceID = "abcdef01"
+		databaseID = "12345678"
+		backupID   = "dddddddd-eeee-ffff-0000-111111111111"
+	)
+
+	mock := &mockAPIService{
+		err: &api.Error{StatusCode: 404, Message: "Not found"},
+	}
+
+	service := createTestDatabaseBackupService(mock)
+	service.client = &Client{defaultOrgID: orgID, defaultProjectID: projectID}
+
+	result, err := service.Get(context.Background(), instanceID, databaseID, backupID)
+
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if result != nil {
+		t.Error("expected nil result on error")
+	}
+
+	apiErr, ok := err.(*api.Error)
+	if !ok {
+		t.Fatalf("expected *api.Error, got %T: %v", err, err)
+	}
+	if !apiErr.IsNotFound() {
+		t.Error("expected IsNotFound() to be true")
+	}
+}
+
+func TestDatabaseGetBackup_AuthenticationError(t *testing.T) {
+	const (
+		orgID      = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		projectID  = "11111111-2222-3333-4444-555555555555"
+		instanceID = "abcdef01"
+		databaseID = "12345678"
+		backupID   = "dddddddd-eeee-ffff-0000-111111111111"
+	)
+
+	mock := &mockAPIService{
+		err: &api.Error{StatusCode: 401, Message: "Invalid credentials"},
+	}
+
+	service := createTestDatabaseBackupService(mock)
+	service.client = &Client{defaultOrgID: orgID, defaultProjectID: projectID}
+
+	_, err := service.Get(context.Background(), instanceID, databaseID, backupID)
+
+	if err == nil {
+		t.Fatal("expected authentication error, got nil")
+	}
+
+	apiErr, ok := err.(*api.Error)
+	if !ok {
+		t.Fatalf("expected *api.Error, got %T: %v", err, err)
+	}
+	if !apiErr.IsUnauthorized() {
+		t.Error("expected IsUnauthorized() to be true")
+	}
+}
+
+func TestDatabaseGetBackup_ContextTimeout(t *testing.T) {
+	const (
+		orgID      = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		projectID  = "11111111-2222-3333-4444-555555555555"
+		instanceID = "abcdef01"
+		databaseID = "12345678"
+		backupID   = "dddddddd-eeee-ffff-0000-111111111111"
+	)
+
+	body, _ := json.Marshal(GetBackupResponse{})
+	mock := &mockAPIServiceWithDelay{
+		response: &api.Response{StatusCode: 200, Body: body},
+		delay:    2 * time.Second,
+	}
+
+	service := createTestDatabaseBackupServiceWithTimeout(mock, 10*time.Millisecond)
+	service.client = &Client{defaultOrgID: orgID, defaultProjectID: projectID}
+
+	start := time.Now()
+	_, err := service.Get(context.Background(), instanceID, databaseID, backupID)
+	elapsed := time.Since(start)
+
+	if err == nil {
+		t.Fatal("expected timeout error")
+	}
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Errorf("expected context.DeadlineExceeded, got: %v", err)
+	}
+	if elapsed > 500*time.Millisecond {
+		t.Errorf("timeout took too long: %v (expected ~10ms)", elapsed)
+	}
+}
+
+func TestDatabaseGetBackup_QuickCancellation(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Nanosecond)
+	defer cancel()
+	time.Sleep(10 * time.Millisecond)
+
+	const (
+		orgID      = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		projectID  = "11111111-2222-3333-4444-555555555555"
+		instanceID = "abcdef01"
+		databaseID = "12345678"
+		backupID   = "dddddddd-eeee-ffff-0000-111111111111"
+	)
+
+	body, _ := json.Marshal(GetBackupResponse{})
+	mock := &mockAPIServiceWithDelay{
+		response: &api.Response{StatusCode: 200, Body: body},
+		delay:    0,
+	}
+
+	service := createTestDatabaseBackupServiceWithTimeout(mock, 30*time.Second)
+	service.client = &Client{defaultOrgID: orgID, defaultProjectID: projectID}
+
+	_, err := service.Get(ctx, instanceID, databaseID, backupID)
 
 	if err == nil {
 		t.Fatal("expected deadline exceeded error")

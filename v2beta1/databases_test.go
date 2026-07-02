@@ -601,7 +601,7 @@ func TestDatabasesGet_Success(t *testing.T) {
 	if mock.lastMethod != "GET" {
 		t.Errorf("expected GET method, got %s", mock.lastMethod)
 	}
-	expectedPath := "organizations/" + orgID + "/projects/" + projectID + "/instances/" + instanceID + "/databases/" + databaseID + "/backups"
+	expectedPath := "organizations/" + orgID + "/projects/" + projectID + "/instances/" + instanceID + "/databases/" + databaseID
 	if mock.lastPath != expectedPath {
 		t.Errorf("expected path %q, got %q", expectedPath, mock.lastPath)
 	}
@@ -908,7 +908,7 @@ func TestDatabasesDelete_Success(t *testing.T) {
 	if mock.lastMethod != "DELETE" {
 		t.Errorf("expected DELETE method, got %s", mock.lastMethod)
 	}
-	expectedPath := "organizations/" + orgID + "/projects/" + projectID + "/instances/" + instanceID + "/databases/" + databaseID + "/backups"
+	expectedPath := "organizations/" + orgID + "/projects/" + projectID + "/instances/" + instanceID + "/databases/" + databaseID
 	if mock.lastPath != expectedPath {
 		t.Errorf("expected path %q, got %q", expectedPath, mock.lastPath)
 	}
