@@ -51,22 +51,6 @@ type databaseService struct {
 	client  *Client
 }
 
-/*
-func backupsPath(orgID, projectID, instanceID, databaseID string) string {
-	return fmt.Sprintf(
-		"organizations/%s/projects/%s/instances/%s/databases/%s/backups",
-		orgID, projectID, instanceID, databaseID,
-	)
-}
-
-func instancePath(orgID, projectID, instanceID string) string {
-	return fmt.Sprintf(
-		"organizations/%s/projects/%s/instances/%s/databases",
-		orgID, projectID, instanceID,
-	)
-}
-*/
-
 // resolveOrgProject reads both defaults from the client under a single lock and
 // applies call options once, returning the effective org and project IDs.
 func (s *databaseService) resolveOrgProject(opts []CallOption) (orgID, projectID string) {

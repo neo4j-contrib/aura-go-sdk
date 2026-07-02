@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log/slog"
 	"time"
 
@@ -169,16 +168,6 @@ type instanceService struct {
 	client  *Client
 }
 
-// instanceBasePath constructs the URL path for instance operations.
-// instanceID is optional — pass "" when targeting the collection.
-func instanceBasePath(orgID, projectID, instanceID string) string {
-	base := fmt.Sprintf("organizations/%s/projects/%s/instances", orgID, projectID)
-	if instanceID != "" {
-		return base + "/" + instanceID
-	}
-	return base
-}
-
 func (s *instanceService) resolveIDs(opts []CallOption) (orgID, projectID string) {
 	var orgDefault, projectDefault string
 	if s.client != nil {
@@ -223,7 +212,10 @@ func (s *instanceService) List(ctx context.Context, opts ...CallOption) (*ListIn
 
 	s.logger.DebugContext(ctx, "listing instances", slog.String("orgID", orgID), slog.String("projectID", projectID))
 
-	resp, err := s.api.Get(ctx, instanceBasePath(orgID, projectID, ""))
+	// Set the path to instances in the org and project
+	path := utils.InstancesPath(orgID, projectID)
+
+	resp, err := s.api.Get(ctx, path)
 	if err != nil {
 		s.logger.ErrorContext(ctx, "failed to list instances", slog.String("orgID", orgID), slog.String("projectID", projectID), slog.String("error", err.Error()))
 		return nil, err
@@ -258,7 +250,10 @@ func (s *instanceService) Get(ctx context.Context, instanceID string, opts ...Ca
 
 	s.logger.DebugContext(ctx, "getting instance details", slog.String("orgID", orgID), slog.String("projectID", projectID), slog.String("instanceID", instanceID))
 
-	resp, err := s.api.Get(ctx, instanceBasePath(orgID, projectID, instanceID))
+	// Set the path to a single instance
+	path := utils.SingleInstancePath(orgID, projectID, instanceID)
+
+	resp, err := s.api.Get(ctx, path)
 	if err != nil {
 		s.logger.ErrorContext(ctx, "failed to get instance", slog.String("instanceID", instanceID), slog.String("error", err.Error()))
 		return nil, err
@@ -309,7 +304,10 @@ func (s *instanceService) Create(ctx context.Context, req *CreateInstanceRequest
 		return nil, err
 	}
 
-	resp, err := s.api.Post(ctx, instanceBasePath(orgID, projectID, ""), string(body))
+	// Set the path to instances in the org and project
+	path := utils.InstancesPath(orgID, projectID)
+
+	resp, err := s.api.Post(ctx, path, string(body))
 	if err != nil {
 		s.logger.ErrorContext(ctx, "failed to create instance", slog.String("orgID", orgID), slog.String("projectID", projectID), slog.String("error", err.Error()))
 		return nil, err
@@ -361,7 +359,10 @@ func (s *instanceService) Update(ctx context.Context, instanceID string, req *Up
 		return nil, err
 	}
 
-	resp, err := s.api.Patch(ctx, instanceBasePath(orgID, projectID, instanceID), string(body))
+	// Set the path to a single Instance
+	path := utils.SingleInstancePath(orgID, projectID, instanceID)
+
+	resp, err := s.api.Patch(ctx, path, string(body))
 	if err != nil {
 		s.logger.ErrorContext(ctx, "failed to update instance", slog.String("instanceID", instanceID), slog.String("error", err.Error()))
 		return nil, err
@@ -396,7 +397,10 @@ func (s *instanceService) Delete(ctx context.Context, instanceID string, opts ..
 
 	s.logger.InfoContext(ctx, "deleting instance", slog.String("orgID", orgID), slog.String("projectID", projectID), slog.String("instanceID", instanceID))
 
-	resp, err := s.api.Delete(ctx, instanceBasePath(orgID, projectID, instanceID))
+	// Set the path to instances in the org and project
+	path := utils.SingleInstancePath(orgID, projectID, instanceID)
+
+	resp, err := s.api.Delete(ctx, path)
 	if err != nil {
 		s.logger.ErrorContext(ctx, "failed to delete instance", slog.String("instanceID", instanceID), slog.String("error", err.Error()))
 		return nil, err

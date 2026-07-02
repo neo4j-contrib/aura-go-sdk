@@ -271,7 +271,7 @@ func IndividualProjectPath(orgID, projectID string) string {
 }
 
 // Returns endpoint path for instances in an org/project
-func InstancesPath(orgID, projectID, instanceID string) string {
+func InstancesPath(orgID, projectID string) string {
 	return resourcePath("organizations", orgID, "projects", projectID, "instances")
 }
 
