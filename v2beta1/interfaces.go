@@ -47,10 +47,12 @@ type DatabaseService interface {
 
 // DatabaseBackup Service defines operations for managing Aura database backups.
 type DatabaseBackupService interface {
-	// List returns all backups for the specified database within an instance.
+	// List returns all backups for the specified database on an instance.
 	List(ctx context.Context, instanceID string, databaseID string, opts ...CallOption) (*ListBackupsResponse, error)
-	// Create triggers a new backup for the specified database within an instance.
+	// Create triggers a new backup for the specified database on an instance.
 	Create(ctx context.Context, instanceID string, databaseID string, opts ...CallOption) (*CreateBackupResponse, error)
+	// Gets information about a single backup of a database on an instance
+	Get(ctx context.Context, instanceID, databaseID, backupID string, opts ...CallOption) (*GetBackupResponse, error)
 }
 
 // Compile-time interface compliance checks

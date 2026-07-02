@@ -18,9 +18,10 @@ func main() {
 	orgID := os.Getenv("AURA_ORG_ID")
 	projectID := os.Getenv("AURA_PROJECT_ID")
 	instanceID := os.Getenv("AURA_INSTANCE_ID")
+	databaseID := os.Getenv("AURA_DATABASE_ID")
 
 	if clientID == "" || clientSecret == "" || orgID == "" || projectID == "" || instanceID == "" {
-		log.Fatal("Missing required environment variables: AURA_CLIENT_ID, AURA_CLIENT_SECRET, AURA_ORG_ID, AURA_PROJECT_ID, AURA_INSTANCE_ID")
+		log.Fatal("Missing required environment variables: AURA_CLIENT_ID, AURA_CLIENT_SECRET, AURA_ORG_ID, AURA_PROJECT_ID, AURA_INSTANCE_ID, AURA_DATABASE_ID")
 	}
 
 	opts := &slog.HandlerOptions{Level: slog.LevelDebug}
@@ -41,24 +42,18 @@ func main() {
 	ctx, cancelMain := context.WithTimeout(context.Background(), 15*time.Minute)
 	defer cancelMain()
 
-	fmt.Printf("\nCreating new database")
+	fmt.Printf("\\nBacking up database")
 
-	newDB, err := client.Databases.Create(ctx, instanceID)
+	newBackup, err := client.DatabaseBackups.Create(ctx, instanceID, databaseID)
 	if err != nil {
-		log.Fatalf("Failed to create database: %v", err)
+		log.Fatalf("Failed to backup database: %v", err)
 	}
-	fmt.Println("\nDatabase created")
-	fmt.Printf("- database id: %s \n", newDB.Data.ID)
+	fmt.Println("\nDatabase backup started")
+	fmt.Printf("- backup id: %s \n", newBackup.Data.ID)
 
-	fmt.Println("Will delete database in ten seconds...")
-	time.Sleep(10 * time.Second)
+	getBackup, err := client.DatabaseBackups.Get(ctx, instanceID, databaseID, newBackup.Data.ID)
 
-	_, err = client.Databases.Delete(ctx, instanceID, newDB.Data.ID)
-	if err != nil {
-		log.Fatalf("Failed to delete database: %v", err)
-	}
-
-	fmt.Printf("\nDatabase %s deleted on Instance %s\n", newDB.Data.ID, instanceID)
+	fmt.Printf("backup information: %s \n", getBackup.Data.ID)
 
 	fmt.Println("\nv2beta1 client is working correctly!")
 }

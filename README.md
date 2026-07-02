@@ -20,8 +20,8 @@ Client Id and Secret are required and these can be obtained from the [Neo4j Aura
 - [Prometheus Metrics Operations](#prometheus-metrics-operations)
 - [v2beta1 API](#v2beta1-api)
 - [v2beta1 Instance Operations](#v2beta1-instance-operations)
-- [v2beta1 Database Operations](#v2beta1-database-operations)
-- [v2beta1 Database Backup Operations](#v2beta1-database-backup-operations)
+- [v2beta1 Database Operations](#v2beta1-database-operations) (List, Get, Create, Delete)
+- [v2beta1 Database Backup Operations](#v2beta1-database-backup-operations) (List, Get, Create)
 - [Error Handling](#error-handling)
 - [Best Practices](#best-practices)
 - [CI & Releases](#ci--releases)
@@ -777,7 +777,7 @@ for _, org := range orgs.Data {
 ```go
 ctx := context.Background()
 
-// Using the client default set by WithOrganization:
+// Using the client default set by WithDefaultOrg:
 org, err := client.Organizations.Get(ctx)
 if err != nil {
     log.Fatalf("Error: %v", err)
@@ -928,6 +928,32 @@ for _, db := range databases.Data {
 }
 ```
 
+### Get a Database
+
+```go
+ctx := context.Background()
+
+db, err := client.Databases.Get(ctx, "abcdef01", "12345678")
+if err != nil {
+    log.Fatalf("Error: %v", err)
+}
+
+fmt.Printf("Database ID: %s\n", db.Data.ID)
+```
+
+### Create a Database
+
+```go
+ctx := context.Background()
+
+db, err := client.Databases.Create(ctx, "abcdef01")
+if err != nil {
+    log.Fatalf("Error: %v", err)
+}
+
+fmt.Printf("Database created: %s\n", db.Data.ID)
+```
+
 ### Delete a Database
 
 ```go
@@ -939,9 +965,7 @@ if err != nil {
     log.Fatalf("Error: %v", err)
 }
 
-for _, db := range result.Data {
-    fmt.Printf("Deleted database: %s\n", db.ID)
-}
+fmt.Printf("Deleted database: %s\n", result.Data.ID)
 ```
 
 ---
@@ -979,6 +1003,20 @@ if err != nil {
 }
 
 fmt.Printf("Backup created: %s status: %s\n", backup.Data.ID, backup.Data.Status)
+```
+
+### Get a Backup
+
+```go
+ctx := context.Background()
+
+backup, err := client.DatabaseBackups.Get(ctx, "abcdef01", "12345678", "backup-id")
+if err != nil {
+    log.Fatalf("Error: %v", err)
+}
+
+fmt.Printf("Backup: %s status: %s exportable: %v\n",
+    backup.Data.ID, backup.Data.Status, backup.Data.Exportable)
 ```
 
 ---

@@ -31,7 +31,7 @@ type ListDatabasesResponse struct {
 
 // DeleteDatabaseResponse wraps the delete database response returned by the API.
 type DeleteDatabaseResponse struct {
-	Data []DatabaseResponse `json:"data"`
+	Data DatabaseResponse `json:"data"`
 }
 
 // DatabaseResponse represents a single Aura database.
@@ -111,7 +111,8 @@ func (s *databaseService) Create(ctx context.Context, instanceID string, opts ..
 		slog.String("instanceID", instanceID),
 	)
 
-	path := utils.SingleInstancePath(orgID, projectID, instanceID)
+	// Build the path to instances/{orgID}/databases
+	path := utils.DatabasesPath(orgID, projectID, instanceID)
 	// path := instancePath(orgID, projectID, instanceID)
 	resp, err := s.api.Post(ctx, path, "")
 	if err != nil {
@@ -158,7 +159,7 @@ func (s *databaseService) List(ctx context.Context, instanceID string, opts ...C
 		slog.String("instanceID", instanceID),
 	)
 
-	path := utils.SingleInstancePath(orgID, projectID, instanceID)
+	path := utils.DatabasesPath(orgID, projectID, instanceID)
 	//path := instancePath(orgID, projectID, instanceID)
 	resp, err := s.api.Get(ctx, path)
 	if err != nil {
@@ -206,7 +207,7 @@ func (s *databaseService) Get(ctx context.Context, instanceID, databaseID string
 		slog.String("databaseID", databaseID),
 	)
 
-	path := utils.BackupsPath(orgID, projectID, instanceID, databaseID)
+	path := utils.SingleDatabasePath(orgID, projectID, instanceID, databaseID)
 	// path := backupsPath(orgID, projectID, instanceID, databaseID)
 	resp, err := s.api.Get(ctx, path)
 	if err != nil {
@@ -255,7 +256,7 @@ func (s *databaseService) Delete(ctx context.Context, instanceID, databaseID str
 		slog.String("databaseID", databaseID),
 	)
 
-	path := utils.BackupsPath(orgID, projectID, instanceID, databaseID)
+	path := utils.SingleDatabasePath(orgID, projectID, instanceID, databaseID)
 	// path := backupsPath(orgID, projectID, instanceID, databaseID)
 	resp, err := s.api.Delete(ctx, path)
 	if err != nil {

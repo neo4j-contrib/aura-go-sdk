@@ -885,13 +885,11 @@ func TestDatabasesDelete_Success(t *testing.T) {
 		orgID      = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
 		projectID  = "11111111-2222-3333-4444-555555555555"
 		instanceID = "abcdef01"
-		databaseID = "12345678"
+		databaseID = "123456aa"
 	)
 
 	expected := DeleteDatabaseResponse{
-		Data: []DatabaseResponse{
-			{ID: "bbbbbbbb-cccc-dddd-eeee-ffffffffffff"},
-		},
+		Data: DatabaseResponse{ID: "123456aa"},
 	}
 
 	body, _ := json.Marshal(expected)
@@ -914,11 +912,9 @@ func TestDatabasesDelete_Success(t *testing.T) {
 	if mock.lastPath != expectedPath {
 		t.Errorf("expected path %q, got %q", expectedPath, mock.lastPath)
 	}
-	if len(result.Data) != 1 {
-		t.Fatalf("expected 1 database in response, got %d", len(result.Data))
-	}
-	if result.Data[0].ID != "bbbbbbbb-cccc-dddd-eeee-ffffffffffff" {
-		t.Errorf("expected database ID %q, got %q", "bbbbbbbb-cccc-dddd-eeee-ffffffffffff", result.Data[0].ID)
+
+	if result.Data.ID != "123456aa" {
+		t.Errorf("expected database ID %q, got %q", "123456aa", result.Data.ID)
 	}
 }
 
