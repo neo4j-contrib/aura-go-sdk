@@ -46,3 +46,29 @@ Key Decisions:
 - OrganizationUserDetails embeds OrganizationUser struct (not a separate copy) to avoid field duplication
 
 Next Task: task-003
+
+================================================================================
+TASK-003: Implement OrganizationInviteService (types, service, interface, client wiring)
+Date: 2026-07-03T15:00:00Z
+================================================================================
+
+Summary:
+Created v2beta1/organization_invites.go with all required types (ProjectInviteEntry,
+OrganizationInvite, ListOrganizationInvitesResponse, CreateOrganizationInviteResponse,
+CreateOrganizationInviteRequest) and the organizationInviteService struct implementing
+List, Create, and Delete methods. Added OrganizationInviteService interface and
+compile-time check to interfaces.go. Wired client.OrganizationInvites in client.go
+and incremented services count from 5 to 6.
+
+Files Changed:
+- v2beta1/organization_invites.go (created: types, service struct, List/Create/Delete methods)
+- v2beta1/interfaces.go (modified: added OrganizationInviteService interface and compile-time check)
+- v2beta1/client.go (modified: added OrganizationInvites field, wired organizationInviteService, services count 5→6)
+
+Key Decisions:
+- Delete returns plain error (not a response struct) since the API returns 204 No Content — mirrors Remove on OrganizationUserService
+- CreateOrganizationInviteRequest.ProjectInvites uses omitempty per the PRD spec (field is optional)
+- Log levels: List uses DebugContext; Create and Delete use InfoContext (mutations)
+- All path construction delegates to utils.OrgInvitesPath / utils.SingleInvitePath — consistent with other services
+
+Next Task: task-004

@@ -53,7 +53,7 @@ tasks:
       organizationInviteService struct with List, Create, and Delete methods. Add
       OrganizationInviteService to interfaces.go with its compile-time check. Wire
       client.OrganizationInvites in client.go and increment the services count to 6.
-    status: pending
+    status: completed
     dependencies:
       - task-001
     acceptance_criteria:
@@ -65,7 +65,7 @@ tasks:
       - "OrganizationInviteService interface and compile-time check added to interfaces.go"
       - "client.OrganizationInvites field present and wired in NewClient; services count = 6"
       - "go build ./... passes"
-    completed_at: null
+    completed_at: "2026-07-03T15:00:00Z"
 
   - id: task-004
     title: "Write tests for OrganizationUserService"

@@ -64,12 +64,23 @@ type OrganizationUserService interface {
 	Remove(ctx context.Context, orgID, userID string) error
 }
 
+// OrganizationInviteService defines operations for managing invites within an Aura organization.
+type OrganizationInviteService interface {
+	// List returns all pending invites within the given organization.
+	List(ctx context.Context, orgID string) (*ListOrganizationInvitesResponse, error)
+	// Create sends an invite to the given email address to join the organization.
+	Create(ctx context.Context, orgID string, req *CreateOrganizationInviteRequest) (*CreateOrganizationInviteResponse, error)
+	// Delete revokes an existing invite from the given organization.
+	Delete(ctx context.Context, orgID, inviteID string) error
+}
+
 // Compile-time interface compliance checks
 var (
-	_ OrganizationService     = (*organizationService)(nil)
-	_ ProjectService          = (*projectService)(nil)
-	_ InstanceService         = (*instanceService)(nil)
-	_ DatabaseService         = (*databaseService)(nil)
-	_ DatabaseBackupService   = (*databaseBackupService)(nil)
-	_ OrganizationUserService = (*organizationUserService)(nil)
+	_ OrganizationService       = (*organizationService)(nil)
+	_ ProjectService            = (*projectService)(nil)
+	_ InstanceService           = (*instanceService)(nil)
+	_ DatabaseService           = (*databaseService)(nil)
+	_ DatabaseBackupService     = (*databaseBackupService)(nil)
+	_ OrganizationUserService   = (*organizationUserService)(nil)
+	_ OrganizationInviteService = (*organizationInviteService)(nil)
 )
