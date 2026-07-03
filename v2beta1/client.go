@@ -69,6 +69,7 @@ type Client struct {
 	DatabaseBackups     DatabaseBackupService
 	OrganizationUsers   OrganizationUserService
 	OrganizationInvites OrganizationInviteService
+	ProjectUsers        ProjectUserService
 }
 
 // config holds internal configuration (unexported).
@@ -362,8 +363,13 @@ func NewClient(opts ...Option) (*Client, error) {
 		timeout: o.config.apiTimeout,
 		logger:  clientLogger.With(slog.String("service", "organizationInviteService")),
 	}
+	client.ProjectUsers = &projectUserService{
+		api:     apiSvc,
+		timeout: o.config.apiTimeout,
+		logger:  clientLogger.With(slog.String("service", "projectUserService")),
+	}
 	client.logger.Info("Aura v2beta1 API client initialized successfully",
-		slog.Int("services", 6),
+		slog.Int("services", 7),
 		slog.String("apiVersion", auraAPIVersion),
 	)
 

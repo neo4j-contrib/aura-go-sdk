@@ -29,7 +29,7 @@ tasks:
       ProjectUserService to interfaces.go with its compile-time check. Wire
       client.ProjectUsers in client.go and increment the services count from 6 to 7.
       Note: Add returns only error (no response body — HTTP 201 with no content).
-    status: pending
+    status: completed
     dependencies:
       - task-001
     acceptance_criteria:
@@ -42,7 +42,7 @@ tasks:
       - "ProjectUserService interface and compile-time check added to interfaces.go"
       - "client.ProjectUsers field present and wired in NewClient; services count = 7"
       - "go build ./... passes"
-    completed_at: null
+    completed_at: 2026-07-03T16:30:00Z
 
   - id: task-003
     title: "Write tests for ProjectUserService"

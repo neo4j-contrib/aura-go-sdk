@@ -25,3 +25,35 @@ Key Decisions:
   does; task-002 will need to add it before the service can validate userID params.
 
 Next Task: task-002
+
+================================================================================
+TASK-002: Implement ProjectUserService (types, service, interface, client wiring)
+Date: 2026-07-03T16:30:00Z
+================================================================================
+
+Summary:
+Added utils.UserID validator to internal/utils/validate_id.go (UUID format).
+Created v2beta1/project_users.go with ProjectUser, ListProjectUsersResponse,
+GetProjectUserResponse, AddProjectUserRequest, UpdateProjectUserRequest types and
+the projectUserService struct implementing List, Add, UpdateRole, and Remove.
+Add returns error only (no response body; HTTP 201 with no content). Remove
+returns error only (HTTP 204 with no content). UpdateRole and Remove both validate
+userID via utils.UserID. Added ProjectUserService interface and compile-time check
+to interfaces.go. Wired client.ProjectUsers in client.go and incremented services
+count from 4 to 5.
+
+Files Changed:
+- internal/utils/validate_id.go (modified — added UserID constructor)
+- v2beta1/project_users.go (created — types, projectUserService, all 4 methods)
+- v2beta1/interfaces.go (modified — added ProjectUserService interface and compile-time check)
+- v2beta1/client.go (modified — added ProjectUsers field and wiring; services count 4→5)
+
+Key Decisions:
+- services count in task description said "increment from 6 to 7" but actual code had 4;
+  bumped to 5 (4 existing + 1 new) to reflect reality.
+- utils.UserID uses UUID format (long form xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx),
+  consistent with OrganizationID and ProjectID.
+- Add and Remove discard the api.Response (no body expected) and return only error,
+  consistent with the task spec (HTTP 201/204 no content).
+
+Next Task: task-003

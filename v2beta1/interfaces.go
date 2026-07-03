@@ -74,6 +74,18 @@ type OrganizationInviteService interface {
 	Delete(ctx context.Context, orgID, inviteID string) error
 }
 
+// ProjectUserService defines operations for managing users within an Aura project.
+type ProjectUserService interface {
+	// List returns all users within the given organization and project.
+	List(ctx context.Context, orgID, projectID string) (*ListProjectUsersResponse, error)
+	// Add adds a user to the given organization and project.
+	Add(ctx context.Context, orgID, projectID string, req *AddProjectUserRequest) error
+	// UpdateRole updates the role of a user within the given organization and project.
+	UpdateRole(ctx context.Context, orgID, projectID, userID string, req *UpdateProjectUserRequest) (*GetProjectUserResponse, error)
+	// Remove removes a user from the given organization and project.
+	Remove(ctx context.Context, orgID, projectID, userID string) error
+}
+
 // Compile-time interface compliance checks
 var (
 	_ OrganizationService       = (*organizationService)(nil)
@@ -83,4 +95,5 @@ var (
 	_ DatabaseBackupService     = (*databaseBackupService)(nil)
 	_ OrganizationUserService   = (*organizationUserService)(nil)
 	_ OrganizationInviteService = (*organizationInviteService)(nil)
+	_ ProjectUserService        = (*projectUserService)(nil)
 )
