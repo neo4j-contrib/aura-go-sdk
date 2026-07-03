@@ -1,8 +1,11 @@
 package utils
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
+	"io"
+	"log/slog"
 	"testing"
 )
 
@@ -377,4 +380,115 @@ func contains(s, substr string) bool {
 		}
 	}
 	return false
+}
+
+// testValidateLogger returns a no-op slog.Logger for use in validation tests.
+func testValidateLogger() *slog.Logger {
+	return slog.New(slog.NewTextHandler(io.Discard, nil))
+}
+
+// TestUserID_Validate covers empty, malformed, and valid cases for UserID.
+func TestUserID_Validate(t *testing.T) {
+	ctx := context.Background()
+	logger := testValidateLogger()
+
+	tests := []struct {
+		name    string
+		value   string
+		wantErr bool
+	}{
+		{"empty", "", true},
+		{"malformed_no_dashes", "12345678123412341234123456789012", true},
+		{"malformed_too_short", "12345678-1234-1234-1234-12345678901", true},
+		{"malformed_wrong_chars", "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx", true},
+		{"valid", "12345678-1234-1234-1234-123456789012", false},
+		{"valid_uppercase", "ABCDEF12-ABCD-ABCD-ABCD-ABCDEF123456", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := Validate(ctx, logger, UserID(tt.value))
+			if tt.wantErr && err == nil {
+				t.Errorf("expected error for UserID(%q), got nil", tt.value)
+			}
+			if !tt.wantErr && err != nil {
+				t.Errorf("expected no error for UserID(%q), got %v", tt.value, err)
+			}
+		})
+	}
+}
+
+// TestUserID_ErrorMessages checks that empty and invalid values produce distinct messages.
+func TestUserID_ErrorMessages(t *testing.T) {
+	ctx := context.Background()
+	logger := testValidateLogger()
+
+	err := Validate(ctx, logger, UserID(""))
+	if err == nil {
+		t.Fatal("expected error for empty user ID")
+	}
+	if err.Error() != "user ID is required" {
+		t.Errorf("unexpected missing message: %q", err.Error())
+	}
+
+	err = Validate(ctx, logger, UserID("not-a-uuid"))
+	if err == nil {
+		t.Fatal("expected error for malformed user ID")
+	}
+	if err.Error() != "user ID must be an hex string formatted as xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" {
+		t.Errorf("unexpected invalid message: %q", err.Error())
+	}
+}
+
+// TestInviteID_Validate covers empty, malformed, and valid cases for InviteID.
+func TestInviteID_Validate(t *testing.T) {
+	ctx := context.Background()
+	logger := testValidateLogger()
+
+	tests := []struct {
+		name    string
+		value   string
+		wantErr bool
+	}{
+		{"empty", "", true},
+		{"malformed_no_dashes", "12345678123412341234123456789012", true},
+		{"malformed_too_short", "12345678-1234-1234-1234-12345678901", true},
+		{"malformed_wrong_chars", "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx", true},
+		{"valid", "12345678-1234-1234-1234-123456789012", false},
+		{"valid_uppercase", "ABCDEF12-ABCD-ABCD-ABCD-ABCDEF123456", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := Validate(ctx, logger, InviteID(tt.value))
+			if tt.wantErr && err == nil {
+				t.Errorf("expected error for InviteID(%q), got nil", tt.value)
+			}
+			if !tt.wantErr && err != nil {
+				t.Errorf("expected no error for InviteID(%q), got %v", tt.value, err)
+			}
+		})
+	}
+}
+
+// TestInviteID_ErrorMessages checks that empty and invalid values produce distinct messages.
+func TestInviteID_ErrorMessages(t *testing.T) {
+	ctx := context.Background()
+	logger := testValidateLogger()
+
+	err := Validate(ctx, logger, InviteID(""))
+	if err == nil {
+		t.Fatal("expected error for empty invite ID")
+	}
+	if err.Error() != "invite ID is required" {
+		t.Errorf("unexpected missing message: %q", err.Error())
+	}
+
+	err = Validate(ctx, logger, InviteID("not-a-uuid"))
+	if err == nil {
+		t.Fatal("expected error for malformed invite ID")
+	}
+	if err.Error() != "invite ID must be an hex string formatted as xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" {
+		t.Errorf("unexpected invalid message: %q", err.Error())
+	}
 }

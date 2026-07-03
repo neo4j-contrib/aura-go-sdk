@@ -12,14 +12,14 @@ tasks:
       (uuidPattern — xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx). Include clear missing and
       invalid error messages consistent with the existing validators. Add tests in
       utils_test.go covering empty, malformed, and valid values for each.
-    status: pending
+    status: completed
     dependencies: []
     acceptance_criteria:
       - "UserID constructor exists, returns UUID-format RequiredID with descriptive error messages"
       - "InviteID constructor exists, returns UUID-format RequiredID with descriptive error messages"
       - "utils_test.go covers empty/invalid/valid cases for both new constructors"
       - "go test ./internal/utils/... passes"
-    completed_at: null
+    completed_at: "2026-07-03T14:20:00Z"
 
   - id: task-002
     title: "Implement OrganizationUserService (types, service, interface, client wiring)"
