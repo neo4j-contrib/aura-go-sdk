@@ -115,7 +115,7 @@ tasks:
       Create for invites. Both should follow the style and verbosity of existing v2beta1
       examples — minimal working calls with no extra prose, reading credentials from
       environment variables.
-    status: pending
+    status: completed
     dependencies:
       - task-004
       - task-005
@@ -124,7 +124,7 @@ tasks:
       - "examples/v2beta1/orgInvites/main.go exists and calls client.OrganizationInvites.List and .Create"
       - "Both examples read credentials from environment variables (AURA_CLIENT_ID, AURA_CLIENT_SECRET)"
       - "go build ./examples/... passes"
-    completed_at: null
+    completed_at: "2026-07-03T17:00:00Z"
 
   - id: task-007
     title: "Update README.md with organization user and invite sections"

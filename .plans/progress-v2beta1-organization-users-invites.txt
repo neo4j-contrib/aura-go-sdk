@@ -127,3 +127,25 @@ Key Decisions:
   interface{} with any in the omitempty raw-body map
 
 Next Task: task-006
+
+================================================================================
+TASK-006: Create examples for organization users and invites
+Date: 2026-07-03T17:00:00Z
+================================================================================
+
+Summary:
+Created two example programs under examples/v2beta1/: orgUsers/main.go demonstrating
+List and Get for organization users, and orgInvites/main.go demonstrating List and
+Create for invites. Both follow the existing v2beta1 example style — credentials from
+environment variables, slog.LevelWarn logger, 6-second context timeout, defer client.Close().
+
+Files Changed:
+- examples/v2beta1/orgUsers/main.go (created: List and Get calls for OrganizationUsers)
+- examples/v2beta1/orgInvites/main.go (created: List and Create calls for OrganizationInvites)
+
+Key Decisions:
+- orgUsers reads AURA_USER_ID env var (needed for the Get call); orgInvites reads AURA_INVITE_EMAIL (needed for Create)
+- Both guard against missing env vars with a single log.Fatal before creating the client
+- go build ./... and golangci-lint both pass with 0 issues
+
+Next Task: task-007
