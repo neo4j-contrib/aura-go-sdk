@@ -149,3 +149,26 @@ Key Decisions:
 - go build ./... and golangci-lint both pass with 0 issues
 
 Next Task: task-007
+
+================================================================================
+TASK-007: Update README.md with organization user and invite sections
+Date: 2026-07-03T18:00:00Z
+================================================================================
+
+Summary:
+Added two new H2 sections to README.md with matching Table of Contents entries:
+'## v2beta1 Organization User Operations' (List, Get, UpdateRole, Remove) and
+'## v2beta1 Organization Invite Operations' (List, Create, Delete, Create with
+Project Roles). Review feedback applied: converted the ProjectInvites variant
+code snippet from an orphaned prose+block fragment to a proper H3 sub-section
+with a complete API call, removing the prose sentence that violated style rules.
+
+Files Changed:
+- README.md (modified: added ToC entries and two new H2 sections)
+
+Key Decisions:
+- ProjectInvites variant given its own H3 heading "Create an Organization Invite with Project Roles" rather than being removed, since it demonstrates the omitempty-optional field
+- Second Create code block includes the full API call (not just req declaration) so copy-paste works
+- Style matches existing v2beta1 sections: one-liner H2 intro, H3 per operation, code block only, no prose inside or between blocks
+
+Next Task: task-008

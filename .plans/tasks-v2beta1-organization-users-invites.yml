@@ -134,7 +134,7 @@ tasks:
       Table of Contents. Each section should contain fenced Go code blocks showing a
       minimal working call for each method, following the exact style of the existing
       v2beta1 sections.
-    status: pending
+    status: completed
     dependencies:
       - task-006
     acceptance_criteria:
@@ -142,7 +142,7 @@ tasks:
       - "'## v2beta1 Organization User Operations' section exists with code blocks for List, Get, UpdateRole, Remove"
       - "'## v2beta1 Organization Invite Operations' section exists with code blocks for List, Create, Delete"
       - "Style matches existing v2beta1 sections (no prose inside code blocks, no extra context)"
-    completed_at: null
+    completed_at: "2026-07-03T18:00:00Z"
 
   - id: task-008
     title: "Add changie changelog fragments for v1.7.0"

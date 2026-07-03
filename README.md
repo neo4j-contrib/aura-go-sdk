@@ -22,6 +22,8 @@ Client Id and Secret are required and these can be obtained from the [Neo4j Aura
 - [v2beta1 Instance Operations](#v2beta1-instance-operations)
 - [v2beta1 Database Operations](#v2beta1-database-operations) (List, Get, Create, Delete)
 - [v2beta1 Database Backup Operations](#v2beta1-database-backup-operations) (List, Get, Create)
+- [v2beta1 Organization User Operations](#v2beta1-organization-user-operations) (List, Get, UpdateRole, Remove)
+- [v2beta1 Organization Invite Operations](#v2beta1-organization-invite-operations) (List, Create, Delete)
 - [Error Handling](#error-handling)
 - [Best Practices](#best-practices)
 - [CI & Releases](#ci--releases)
@@ -996,6 +998,149 @@ if err != nil {
 
 fmt.Printf("Backup: %s status: %s exportable: %v\n",
     backup.Data.ID, backup.Data.Status, backup.Data.Exportable)
+```
+
+---
+
+## v2beta1 Organization User Operations
+
+`client.OrganizationUsers` manages users within an Aura organization.
+
+### List Organization Users
+
+```go
+ctx := context.Background()
+
+users, err := client.OrganizationUsers.List(ctx, "your-org-uuid")
+if err != nil {
+    log.Fatalf("Error: %v", err)
+}
+
+for _, user := range users.Data {
+    fmt.Printf("User: %s (ID: %s) roles: %v\n", user.Email, user.UserID, user.OrganizationRoles)
+}
+```
+
+### Get Organization User Details
+
+```go
+ctx := context.Background()
+
+user, err := client.OrganizationUsers.Get(ctx, "your-org-uuid", "a1b2c3d4-e5f6-7890-abcd-ef1234567890")
+if err != nil {
+    log.Fatalf("Error: %v", err)
+}
+
+fmt.Printf("User: %s roles: %v\n", user.Data.Email, user.Data.OrganizationRoles)
+for _, project := range user.Data.Projects {
+    fmt.Printf("  Project: %s (ID: %s) roles: %v\n", project.Name, project.ID, project.ProjectRoles)
+}
+```
+
+### Update Organization User Role
+
+```go
+ctx := context.Background()
+
+req := &v2beta1.UpdateOrganizationUserRequest{
+    OrganizationRoles: []string{"organization-member"},
+}
+
+user, err := client.OrganizationUsers.UpdateRole(ctx, "your-org-uuid", "a1b2c3d4-e5f6-7890-abcd-ef1234567890", req)
+if err != nil {
+    log.Fatalf("Error: %v", err)
+}
+
+fmt.Printf("Updated roles: %v\n", user.Data.OrganizationRoles)
+```
+
+### Remove a User from an Organization
+
+```go
+ctx := context.Background()
+
+err := client.OrganizationUsers.Remove(ctx, "your-org-uuid", "a1b2c3d4-e5f6-7890-abcd-ef1234567890")
+if err != nil {
+    log.Fatalf("Error: %v", err)
+}
+
+fmt.Println("User removed from organization")
+```
+
+---
+
+## v2beta1 Organization Invite Operations
+
+`client.OrganizationInvites` manages pending invites for an Aura organization.
+
+### List Organization Invites
+
+```go
+ctx := context.Background()
+
+invites, err := client.OrganizationInvites.List(ctx, "your-org-uuid")
+if err != nil {
+    log.Fatalf("Error: %v", err)
+}
+
+for _, invite := range invites.Data {
+    fmt.Printf("Invite: %s (ID: %s) status: %s\n", invite.Email, invite.ID, invite.Status)
+}
+```
+
+### Create an Organization Invite
+
+```go
+ctx := context.Background()
+
+req := &v2beta1.CreateOrganizationInviteRequest{
+    Email: "new-member@example.com",
+    Roles: []string{"organization-member"},
+}
+
+invite, err := client.OrganizationInvites.Create(ctx, "your-org-uuid", req)
+if err != nil {
+    log.Fatalf("Error: %v", err)
+}
+
+fmt.Printf("Invite sent to %s (ID: %s)\n", invite.Data.Email, invite.Data.ID)
+```
+
+### Create an Organization Invite with Project Roles
+
+```go
+ctx := context.Background()
+
+req := &v2beta1.CreateOrganizationInviteRequest{
+    Email: "new-member@example.com",
+    Roles: []string{"organization-member"},
+    ProjectInvites: []v2beta1.ProjectInviteEntry{
+        {
+            ProjectID:    "your-project-uuid",
+            ProjectRoles: []string{"project-member"},
+        },
+    },
+}
+
+invite, err := client.OrganizationInvites.Create(ctx, "your-org-uuid", req)
+if err != nil {
+    log.Fatalf("Error: %v", err)
+}
+
+fmt.Printf("Invite sent to %s (ID: %s)\n", invite.Data.Email, invite.Data.ID)
+```
+
+### Delete an Organization Invite
+
+```go
+ctx := context.Background()
+
+err := client.OrganizationInvites.Delete(ctx, "your-org-uuid", "a1b2c3d4-e5f6-7890-abcd-ef1234567890")
+if err != nil {
+    log.Fatalf("Error: %v", err)
+}
+
+fmt.Println("Invite deleted")
 ```
 
 ---

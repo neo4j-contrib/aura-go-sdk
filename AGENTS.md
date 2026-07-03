@@ -194,6 +194,9 @@ Use `mockAPIServiceWithDelay` (never `mockAPIService`) whenever the test must pr
 
 Add a new H2 section `## Foo Operations` to `README.md` and a matching entry in the Table of Contents at the top of the file. Each operation gets a fenced Go code block showing a minimal working call. Follow the style and verbosity of the existing `## Instance Operations` section exactly — no prose explanation inside the code block, no extra context beyond what's needed to call the method.
 
+- No prose between code blocks. If a method has a variant (e.g. optional fields), promote it to its own H3 sub-section rather than using a prose lead-in sentence.
+- Every code block must be a complete, callable snippet — never declare only `req` without the API call that uses it.
+
 ## PR Conventions
 
 - One logical change per PR; breaking changes (renamed types, removed fields, interface additions) get their own PR
