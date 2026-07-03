@@ -95,5 +95,6 @@ Key Decisions:
 - Remove tests do not need a nil-check on result since Remove returns plain error, not *T
 - An extra Remove_InvalidUserID_ErrorMessage test was added to verify error wording contains "user ID"
 - mockAPIServiceWithDelay used for all ContextTimeout and QuickCancellation tests — never mockAPIService
+- Review feedback applied: added UpdateRole_InvalidUserID, UpdateRole_AuthenticationError, UpdateRole_QuickCancellation (missing from initial implementation)
 
 Next Task: task-005
