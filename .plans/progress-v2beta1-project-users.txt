@@ -57,3 +57,36 @@ Key Decisions:
   consistent with the task spec (HTTP 201/204 no content).
 
 Next Task: task-003
+
+================================================================================
+TASK-003: Write tests for ProjectUserService
+Date: 2026-07-03T17:30:00Z
+================================================================================
+
+Summary:
+Fixed type mismatches in v2beta1/project_users.go: ProjectUser.Role string →
+ProjectRoles []string, AddProjectUserRequest Email/Role → UserID/ProjectRoles,
+UpdateProjectUserRequest Role → ProjectRoles, all matching the PRD spec.
+Also fixed client.go services count from 5 to 6 (six services are now wired).
+Created v2beta1/project_users_test.go with the full AGENTS.md test matrix for
+all four methods (List, Add, UpdateRole, Remove). Tests use table-driven
+_InvalidOrgID, _InvalidProjectID, _InvalidUserID sub-tests; Add and UpdateRole
+tests also unmarshal mock.lastBody to assert request serialisation. All tests
+pass with go test -race ./v2beta1/... and golangci-lint reports 0 issues.
+
+Files Changed:
+- v2beta1/project_users.go (modified — corrected ProjectUser, AddProjectUserRequest,
+  UpdateProjectUserRequest types to use ProjectRoles []string per PRD spec)
+- v2beta1/client.go (modified — services count 5→6)
+- v2beta1/project_users_test.go (created — full test coverage for all 4 methods)
+
+Key Decisions:
+- Types corrected per PRD spec: ProjectRoles []string instead of Role string,
+  AddProjectUserRequest uses UserID+ProjectRoles instead of Email+Role.
+- services count corrected to 6 (Organizations, Projects, Instances, Databases,
+  DatabaseBackups, ProjectUsers).
+- Used table-driven tests for all _InvalidID variants (matching AGENTS.md guidance).
+- Add_QuickCancellation included even though not listed in the task acceptance
+  criteria explicitly, to match List/Add symmetry in the test matrix.
+
+Next Task: task-004

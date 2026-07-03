@@ -16,9 +16,9 @@ import (
 
 // ProjectUser represents a user that is a member of an Aura project.
 type ProjectUser struct {
-	UserID string `json:"user_id"`
-	Email  string `json:"email"`
-	Role   string `json:"role"`
+	UserID       string   `json:"user_id"`
+	Email        string   `json:"email"`
+	ProjectRoles []string `json:"project_roles"`
 }
 
 // ListProjectUsersResponse wraps the list of project users returned by the API.
@@ -33,13 +33,13 @@ type GetProjectUserResponse struct {
 
 // AddProjectUserRequest holds the fields required to add a user to a project.
 type AddProjectUserRequest struct {
-	Email string `json:"email"`
-	Role  string `json:"role"`
+	UserID       string   `json:"user_id"`
+	ProjectRoles []string `json:"project_roles"`
 }
 
 // UpdateProjectUserRequest holds the fields required to update a user's role in a project.
 type UpdateProjectUserRequest struct {
-	Role string `json:"role"`
+	ProjectRoles []string `json:"project_roles"`
 }
 
 // ============================================================================
