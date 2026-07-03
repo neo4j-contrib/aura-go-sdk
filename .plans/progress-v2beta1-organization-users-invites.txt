@@ -1,0 +1,196 @@
+================================================================================
+TASK-001: Add UserID and InviteID validators to internal/utils/validate_id.go
+Date: 2026-07-03T14:20:00Z
+================================================================================
+
+Summary:
+Added two new RequiredID constructor functions — UserID and InviteID — to
+internal/utils/validate_id.go, both using the uuidPattern (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx).
+Added table-driven tests and error-message tests for both constructors in utils_test.go.
+Review feedback addressed: godoc comments updated to start with function name per Go convention,
+and test helper comment corrected.
+
+Files Changed:
+- internal/utils/validate_id.go (modified: added UserID and InviteID constructors)
+- internal/utils/utils_test.go (modified: added testValidateLogger helper and four new test functions)
+
+Key Decisions:
+- Both constructors use the existing UUID IDFormat — consistent with OrganizationID, ProjectID, etc.
+- Error messages follow the exact wording pattern of existing validators ("is required" / "must be an hex string formatted as...")
+- Tests added to utils_test.go (single test file for the package) rather than a separate validate_id_test.go
+
+Next Task: task-002
+
+================================================================================
+TASK-002: Implement OrganizationUserService (types, service, interface, client wiring)
+Date: 2026-07-03T14:30:00Z
+================================================================================
+
+Summary:
+Created v2beta1/organization_users.go with all required types (MFAEnrolledMethod,
+OrganizationUser, OrganizationUserProject, OrganizationUserDetails and response/request
+wrappers) and the organizationUserService struct implementing List, Get, UpdateRole, and
+Remove methods. Added OrganizationUserService interface and compile-time check to
+interfaces.go. Wired client.OrganizationUsers in client.go and incremented services count
+from 4 to 5.
+
+Files Changed:
+- v2beta1/organization_users.go (created: types, service struct, List/Get/UpdateRole/Remove methods)
+- v2beta1/interfaces.go (modified: added OrganizationUserService interface and compile-time check)
+- v2beta1/client.go (modified: added OrganizationUsers field, wired organizationUserService, services count 4→5)
+
+Key Decisions:
+- Remove returns plain error (not a response struct) since the API returns 204 No Content — consistent with PRD spec
+- UpdateRole marshals request body and uses api.Patch — consistent with AGENTS.md pattern for PATCH operations
+- Log levels follow PRD table: List/Get use DebugContext, UpdateRole/Remove use InfoContext
+- OrganizationUserDetails embeds OrganizationUser struct (not a separate copy) to avoid field duplication
+
+Next Task: task-003
+
+================================================================================
+TASK-003: Implement OrganizationInviteService (types, service, interface, client wiring)
+Date: 2026-07-03T15:00:00Z
+================================================================================
+
+Summary:
+Created v2beta1/organization_invites.go with all required types (ProjectInviteEntry,
+OrganizationInvite, ListOrganizationInvitesResponse, CreateOrganizationInviteResponse,
+CreateOrganizationInviteRequest) and the organizationInviteService struct implementing
+List, Create, and Delete methods. Added OrganizationInviteService interface and
+compile-time check to interfaces.go. Wired client.OrganizationInvites in client.go
+and incremented services count from 5 to 6.
+
+Files Changed:
+- v2beta1/organization_invites.go (created: types, service struct, List/Create/Delete methods)
+- v2beta1/interfaces.go (modified: added OrganizationInviteService interface and compile-time check)
+- v2beta1/client.go (modified: added OrganizationInvites field, wired organizationInviteService, services count 5→6)
+
+Key Decisions:
+- Delete returns plain error (not a response struct) since the API returns 204 No Content — mirrors Remove on OrganizationUserService
+- CreateOrganizationInviteRequest.ProjectInvites uses omitempty per the PRD spec (field is optional)
+- Log levels: List uses DebugContext; Create and Delete use InfoContext (mutations)
+- All path construction delegates to utils.OrgInvitesPath / utils.SingleInvitePath — consistent with other services
+
+Next Task: task-004
+
+================================================================================
+TASK-004: Write tests for OrganizationUserService
+Date: 2026-07-03T15:30:00Z
+================================================================================
+
+Summary:
+Created v2beta1/organization_users_test.go with the full AGENTS.md test matrix for
+all four methods of organizationUserService: List, Get, UpdateRole, and Remove.
+Constructor helpers (createTestOrganizationUserService and
+createTestOrganizationUserServiceWithTimeout) follow the existing pattern. InvalidID
+cases are table-driven. UpdateRole_Success unmarshals mock.lastBody and asserts the
+organization_roles field is serialised correctly. Remove_QuickCancellation and
+List_QuickCancellation use pre-expired contexts with mockAPIServiceWithDelay.
+
+Files Changed:
+- v2beta1/organization_users_test.go (created: all test functions per acceptance criteria)
+
+Key Decisions:
+- Table-driven InvalidID tests use {"empty", ""}, {"non-UUID", "not-a-uuid"}, {"short", "1234"} — consistent with databasesBackups_test.go
+- Remove tests do not need a nil-check on result since Remove returns plain error, not *T
+- An extra Remove_InvalidUserID_ErrorMessage test was added to verify error wording contains "user ID"
+- mockAPIServiceWithDelay used for all ContextTimeout and QuickCancellation tests — never mockAPIService
+- Review feedback applied: added UpdateRole_InvalidUserID, UpdateRole_AuthenticationError, UpdateRole_QuickCancellation (missing from initial implementation)
+
+Next Task: task-005
+
+================================================================================
+TASK-005: Write tests for OrganizationInviteService
+Date: 2026-07-03T16:00:00Z
+================================================================================
+
+Summary:
+Created v2beta1/organization_invites_test.go with the full AGENTS.md test matrix for
+all three methods of organizationInviteService: List, Create, and Delete.
+Constructor helpers (createTestOrganizationInviteService and
+createTestOrganizationInviteServiceWithTimeout) follow the existing pattern.
+InvalidID cases are table-driven. Create_Success unmarshals mock.lastBody and
+asserts email, roles, and project_invites were serialised correctly.
+Create_Success_OmitEmptyProjectInvites decodes the raw body into map[string]any
+and verifies project_invites is absent when ProjectInvites is nil (omitempty).
+Review feedback applied: replaced interface{} with any on the raw body map.
+
+Files Changed:
+- v2beta1/organization_invites_test.go (created: all test functions per acceptance criteria)
+
+Key Decisions:
+- Delete tests do not need a nil-check on result since Delete returns plain error, not *T
+- omitempty assertion uses map[string]any (not a struct) so we can check key presence/absence
+- mockAPIServiceWithDelay used for all ContextTimeout and QuickCancellation tests
+- Review feedback applied: added Create_AuthenticationError, Create_QuickCancellation,
+  Delete_AuthenticationError tests to match the full AGENTS.md test matrix; replaced
+  interface{} with any in the omitempty raw-body map
+
+Next Task: task-006
+
+================================================================================
+TASK-006: Create examples for organization users and invites
+Date: 2026-07-03T17:00:00Z
+================================================================================
+
+Summary:
+Created two example programs under examples/v2beta1/: orgUsers/main.go demonstrating
+List and Get for organization users, and orgInvites/main.go demonstrating List and
+Create for invites. Both follow the existing v2beta1 example style — credentials from
+environment variables, slog.LevelWarn logger, 6-second context timeout, defer client.Close().
+
+Files Changed:
+- examples/v2beta1/orgUsers/main.go (created: List and Get calls for OrganizationUsers)
+- examples/v2beta1/orgInvites/main.go (created: List and Create calls for OrganizationInvites)
+
+Key Decisions:
+- orgUsers reads AURA_USER_ID env var (needed for the Get call); orgInvites reads AURA_INVITE_EMAIL (needed for Create)
+- Both guard against missing env vars with a single log.Fatal before creating the client
+- go build ./... and golangci-lint both pass with 0 issues
+
+Next Task: task-007
+
+================================================================================
+TASK-007: Update README.md with organization user and invite sections
+Date: 2026-07-03T18:00:00Z
+================================================================================
+
+Summary:
+Added two new H2 sections to README.md with matching Table of Contents entries:
+'## v2beta1 Organization User Operations' (List, Get, UpdateRole, Remove) and
+'## v2beta1 Organization Invite Operations' (List, Create, Delete, Create with
+Project Roles). Review feedback applied: converted the ProjectInvites variant
+code snippet from an orphaned prose+block fragment to a proper H3 sub-section
+with a complete API call, removing the prose sentence that violated style rules.
+
+Files Changed:
+- README.md (modified: added ToC entries and two new H2 sections)
+
+Key Decisions:
+- ProjectInvites variant given its own H3 heading "Create an Organization Invite with Project Roles" rather than being removed, since it demonstrates the omitempty-optional field
+- Second Create code block includes the full API call (not just req declaration) so copy-paste works
+- Style matches existing v2beta1 sections: one-liner H2 intro, H3 per operation, code block only, no prose inside or between blocks
+
+Next Task: task-008
+
+================================================================================
+TASK-008: Add changie changelog fragments for v1.7.0
+Date: 2026-07-03T15:50:00Z
+================================================================================
+
+Summary:
+Used `changie new --kind Added --body "..."` (non-interactive) to create two changelog
+fragments in .changes/unreleased/: one for OrganizationUserService and one for
+OrganizationInviteService. Both fragments are kind: Added with descriptive bodies
+following the existing convention. All tests and lint pass; no code changes required.
+
+Files Changed:
+- .changes/unreleased/Added-20260703-154843.yaml (created: fragment for OrganizationUserService)
+- .changes/unreleased/Added-20260703-154846.yaml (created: fragment for OrganizationInviteService)
+
+Key Decisions:
+- Two separate fragments (one per service) matches the pattern of prior releases
+- Body text follows `v2beta1: add <ServiceName> with <method list>` convention from v1.5.1.md
+- Since both services are new (not modifications to existing interfaces), kind: Added is correct; no Changed entry needed
+
+Next Task: All tasks complete

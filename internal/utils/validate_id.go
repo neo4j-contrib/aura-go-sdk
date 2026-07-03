@@ -104,6 +104,28 @@ func DatabaseBackupID(value string) RequiredID {
 	}
 }
 
+// UserID checks that the supplied value is a long-form UUID xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx.
+func UserID(value string) RequiredID {
+	return RequiredID{
+		Name:       "user ID",
+		Value:      value,
+		Format:     UUID,
+		MissingMsg: "user ID is required",
+		InvalidMsg: "user ID must be an hex string formatted as xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+	}
+}
+
+// InviteID checks that the supplied value is a long-form UUID xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx.
+func InviteID(value string) RequiredID {
+	return RequiredID{
+		Name:       "invite ID",
+		Value:      value,
+		Format:     UUID,
+		MissingMsg: "invite ID is required",
+		InvalidMsg: "invite ID must be an hex string formatted as xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+	}
+}
+
 // Validate checks a list of RequiredIDs in order, returning the first
 // error encountered (missing or invalid), logging via the given logger.
 // This allows us to call it with just a project ID to validate or several IDs as needed by

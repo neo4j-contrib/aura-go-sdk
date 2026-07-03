@@ -40,7 +40,7 @@ go fmt ./...
 
 ## Conventions
 
-- Changie fragments go in `.changes/unreleased/`; kinds: `Fixed`, `Changed` (breaking), `Added`
+- Changie fragments go in `.changes/unreleased/`; kinds: `Fixed`, `Changed` (breaking), `Added`; create non-interactively with `changie new --kind Added --body "..."`
 - All service methods validate IDs before calling the API; empty check first, then format check
 - Error messages follow the pattern `"invalid <thing> ID: <wrapped error>"`
 - Log `ErrorContext` on API errors; `DebugContext` on success paths; `InfoContext` for mutating operations
@@ -193,6 +193,9 @@ Use `mockAPIServiceWithDelay` (never `mockAPIService`) whenever the test must pr
 ### 6. README.md
 
 Add a new H2 section `## Foo Operations` to `README.md` and a matching entry in the Table of Contents at the top of the file. Each operation gets a fenced Go code block showing a minimal working call. Follow the style and verbosity of the existing `## Instance Operations` section exactly — no prose explanation inside the code block, no extra context beyond what's needed to call the method.
+
+- No prose between code blocks. If a method has a variant (e.g. optional fields), promote it to its own H3 sub-section rather than using a prose lead-in sentence.
+- Every code block must be a complete, callable snippet — never declare only `req` without the API call that uses it.
 
 ## PR Conventions
 

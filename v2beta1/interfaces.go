@@ -52,11 +52,35 @@ type DatabaseBackupService interface {
 	Get(ctx context.Context, orgID, projectID, instanceID, databaseID, backupID string) (*GetBackupResponse, error)
 }
 
+// OrganizationUserService defines operations for managing users within an Aura organization.
+type OrganizationUserService interface {
+	// List returns all users within the given organization.
+	List(ctx context.Context, orgID string) (*ListOrganizationUsersResponse, error)
+	// Get retrieves details for a specific user within the given organization.
+	Get(ctx context.Context, orgID, userID string) (*GetOrganizationUserResponse, error)
+	// UpdateRole updates the organization roles of a specific user.
+	UpdateRole(ctx context.Context, orgID, userID string, req *UpdateOrganizationUserRequest) (*GetOrganizationUserResponse, error)
+	// Remove removes a user from the given organization.
+	Remove(ctx context.Context, orgID, userID string) error
+}
+
+// OrganizationInviteService defines operations for managing invites within an Aura organization.
+type OrganizationInviteService interface {
+	// List returns all pending invites within the given organization.
+	List(ctx context.Context, orgID string) (*ListOrganizationInvitesResponse, error)
+	// Create sends an invite to the given email address to join the organization.
+	Create(ctx context.Context, orgID string, req *CreateOrganizationInviteRequest) (*CreateOrganizationInviteResponse, error)
+	// Delete revokes an existing invite from the given organization.
+	Delete(ctx context.Context, orgID, inviteID string) error
+}
+
 // Compile-time interface compliance checks
 var (
-	_ OrganizationService   = (*organizationService)(nil)
-	_ ProjectService        = (*projectService)(nil)
-	_ InstanceService       = (*instanceService)(nil)
-	_ DatabaseService       = (*databaseService)(nil)
-	_ DatabaseBackupService = (*databaseBackupService)(nil)
+	_ OrganizationService       = (*organizationService)(nil)
+	_ ProjectService            = (*projectService)(nil)
+	_ InstanceService           = (*instanceService)(nil)
+	_ DatabaseService           = (*databaseService)(nil)
+	_ DatabaseBackupService     = (*databaseBackupService)(nil)
+	_ OrganizationUserService   = (*organizationUserService)(nil)
+	_ OrganizationInviteService = (*organizationInviteService)(nil)
 )

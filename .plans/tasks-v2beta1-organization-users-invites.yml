@@ -1,0 +1,163 @@
+feature: v2beta1-organization-users-invites
+prd: ./prd-v2beta1-organization-users-invites.md
+created_at: 2026-07-03T00:00:00Z
+updated_at: 2026-07-03T00:00:00Z
+
+tasks:
+  - id: task-001
+    title: "Add UserID and InviteID validators to internal/utils/validate_id.go"
+    description: |
+      Add two new RequiredID constructor functions to internal/utils/validate_id.go:
+      UserID(value string) and InviteID(value string). Both must use the UUID format
+      (uuidPattern — xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx). Include clear missing and
+      invalid error messages consistent with the existing validators. Add tests in
+      utils_test.go covering empty, malformed, and valid values for each.
+    status: completed
+    dependencies: []
+    acceptance_criteria:
+      - "UserID constructor exists, returns UUID-format RequiredID with descriptive error messages"
+      - "InviteID constructor exists, returns UUID-format RequiredID with descriptive error messages"
+      - "utils_test.go covers empty/invalid/valid cases for both new constructors"
+      - "go test ./internal/utils/... passes"
+    completed_at: "2026-07-03T14:20:00Z"
+
+  - id: task-002
+    title: "Implement OrganizationUserService (types, service, interface, client wiring)"
+    description: |
+      Create v2beta1/organization_users.go declaring all types (OrganizationUser,
+      MFAEnrolledMethod, OrganizationUserProject, OrganizationUserDetails and their
+      response/request wrappers) and the organizationUserService struct with List, Get,
+      UpdateRole, and Remove methods. Add OrganizationUserService to interfaces.go with
+      its compile-time check. Wire client.OrganizationUsers in client.go and increment
+      the services count from 4 to 5.
+    status: completed
+    dependencies:
+      - task-001
+    acceptance_criteria:
+      - "All types from the PRD Technical Considerations section are declared with correct json tags"
+      - "List calls GET organizations/{org_id}/users using utils.OrgUsersPath"
+      - "Get calls GET organizations/{org_id}/users/{user_id} using utils.SingleOrgUserPath and returns OrganizationUserDetails"
+      - "UpdateRole calls PATCH organizations/{org_id}/users/{user_id}, serialises request body, returns GetOrganizationUserResponse"
+      - "Remove calls DELETE organizations/{org_id}/users/{user_id} and returns nil on 204"
+      - "All methods validate orgID via utils.Validate; Get/UpdateRole/Remove also validate userID"
+      - "OrganizationUserService interface and compile-time check added to interfaces.go"
+      - "client.OrganizationUsers field present and wired in NewClient; services count = 5"
+      - "go build ./... passes"
+    completed_at: "2026-07-03T14:30:00Z"
+
+  - id: task-003
+    title: "Implement OrganizationInviteService (types, service, interface, client wiring)"
+    description: |
+      Create v2beta1/organization_invites.go declaring all types (OrganizationInvite,
+      ProjectInviteEntry and their response/request wrappers) and the
+      organizationInviteService struct with List, Create, and Delete methods. Add
+      OrganizationInviteService to interfaces.go with its compile-time check. Wire
+      client.OrganizationInvites in client.go and increment the services count to 6.
+    status: completed
+    dependencies:
+      - task-001
+    acceptance_criteria:
+      - "All invite types are declared with correct json tags (omitempty on ProjectInvites)"
+      - "List calls GET organizations/{org_id}/invites using utils.OrgInvitesPath"
+      - "Create calls POST organizations/{org_id}/invites using utils.OrgInvitesPath, serialises request body"
+      - "Delete calls DELETE organizations/{org_id}/invites/{invite_id} using utils.SingleInvitePath and returns nil on 204"
+      - "All methods validate orgID; Delete also validates inviteID via utils.InviteID"
+      - "OrganizationInviteService interface and compile-time check added to interfaces.go"
+      - "client.OrganizationInvites field present and wired in NewClient; services count = 6"
+      - "go build ./... passes"
+    completed_at: "2026-07-03T15:00:00Z"
+
+  - id: task-004
+    title: "Write tests for OrganizationUserService"
+    description: |
+      Create v2beta1/organization_users_test.go with createTestOrganizationUserService
+      and createTestOrganizationUserServiceWithTimeout constructor helpers. Cover all
+      four methods (List, Get, UpdateRole, Remove) with the full AGENTS.md test matrix:
+      _Success, _InvalidID (table-driven), _NotFound, _AuthenticationError, _EmptyResult
+      (List only), _ContextTimeout, _QuickCancellation. For UpdateRole also unmarshal
+      mock.lastBody and assert the request body was serialised correctly.
+    status: completed
+    dependencies:
+      - task-002
+    acceptance_criteria:
+      - "createTestOrganizationUserService and createTestOrganizationUserServiceWithTimeout helpers present"
+      - "List_Success, List_EmptyResult, List_InvalidOrgID, List_NotFound, List_AuthenticationError, List_ContextTimeout, List_QuickCancellation tests present"
+      - "Get_Success, Get_InvalidOrgID, Get_InvalidUserID, Get_NotFound, Get_AuthenticationError, Get_ContextTimeout, Get_QuickCancellation tests present"
+      - "UpdateRole_Success (with lastBody assertion), UpdateRole_InvalidOrgID, UpdateRole_NotFound, UpdateRole_ContextTimeout tests present"
+      - "Remove_Success, Remove_InvalidOrgID, Remove_InvalidUserID, Remove_NotFound, Remove_ContextTimeout tests present"
+      - "go test -race ./v2beta1/... passes"
+    completed_at: "2026-07-03T15:30:00Z"
+
+  - id: task-005
+    title: "Write tests for OrganizationInviteService"
+    description: |
+      Create v2beta1/organization_invites_test.go with createTestOrganizationInviteService
+      and createTestOrganizationInviteServiceWithTimeout constructor helpers. Cover all
+      three methods (List, Create, Delete) with the full AGENTS.md test matrix. For
+      Create also unmarshal mock.lastBody and assert email, roles, and project_invites
+      were serialised correctly, including the omitempty case.
+    status: completed
+    dependencies:
+      - task-003
+    acceptance_criteria:
+      - "createTestOrganizationInviteService and createTestOrganizationInviteServiceWithTimeout helpers present"
+      - "List_Success, List_EmptyResult, List_InvalidOrgID, List_NotFound, List_AuthenticationError, List_ContextTimeout, List_QuickCancellation tests present"
+      - "Create_Success (with lastBody assertion including omitempty), Create_InvalidOrgID, Create_NotFound, Create_ContextTimeout tests present"
+      - "Delete_Success, Delete_InvalidOrgID, Delete_InvalidInviteID, Delete_NotFound, Delete_ContextTimeout tests present"
+      - "go test -race ./v2beta1/... passes"
+    completed_at: "2026-07-03T16:00:00Z"
+
+  - id: task-006
+    title: "Create examples for organization users and invites"
+    description: |
+      Add two example programs under examples/v2beta1/: orgUsers/main.go demonstrating
+      List and Get for organization users, and orgInvites/main.go demonstrating List and
+      Create for invites. Both should follow the style and verbosity of existing v2beta1
+      examples — minimal working calls with no extra prose, reading credentials from
+      environment variables.
+    status: completed
+    dependencies:
+      - task-004
+      - task-005
+    acceptance_criteria:
+      - "examples/v2beta1/orgUsers/main.go exists and calls client.OrganizationUsers.List and .Get"
+      - "examples/v2beta1/orgInvites/main.go exists and calls client.OrganizationInvites.List and .Create"
+      - "Both examples read credentials from environment variables (AURA_CLIENT_ID, AURA_CLIENT_SECRET)"
+      - "go build ./examples/... passes"
+    completed_at: "2026-07-03T17:00:00Z"
+
+  - id: task-007
+    title: "Update README.md with organization user and invite sections"
+    description: |
+      Add two new H2 sections to README.md: '## v2beta1 Organization User Operations'
+      and '## v2beta1 Organization Invite Operations', each with a matching entry in the
+      Table of Contents. Each section should contain fenced Go code blocks showing a
+      minimal working call for each method, following the exact style of the existing
+      v2beta1 sections.
+    status: completed
+    dependencies:
+      - task-006
+    acceptance_criteria:
+      - "Table of Contents has entries for both new sections"
+      - "'## v2beta1 Organization User Operations' section exists with code blocks for List, Get, UpdateRole, Remove"
+      - "'## v2beta1 Organization Invite Operations' section exists with code blocks for List, Create, Delete"
+      - "Style matches existing v2beta1 sections (no prose inside code blocks, no extra context)"
+    completed_at: "2026-07-03T18:00:00Z"
+
+  - id: task-008
+    title: "Add changie changelog fragments for v1.7.0"
+    description: |
+      Run changie new to create changelog fragments for this release. The two new
+      services are Added changes. Since OrganizationUserService and
+      OrganizationInviteService are new interfaces added to the v2beta1 package (not
+      modifications to existing interfaces), they do not require a Changed entry.
+      Commit the generated YAML files in .changes/unreleased/ alongside the code.
+    status: completed
+    dependencies:
+      - task-007
+    acceptance_criteria:
+      - "At least one .changes/unreleased/*.yaml fragment exists with kind: Added for OrganizationUserService"
+      - "At least one .changes/unreleased/*.yaml fragment exists with kind: Added for OrganizationInviteService"
+      - "go test -race ./... passes"
+      - "golangci-lint run passes"
+    completed_at: "2026-07-03T15:50:00Z"
