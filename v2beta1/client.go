@@ -62,11 +62,12 @@ type Client struct {
 	logger *slog.Logger
 
 	// Service fields — interface types for testability.
-	Organizations   OrganizationService
-	Projects        ProjectService
-	Instances       InstanceService
-	Databases       DatabaseService
-	DatabaseBackups DatabaseBackupService
+	Organizations     OrganizationService
+	Projects          ProjectService
+	Instances         InstanceService
+	Databases         DatabaseService
+	DatabaseBackups   DatabaseBackupService
+	OrganizationUsers OrganizationUserService
 }
 
 // config holds internal configuration (unexported).
@@ -350,8 +351,13 @@ func NewClient(opts ...Option) (*Client, error) {
 		timeout: o.config.apiTimeout,
 		logger:  clientLogger.With(slog.String("service", "databaseBackupService")),
 	}
+	client.OrganizationUsers = &organizationUserService{
+		api:     apiSvc,
+		timeout: o.config.apiTimeout,
+		logger:  clientLogger.With(slog.String("service", "organizationUserService")),
+	}
 	client.logger.Info("Aura v2beta1 API client initialized successfully",
-		slog.Int("services", 4),
+		slog.Int("services", 5),
 		slog.String("apiVersion", auraAPIVersion),
 	)
 

@@ -30,7 +30,7 @@ tasks:
       UpdateRole, and Remove methods. Add OrganizationUserService to interfaces.go with
       its compile-time check. Wire client.OrganizationUsers in client.go and increment
       the services count from 4 to 5.
-    status: pending
+    status: completed
     dependencies:
       - task-001
     acceptance_criteria:
@@ -43,7 +43,7 @@ tasks:
       - "OrganizationUserService interface and compile-time check added to interfaces.go"
       - "client.OrganizationUsers field present and wired in NewClient; services count = 5"
       - "go build ./... passes"
-    completed_at: null
+    completed_at: "2026-07-03T14:30:00Z"
 
   - id: task-003
     title: "Implement OrganizationInviteService (types, service, interface, client wiring)"

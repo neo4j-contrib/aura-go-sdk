@@ -52,11 +52,24 @@ type DatabaseBackupService interface {
 	Get(ctx context.Context, orgID, projectID, instanceID, databaseID, backupID string) (*GetBackupResponse, error)
 }
 
+// OrganizationUserService defines operations for managing users within an Aura organization.
+type OrganizationUserService interface {
+	// List returns all users within the given organization.
+	List(ctx context.Context, orgID string) (*ListOrganizationUsersResponse, error)
+	// Get retrieves details for a specific user within the given organization.
+	Get(ctx context.Context, orgID, userID string) (*GetOrganizationUserResponse, error)
+	// UpdateRole updates the organization roles of a specific user.
+	UpdateRole(ctx context.Context, orgID, userID string, req *UpdateOrganizationUserRequest) (*GetOrganizationUserResponse, error)
+	// Remove removes a user from the given organization.
+	Remove(ctx context.Context, orgID, userID string) error
+}
+
 // Compile-time interface compliance checks
 var (
-	_ OrganizationService   = (*organizationService)(nil)
-	_ ProjectService        = (*projectService)(nil)
-	_ InstanceService       = (*instanceService)(nil)
-	_ DatabaseService       = (*databaseService)(nil)
-	_ DatabaseBackupService = (*databaseBackupService)(nil)
+	_ OrganizationService     = (*organizationService)(nil)
+	_ ProjectService          = (*projectService)(nil)
+	_ InstanceService         = (*instanceService)(nil)
+	_ DatabaseService         = (*databaseService)(nil)
+	_ DatabaseBackupService   = (*databaseBackupService)(nil)
+	_ OrganizationUserService = (*organizationUserService)(nil)
 )

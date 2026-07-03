@@ -1,0 +1,48 @@
+================================================================================
+TASK-001: Add UserID and InviteID validators to internal/utils/validate_id.go
+Date: 2026-07-03T14:20:00Z
+================================================================================
+
+Summary:
+Added two new RequiredID constructor functions — UserID and InviteID — to
+internal/utils/validate_id.go, both using the uuidPattern (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx).
+Added table-driven tests and error-message tests for both constructors in utils_test.go.
+Review feedback addressed: godoc comments updated to start with function name per Go convention,
+and test helper comment corrected.
+
+Files Changed:
+- internal/utils/validate_id.go (modified: added UserID and InviteID constructors)
+- internal/utils/utils_test.go (modified: added testValidateLogger helper and four new test functions)
+
+Key Decisions:
+- Both constructors use the existing UUID IDFormat — consistent with OrganizationID, ProjectID, etc.
+- Error messages follow the exact wording pattern of existing validators ("is required" / "must be an hex string formatted as...")
+- Tests added to utils_test.go (single test file for the package) rather than a separate validate_id_test.go
+
+Next Task: task-002
+
+================================================================================
+TASK-002: Implement OrganizationUserService (types, service, interface, client wiring)
+Date: 2026-07-03T14:30:00Z
+================================================================================
+
+Summary:
+Created v2beta1/organization_users.go with all required types (MFAEnrolledMethod,
+OrganizationUser, OrganizationUserProject, OrganizationUserDetails and response/request
+wrappers) and the organizationUserService struct implementing List, Get, UpdateRole, and
+Remove methods. Added OrganizationUserService interface and compile-time check to
+interfaces.go. Wired client.OrganizationUsers in client.go and incremented services count
+from 4 to 5.
+
+Files Changed:
+- v2beta1/organization_users.go (created: types, service struct, List/Get/UpdateRole/Remove methods)
+- v2beta1/interfaces.go (modified: added OrganizationUserService interface and compile-time check)
+- v2beta1/client.go (modified: added OrganizationUsers field, wired organizationUserService, services count 4→5)
+
+Key Decisions:
+- Remove returns plain error (not a response struct) since the API returns 204 No Content — consistent with PRD spec
+- UpdateRole marshals request body and uses api.Patch — consistent with AGENTS.md pattern for PATCH operations
+- Log levels follow PRD table: List/Get use DebugContext, UpdateRole/Remove use InfoContext
+- OrganizationUserDetails embeds OrganizationUser struct (not a separate copy) to avoid field duplication
+
+Next Task: task-003
