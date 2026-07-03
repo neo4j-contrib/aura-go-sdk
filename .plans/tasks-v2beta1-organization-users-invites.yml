@@ -96,7 +96,7 @@ tasks:
       three methods (List, Create, Delete) with the full AGENTS.md test matrix. For
       Create also unmarshal mock.lastBody and assert email, roles, and project_invites
       were serialised correctly, including the omitempty case.
-    status: pending
+    status: completed
     dependencies:
       - task-003
     acceptance_criteria:
@@ -105,7 +105,7 @@ tasks:
       - "Create_Success (with lastBody assertion including omitempty), Create_InvalidOrgID, Create_NotFound, Create_ContextTimeout tests present"
       - "Delete_Success, Delete_InvalidOrgID, Delete_InvalidInviteID, Delete_NotFound, Delete_ContextTimeout tests present"
       - "go test -race ./v2beta1/... passes"
-    completed_at: null
+    completed_at: "2026-07-03T16:00:00Z"
 
   - id: task-006
     title: "Create examples for organization users and invites"

@@ -98,3 +98,32 @@ Key Decisions:
 - Review feedback applied: added UpdateRole_InvalidUserID, UpdateRole_AuthenticationError, UpdateRole_QuickCancellation (missing from initial implementation)
 
 Next Task: task-005
+
+================================================================================
+TASK-005: Write tests for OrganizationInviteService
+Date: 2026-07-03T16:00:00Z
+================================================================================
+
+Summary:
+Created v2beta1/organization_invites_test.go with the full AGENTS.md test matrix for
+all three methods of organizationInviteService: List, Create, and Delete.
+Constructor helpers (createTestOrganizationInviteService and
+createTestOrganizationInviteServiceWithTimeout) follow the existing pattern.
+InvalidID cases are table-driven. Create_Success unmarshals mock.lastBody and
+asserts email, roles, and project_invites were serialised correctly.
+Create_Success_OmitEmptyProjectInvites decodes the raw body into map[string]any
+and verifies project_invites is absent when ProjectInvites is nil (omitempty).
+Review feedback applied: replaced interface{} with any on the raw body map.
+
+Files Changed:
+- v2beta1/organization_invites_test.go (created: all test functions per acceptance criteria)
+
+Key Decisions:
+- Delete tests do not need a nil-check on result since Delete returns plain error, not *T
+- omitempty assertion uses map[string]any (not a struct) so we can check key presence/absence
+- mockAPIServiceWithDelay used for all ContextTimeout and QuickCancellation tests
+- Review feedback applied: added Create_AuthenticationError, Create_QuickCancellation,
+  Delete_AuthenticationError tests to match the full AGENTS.md test matrix; replaced
+  interface{} with any in the omitempty raw-body map
+
+Next Task: task-006
