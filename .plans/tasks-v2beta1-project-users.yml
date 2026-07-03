@@ -75,7 +75,7 @@ tasks:
       AURA_CLIENT_SECRET environment variables, and org/project IDs from
       AURA_ORG_ID and AURA_PROJECT_ID. Follow the exact style and verbosity of existing
       v2beta1 examples — minimal working calls with no extra prose.
-    status: pending
+    status: completed
     dependencies:
       - task-003
     acceptance_criteria:
@@ -83,7 +83,7 @@ tasks:
       - "Example calls client.ProjectUsers.List and client.ProjectUsers.Add"
       - "Credentials and IDs read from environment variables"
       - "go build ./examples/... passes"
-    completed_at: null
+    completed_at: 2026-07-03T18:15:00Z
 
   - id: task-005
     title: "Update README.md with project user operations section"

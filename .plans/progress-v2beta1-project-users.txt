@@ -90,3 +90,34 @@ Key Decisions:
   criteria explicitly, to match List/Add symmetry in the test matrix.
 
 Next Task: task-004
+
+================================================================================
+TASK-004: Create example for project users
+Date: 2026-07-03T18:15:00Z
+================================================================================
+
+Summary:
+Created examples/v2beta1/projectUsers/projectUsers.go demonstrating List and Add
+for project users. Reads credentials from AURA_CLIENT_ID, AURA_CLIENT_SECRET,
+AURA_ORG_ID, AURA_PROJECT_ID env vars; optionally reads AURA_USER_ID to
+demonstrate Add (gracefully skips Add with a message if AURA_USER_ID is unset).
+Also added 4 missing test functions to v2beta1/project_users_test.go to complete
+the AGENTS.md test matrix for UpdateRole and Remove:
+UpdateRole_AuthenticationError, UpdateRole_QuickCancellation,
+Remove_AuthenticationError, Remove_QuickCancellation.
+All feedback loops pass: go build ./..., go test -race ./..., golangci-lint run.
+
+Files Changed:
+- examples/v2beta1/projectUsers/projectUsers.go (created — List + Add example)
+- v2beta1/project_users_test.go (modified — 4 new test functions for UpdateRole and Remove)
+
+Key Decisions:
+- AURA_USER_ID is optional in the example: if unset, the example still runs and
+  demonstrates List, then exits cleanly with a message explaining how to test Add.
+  This avoids hard-failing for users who only want to test the read path.
+- 4 missing test functions (UpdateRole_AuthenticationError,
+  UpdateRole_QuickCancellation, Remove_AuthenticationError,
+  Remove_QuickCancellation) were added alongside task-004 since they were flagged
+  as test matrix gaps by the reviewer and are a zero-risk addition.
+
+Next Task: task-005
