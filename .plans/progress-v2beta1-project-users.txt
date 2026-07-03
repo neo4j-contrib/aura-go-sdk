@@ -153,3 +153,27 @@ Key Decisions:
   in the file and the pattern established in instances_test.go.
 
 Next Task: task-006
+
+================================================================================
+TASK-006: Add changie changelog fragment for v1.8.0
+Date: 2026-07-03T17:09:00Z
+================================================================================
+
+Summary:
+Ran `changie new --kind Added --body 'v2beta1: add ProjectUserService with List,
+Add, UpdateRole, Remove'` to create a changelog fragment in .changes/unreleased/.
+The fragment follows the exact format established by the v1.7.0 OrganizationUserService
+and OrganizationInviteService fragments. All feedback loops pass (go test -race ./...,
+golangci-lint run).
+
+Files Changed:
+- .changes/unreleased/Added-20260703-170857.yaml (created — changie fragment for ProjectUserService)
+- .plans/tasks-v2beta1-project-users.yml (modified — task-006 marked completed)
+
+Key Decisions:
+- Used `changie new` non-interactively with --kind and --body flags, matching the
+  approach used in task-008 of the organization-users-invites feature.
+- Body text follows the established convention: 'v2beta1: add <ServiceName> with
+  <Method1>, <Method2>, ...' exactly as instructed.
+
+Next Task: All tasks complete

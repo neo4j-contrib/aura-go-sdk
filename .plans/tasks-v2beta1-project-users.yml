@@ -111,11 +111,11 @@ tasks:
       following the 'v2beta1: add ProjectUserService with List, Add, UpdateRole, Remove'
       convention established in the previous release. Verify all feedback loops pass
       before committing.
-    status: pending
+    status: completed
     dependencies:
       - task-005
     acceptance_criteria:
       - "At least one .changes/unreleased/*.yaml fragment exists with kind: Added for ProjectUserService"
       - "go test -race ./... passes"
       - "golangci-lint run passes"
-    completed_at: null
+    completed_at: 2026-07-03T17:09:00Z
