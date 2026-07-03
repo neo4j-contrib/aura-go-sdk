@@ -72,3 +72,28 @@ Key Decisions:
 - All path construction delegates to utils.OrgInvitesPath / utils.SingleInvitePath — consistent with other services
 
 Next Task: task-004
+
+================================================================================
+TASK-004: Write tests for OrganizationUserService
+Date: 2026-07-03T15:30:00Z
+================================================================================
+
+Summary:
+Created v2beta1/organization_users_test.go with the full AGENTS.md test matrix for
+all four methods of organizationUserService: List, Get, UpdateRole, and Remove.
+Constructor helpers (createTestOrganizationUserService and
+createTestOrganizationUserServiceWithTimeout) follow the existing pattern. InvalidID
+cases are table-driven. UpdateRole_Success unmarshals mock.lastBody and asserts the
+organization_roles field is serialised correctly. Remove_QuickCancellation and
+List_QuickCancellation use pre-expired contexts with mockAPIServiceWithDelay.
+
+Files Changed:
+- v2beta1/organization_users_test.go (created: all test functions per acceptance criteria)
+
+Key Decisions:
+- Table-driven InvalidID tests use {"empty", ""}, {"non-UUID", "not-a-uuid"}, {"short", "1234"} — consistent with databasesBackups_test.go
+- Remove tests do not need a nil-check on result since Remove returns plain error, not *T
+- An extra Remove_InvalidUserID_ErrorMessage test was added to verify error wording contains "user ID"
+- mockAPIServiceWithDelay used for all ContextTimeout and QuickCancellation tests — never mockAPIService
+
+Next Task: task-005

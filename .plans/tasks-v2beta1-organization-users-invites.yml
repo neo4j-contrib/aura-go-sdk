@@ -76,7 +76,7 @@ tasks:
       _Success, _InvalidID (table-driven), _NotFound, _AuthenticationError, _EmptyResult
       (List only), _ContextTimeout, _QuickCancellation. For UpdateRole also unmarshal
       mock.lastBody and assert the request body was serialised correctly.
-    status: pending
+    status: completed
     dependencies:
       - task-002
     acceptance_criteria:
@@ -86,7 +86,7 @@ tasks:
       - "UpdateRole_Success (with lastBody assertion), UpdateRole_InvalidOrgID, UpdateRole_NotFound, UpdateRole_ContextTimeout tests present"
       - "Remove_Success, Remove_InvalidOrgID, Remove_InvalidUserID, Remove_NotFound, Remove_ContextTimeout tests present"
       - "go test -race ./v2beta1/... passes"
-    completed_at: null
+    completed_at: "2026-07-03T15:30:00Z"
 
   - id: task-005
     title: "Write tests for OrganizationInviteService"
