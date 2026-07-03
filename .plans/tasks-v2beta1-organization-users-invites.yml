@@ -152,7 +152,7 @@ tasks:
       OrganizationInviteService are new interfaces added to the v2beta1 package (not
       modifications to existing interfaces), they do not require a Changed entry.
       Commit the generated YAML files in .changes/unreleased/ alongside the code.
-    status: pending
+    status: completed
     dependencies:
       - task-007
     acceptance_criteria:
@@ -160,4 +160,4 @@ tasks:
       - "At least one .changes/unreleased/*.yaml fragment exists with kind: Added for OrganizationInviteService"
       - "go test -race ./... passes"
       - "golangci-lint run passes"
-    completed_at: null
+    completed_at: "2026-07-03T15:50:00Z"

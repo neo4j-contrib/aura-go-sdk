@@ -40,7 +40,7 @@ go fmt ./...
 
 ## Conventions
 
-- Changie fragments go in `.changes/unreleased/`; kinds: `Fixed`, `Changed` (breaking), `Added`
+- Changie fragments go in `.changes/unreleased/`; kinds: `Fixed`, `Changed` (breaking), `Added`; create non-interactively with `changie new --kind Added --body "..."`
 - All service methods validate IDs before calling the API; empty check first, then format check
 - Error messages follow the pattern `"invalid <thing> ID: <wrapped error>"`
 - Log `ErrorContext` on API errors; `DebugContext` on success paths; `InfoContext` for mutating operations

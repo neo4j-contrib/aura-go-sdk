@@ -172,3 +172,25 @@ Key Decisions:
 - Style matches existing v2beta1 sections: one-liner H2 intro, H3 per operation, code block only, no prose inside or between blocks
 
 Next Task: task-008
+
+================================================================================
+TASK-008: Add changie changelog fragments for v1.7.0
+Date: 2026-07-03T15:50:00Z
+================================================================================
+
+Summary:
+Used `changie new --kind Added --body "..."` (non-interactive) to create two changelog
+fragments in .changes/unreleased/: one for OrganizationUserService and one for
+OrganizationInviteService. Both fragments are kind: Added with descriptive bodies
+following the existing convention. All tests and lint pass; no code changes required.
+
+Files Changed:
+- .changes/unreleased/Added-20260703-154843.yaml (created: fragment for OrganizationUserService)
+- .changes/unreleased/Added-20260703-154846.yaml (created: fragment for OrganizationInviteService)
+
+Key Decisions:
+- Two separate fragments (one per service) matches the pattern of prior releases
+- Body text follows `v2beta1: add <ServiceName> with <method list>` convention from v1.5.1.md
+- Since both services are new (not modifications to existing interfaces), kind: Added is correct; no Changed entry needed
+
+Next Task: All tasks complete
