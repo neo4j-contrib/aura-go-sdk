@@ -2,14 +2,13 @@
 //
 // The v2beta1 API exposes organization and project management operations not
 // available in the stable v1 API. Construct a client with NewClient and
-// authenticate using WithCredentials. Set a default organization with
-// WithOrganization, or supply an org ID per-call using WithOrg.
+// authenticate using WithCredentials. Organization and project IDs must be
+// supplied explicitly on every service call.
 //
 // Example usage:
 //
 //	client, err := v2beta1.NewClient(
 //	    v2beta1.WithCredentials("client-id", "client-secret"),
-//	    v2beta1.WithOrganization("org-uuid"),
 //	)
 //	if err != nil {
 //	    log.Fatal(err)
@@ -26,7 +25,6 @@ import (
 	"os"
 	"runtime/debug"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/neo4j-contrib/aura-go-sdk/internal/api"
@@ -69,26 +67,19 @@ type Client struct {
 	Instances       InstanceService
 	Databases       DatabaseService
 	DatabaseBackups DatabaseBackupService
-
-	// Mutex-protected defaults for org and project ID resolution.
-	mu               sync.RWMutex
-	defaultOrgID     string
-	defaultProjectID string
 }
 
 // config holds internal configuration (unexported).
 type config struct {
-	baseURL          string
-	apiTimeout       time.Duration
-	apiRetryMax      int
-	clientID         string
-	clientSecret     string
-	httpClient       *http.Client
-	userAgent        string
-	defaultHeaders   map[string]string
-	maxResponseSize  int
-	defaultOrgID     string
-	defaultProjectID string
+	baseURL         string
+	apiTimeout      time.Duration
+	apiRetryMax     int
+	clientID        string
+	clientSecret    string
+	httpClient      *http.Client
+	userAgent       string
+	defaultHeaders  map[string]string
+	maxResponseSize int
 }
 
 // Option is a functional option for configuring the Client.
@@ -271,30 +262,6 @@ func WithDefaultHeaders(headers map[string]string) Option {
 }
 
 // WithDefaultOrg sets the default organization ID used when no per-call WithOrg
-// option is supplied. The value is stored and readable by SetOrg later.
-func WithDefaultOrg(orgID string) Option {
-	return func(o *options) error {
-		if orgID == "" {
-			return errors.New("organization ID must not be empty")
-		}
-		o.config.defaultOrgID = orgID
-		return nil
-	}
-}
-
-// WithDefaultProject sets the default project ID used when no per-call WithProject
-// option is supplied. Named WithDefaultProject to avoid a name collision with the
-// per-call WithProject CallOption constructor in calloptions.go.
-func WithDefaultProject(projectID string) Option {
-	return func(o *options) error {
-		if projectID == "" {
-			return errors.New("project ID must not be empty")
-		}
-		o.config.defaultProjectID = projectID
-		return nil
-	}
-}
-
 // ============================================================================
 // Constructor
 // ============================================================================
@@ -353,42 +320,35 @@ func NewClient(opts ...Option) (*Client, error) {
 	clientLogger := o.logger.With(slog.String("component", "v2beta1.Client"))
 
 	client := &Client{
-		api:              apiSvc,
-		logger:           clientLogger,
-		defaultOrgID:     o.config.defaultOrgID,
-		defaultProjectID: o.config.defaultProjectID,
+		api:    apiSvc,
+		logger: clientLogger,
 	}
 
 	client.Organizations = &organizationService{
 		api:     apiSvc,
 		timeout: o.config.apiTimeout,
 		logger:  clientLogger.With(slog.String("service", "organizationService")),
-		client:  client,
 	}
 	client.Projects = &projectService{
 		api:     apiSvc,
 		timeout: o.config.apiTimeout,
 		logger:  clientLogger.With(slog.String("service", "projectService")),
-		client:  client,
 	}
 	client.Instances = &instanceService{
 		api:     apiSvc,
 		timeout: o.config.apiTimeout,
 		logger:  clientLogger.With(slog.String("service", "instanceService")),
-		client:  client,
 	}
 	client.Databases = &databaseService{
 		api:     apiSvc,
 		timeout: o.config.apiTimeout,
 		logger:  clientLogger.With(slog.String("service", "databaseService")),
-		client:  client,
 	}
 
 	client.DatabaseBackups = &databaseBackupService{
 		api:     apiSvc,
 		timeout: o.config.apiTimeout,
-		logger:  clientLogger.With(slog.String("service", "databaseService")),
-		client:  client,
+		logger:  clientLogger.With(slog.String("service", "databaseBackupService")),
 	}
 	client.logger.Info("Aura v2beta1 API client initialized successfully",
 		slog.Int("services", 4),
@@ -396,26 +356,6 @@ func NewClient(opts ...Option) (*Client, error) {
 	)
 
 	return client, nil
-}
-
-// ============================================================================
-// Client methods
-// ============================================================================
-
-// SetOrg updates the default organization ID used by all service calls that
-// do not supply a per-call WithOrg override. It is safe for concurrent use.
-func (c *Client) SetOrg(orgID string) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.defaultOrgID = orgID
-}
-
-// SetProject updates the default project ID used by all service calls that
-// do not supply a per-call WithProject override. It is safe for concurrent use.
-func (c *Client) SetProject(projectID string) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.defaultProjectID = projectID
 }
 
 // Close drains idle HTTP connections held by the underlying transport. It

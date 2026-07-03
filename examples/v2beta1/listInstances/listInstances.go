@@ -27,8 +27,6 @@ func main() {
 
 	client, err := v2beta1.NewClient(
 		v2beta1.WithCredentials(clientID, clientSecret),
-		v2beta1.WithDefaultOrg(orgID),
-		v2beta1.WithDefaultProject(projectID),
 		v2beta1.WithTimeout(120*time.Second),
 		v2beta1.WithLogger(customLogger),
 	)
@@ -40,7 +38,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 6*time.Second)
 	defer cancel()
 
-	instances, err := client.Instances.List(ctx)
+	instances, err := client.Instances.List(ctx, orgID, projectID)
 	if err != nil {
 		log.Fatalf("Failed to list instances: %v", err)
 	}

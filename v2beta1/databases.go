@@ -43,44 +43,17 @@ type DatabaseResponse struct {
 // Service
 // ============================================================================
 
-// databaseService handles database backup operations for the v2beta1 API.
+// databaseService handles database operations for the v2beta1 API.
 type databaseService struct {
 	api     api.RequestService
 	timeout time.Duration
 	logger  *slog.Logger
-	client  *Client
 }
 
-// resolveOrgProject reads both defaults from the client under a single lock and
-// applies call options once, returning the effective org and project IDs.
-func (s *databaseService) resolveOrgProject(opts []CallOption) (orgID, projectID string) {
-	var defaultOrg, defaultProject string
-	if s.client != nil {
-		s.client.mu.RLock()
-		defaultOrg = s.client.defaultOrgID
-		defaultProject = s.client.defaultProjectID
-		s.client.mu.RUnlock()
-	}
-	cfg := applyOptions(opts)
-	orgID = cfg.orgID
-	if orgID == "" {
-		orgID = defaultOrg
-	}
-	projectID = cfg.projectID
-	if projectID == "" {
-		projectID = defaultProject
-	}
-	return
-}
-
-func (s *databaseService) Create(ctx context.Context, instanceID string, opts ...CallOption) (*CreateDatabaseResponse, error) {
+func (s *databaseService) Create(ctx context.Context, orgID, projectID, instanceID string) (*CreateDatabaseResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	orgID, projectID := s.resolveOrgProject(opts)
-
-	// Check IDs are supplied and valid
-	// Using new Validate function
 	if err := utils.Validate(ctx, s.logger,
 		utils.OrganizationID(orgID),
 		utils.ProjectID(projectID),
@@ -95,9 +68,7 @@ func (s *databaseService) Create(ctx context.Context, instanceID string, opts ..
 		slog.String("instanceID", instanceID),
 	)
 
-	// Build the path to instances/{orgID}/databases
 	path := utils.DatabasesPath(orgID, projectID, instanceID)
-	// path := instancePath(orgID, projectID, instanceID)
 	resp, err := s.api.Post(ctx, path, "")
 	if err != nil {
 		s.logger.ErrorContext(ctx, "failed to create database",
@@ -114,21 +85,17 @@ func (s *databaseService) Create(ctx context.Context, instanceID string, opts ..
 		return nil, err
 	}
 
-	s.logger.DebugContext(ctx, "database created  successfully",
+	s.logger.DebugContext(ctx, "database created successfully",
 		slog.String("instanceID", instanceID),
 	)
 
 	return &result, nil
 }
 
-func (s *databaseService) List(ctx context.Context, instanceID string, opts ...CallOption) (*ListDatabasesResponse, error) {
+func (s *databaseService) List(ctx context.Context, orgID, projectID, instanceID string) (*ListDatabasesResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	orgID, projectID := s.resolveOrgProject(opts)
-
-	// Check IDs are supplied and valid
-	// Using new Validate function
 	if err := utils.Validate(ctx, s.logger,
 		utils.OrganizationID(orgID),
 		utils.ProjectID(projectID),
@@ -144,7 +111,6 @@ func (s *databaseService) List(ctx context.Context, instanceID string, opts ...C
 	)
 
 	path := utils.DatabasesPath(orgID, projectID, instanceID)
-	//path := instancePath(orgID, projectID, instanceID)
 	resp, err := s.api.Get(ctx, path)
 	if err != nil {
 		s.logger.ErrorContext(ctx, "failed to list instance databases",
@@ -167,14 +133,10 @@ func (s *databaseService) List(ctx context.Context, instanceID string, opts ...C
 	return &result, nil
 }
 
-func (s *databaseService) Get(ctx context.Context, instanceID, databaseID string, opts ...CallOption) (*GetDatabaseResponse, error) {
+func (s *databaseService) Get(ctx context.Context, orgID, projectID, instanceID, databaseID string) (*GetDatabaseResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	orgID, projectID := s.resolveOrgProject(opts)
-
-	// Check IDs are supplied and valid
-	// Using new Validate function
 	if err := utils.Validate(ctx, s.logger,
 		utils.OrganizationID(orgID),
 		utils.ProjectID(projectID),
@@ -184,7 +146,7 @@ func (s *databaseService) Get(ctx context.Context, instanceID, databaseID string
 		return nil, err
 	}
 
-	s.logger.DebugContext(ctx, "getting databases",
+	s.logger.DebugContext(ctx, "getting database",
 		slog.String("orgID", orgID),
 		slog.String("projectID", projectID),
 		slog.String("instanceID", instanceID),
@@ -192,7 +154,6 @@ func (s *databaseService) Get(ctx context.Context, instanceID, databaseID string
 	)
 
 	path := utils.SingleDatabasePath(orgID, projectID, instanceID, databaseID)
-	// path := backupsPath(orgID, projectID, instanceID, databaseID)
 	resp, err := s.api.Get(ctx, path)
 	if err != nil {
 		s.logger.ErrorContext(ctx, "failed to get database",
@@ -209,21 +170,17 @@ func (s *databaseService) Get(ctx context.Context, instanceID, databaseID string
 		return nil, err
 	}
 
-	s.logger.DebugContext(ctx, "get database was successfull",
+	s.logger.DebugContext(ctx, "database retrieved successfully",
 		slog.String("instanceID", instanceID),
 		slog.String("databaseID", databaseID),
 	)
 	return &result, nil
 }
 
-func (s *databaseService) Delete(ctx context.Context, instanceID, databaseID string, opts ...CallOption) (*DeleteDatabaseResponse, error) {
+func (s *databaseService) Delete(ctx context.Context, orgID, projectID, instanceID, databaseID string) (*DeleteDatabaseResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	orgID, projectID := s.resolveOrgProject(opts)
-
-	// Check IDs are supplied and valid
-	// Using new Validate function
 	if err := utils.Validate(ctx, s.logger,
 		utils.OrganizationID(orgID),
 		utils.ProjectID(projectID),
@@ -241,7 +198,6 @@ func (s *databaseService) Delete(ctx context.Context, instanceID, databaseID str
 	)
 
 	path := utils.SingleDatabasePath(orgID, projectID, instanceID, databaseID)
-	// path := backupsPath(orgID, projectID, instanceID, databaseID)
 	resp, err := s.api.Delete(ctx, path)
 	if err != nil {
 		s.logger.ErrorContext(ctx, "failed to delete database",
@@ -258,7 +214,7 @@ func (s *databaseService) Delete(ctx context.Context, instanceID, databaseID str
 		return nil, err
 	}
 
-	s.logger.InfoContext(ctx, "database deleted  successfully",
+	s.logger.InfoContext(ctx, "database deleted successfully",
 		slog.String("instanceID", instanceID),
 		slog.String("databaseID", databaseID),
 	)

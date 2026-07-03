@@ -16,7 +16,7 @@ import (
 // ============================================================================
 
 // createTestProjectService creates a projectService with a mock API service for
-// testing. No client pointer is set so defaultOrgID is always "".
+// testing.
 func createTestProjectService(mock *mockAPIService) *projectService {
 	return &projectService{
 		api:     mock,
@@ -32,17 +32,6 @@ func createTestProjectServiceWithTimeout(mock api.RequestService, timeout time.D
 		api:     mock,
 		timeout: timeout,
 		logger:  testLogger(),
-	}
-}
-
-// createTestProjectServiceWithClient creates a projectService wired to the given
-// client, allowing List tests to exercise default org ID resolution.
-func createTestProjectServiceWithClient(mock *mockAPIService, client *Client) *projectService {
-	return &projectService{
-		api:     mock,
-		timeout: 30 * time.Second,
-		logger:  testLogger(),
-		client:  client,
 	}
 }
 
@@ -66,8 +55,8 @@ func TestProjectService_List_Success(t *testing.T) {
 		response: &api.Response{StatusCode: 200, Body: body},
 	}
 
-	service := createTestProjectServiceWithClient(mock, &Client{defaultOrgID: orgID})
-	result, err := service.List(context.Background())
+	service := createTestProjectService(mock)
+	result, err := service.List(context.Background(), orgID)
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -105,8 +94,8 @@ func TestProjectService_List_EmptyResult(t *testing.T) {
 		response: &api.Response{StatusCode: 200, Body: body},
 	}
 
-	service := createTestProjectServiceWithClient(mock, &Client{defaultOrgID: orgID})
-	result, err := service.List(context.Background())
+	service := createTestProjectService(mock)
+	result, err := service.List(context.Background(), orgID)
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -124,8 +113,8 @@ func TestProjectService_List_NotFound(t *testing.T) {
 		err: &api.Error{StatusCode: 404, Message: "Not found"},
 	}
 
-	service := createTestProjectServiceWithClient(mock, &Client{defaultOrgID: orgID})
-	result, err := service.List(context.Background())
+	service := createTestProjectService(mock)
+	result, err := service.List(context.Background(), orgID)
 
 	if err == nil {
 		t.Fatal("expected error, got nil")
@@ -151,8 +140,8 @@ func TestProjectService_List_AuthenticationError(t *testing.T) {
 		err: &api.Error{StatusCode: 401, Message: "Invalid credentials"},
 	}
 
-	service := createTestProjectServiceWithClient(mock, &Client{defaultOrgID: orgID})
-	_, err := service.List(context.Background())
+	service := createTestProjectService(mock)
+	_, err := service.List(context.Background(), orgID)
 
 	if err == nil {
 		t.Fatal("expected authentication error, got nil")
@@ -168,14 +157,12 @@ func TestProjectService_List_AuthenticationError(t *testing.T) {
 }
 
 // TestProjectService_List_MissingOrgID verifies that List returns a descriptive
-// error without calling the API when no org ID is available from call options or
-// the client default.
+// error without calling the API when an empty org ID is passed.
 func TestProjectService_List_MissingOrgID(t *testing.T) {
 	mock := &mockAPIService{}
 
-	// No client pointer — defaultOrgID is always "".
 	service := createTestProjectService(mock)
-	result, err := service.List(context.Background())
+	result, err := service.List(context.Background(), "")
 
 	if err == nil {
 		t.Fatal("expected error for missing org ID, got nil")
@@ -191,36 +178,6 @@ func TestProjectService_List_MissingOrgID(t *testing.T) {
 	}
 }
 
-// TestProjectService_List_WithOrgCallOption verifies that a WithOrg call option
-// overrides the client default org ID and the correct path is used.
-func TestProjectService_List_WithOrgCallOption(t *testing.T) {
-	clientOrgID := "11111111-2222-3333-4444-555555555555"
-	callOrgID := "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
-
-	expected := ListProjectsResponse{
-		Data: []Project{{ID: "ffffffff-ffff-ffff-ffff-ffffffffffff", Name: "Override Project"}},
-	}
-	body, _ := json.Marshal(expected)
-	mock := &mockAPIService{
-		response: &api.Response{StatusCode: 200, Body: body},
-	}
-
-	// Client default is clientOrgID; WithOrg should override it with callOrgID.
-	service := createTestProjectServiceWithClient(mock, &Client{defaultOrgID: clientOrgID})
-	result, err := service.List(context.Background(), WithOrg(callOrgID))
-
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	expectedPath := "organizations/" + callOrgID + "/projects"
-	if mock.lastPath != expectedPath {
-		t.Errorf("expected path '%s', got '%s'", expectedPath, mock.lastPath)
-	}
-	if len(result.Data) != 1 {
-		t.Fatalf("expected 1 project, got %d", len(result.Data))
-	}
-}
-
 // TestProjectService_List_ContextTimeout verifies that the service timeout fires
 // before the mock delay, returning context.DeadlineExceeded.
 func TestProjectService_List_ContextTimeout(t *testing.T) {
@@ -231,12 +188,10 @@ func TestProjectService_List_ContextTimeout(t *testing.T) {
 		delay:    2 * time.Second,
 	}
 
-	// Service timeout is shorter than the mock delay; client needed for org ID.
 	service := createTestProjectServiceWithTimeout(mock, 100*time.Millisecond)
-	service.client = &Client{defaultOrgID: orgID}
 
 	start := time.Now()
-	_, err := service.List(context.Background())
+	_, err := service.List(context.Background(), orgID)
 	elapsed := time.Since(start)
 
 	if err == nil {
@@ -265,9 +220,8 @@ func TestProjectService_List_QuickCancellation(t *testing.T) {
 	}
 
 	service := createTestProjectServiceWithTimeout(mock, 30*time.Second)
-	service.client = &Client{defaultOrgID: orgID}
 
-	_, err := service.List(ctx)
+	_, err := service.List(ctx, orgID)
 
 	if err == nil {
 		t.Fatal("expected deadline exceeded error")

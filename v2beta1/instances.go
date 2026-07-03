@@ -165,44 +165,13 @@ type instanceService struct {
 	api     api.RequestService
 	timeout time.Duration
 	logger  *slog.Logger
-	client  *Client
 }
 
-func (s *instanceService) resolveIDs(opts []CallOption) (orgID, projectID string) {
-	var orgDefault, projectDefault string
-	if s.client != nil {
-		s.client.mu.RLock()
-		orgDefault = s.client.defaultOrgID
-		projectDefault = s.client.defaultProjectID
-		s.client.mu.RUnlock()
-	}
-
-	s.logger.Debug("found values for default org and project ids: ", slog.String("orgID", orgID), slog.String("projectID", projectID))
-	cfg := applyOptions(opts)
-
-	orgID = cfg.orgID
-	if orgID == "" {
-		orgID = orgDefault
-		s.logger.Debug("no supplied org id option.  Using default: ", slog.String("orgID", orgID))
-	}
-	projectID = cfg.projectID
-	if projectID == "" {
-		projectID = projectDefault
-		s.logger.Debug("no supplied project id option.  Using default: ", slog.String("projectID", projectID))
-	}
-
-	return orgID, projectID
-}
-
-// List returns all instances within the resolved organization and project.
-func (s *instanceService) List(ctx context.Context, opts ...CallOption) (*ListInstancesResponse, error) {
+// List returns all instances within the given organization and project.
+func (s *instanceService) List(ctx context.Context, orgID, projectID string) (*ListInstancesResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	orgID, projectID := s.resolveIDs(opts)
-
-	// Check IDs are supplied and valid
-	// Using new Validate function
 	if err := utils.Validate(ctx, s.logger,
 		utils.OrganizationID(orgID),
 		utils.ProjectID(projectID),
@@ -212,7 +181,6 @@ func (s *instanceService) List(ctx context.Context, opts ...CallOption) (*ListIn
 
 	s.logger.DebugContext(ctx, "listing instances", slog.String("orgID", orgID), slog.String("projectID", projectID))
 
-	// Set the path to instances in the org and project
 	path := utils.InstancesPath(orgID, projectID)
 
 	resp, err := s.api.Get(ctx, path)
@@ -232,14 +200,10 @@ func (s *instanceService) List(ctx context.Context, opts ...CallOption) (*ListIn
 }
 
 // Get retrieves details for a specific instance by UUID.
-func (s *instanceService) Get(ctx context.Context, instanceID string, opts ...CallOption) (*GetInstanceResponse, error) {
+func (s *instanceService) Get(ctx context.Context, orgID, projectID, instanceID string) (*GetInstanceResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	orgID, projectID := s.resolveIDs(opts)
-
-	// Check IDs are supplied and valid
-	// Using new Validate function
 	if err := utils.Validate(ctx, s.logger,
 		utils.OrganizationID(orgID),
 		utils.ProjectID(projectID),
@@ -250,7 +214,6 @@ func (s *instanceService) Get(ctx context.Context, instanceID string, opts ...Ca
 
 	s.logger.DebugContext(ctx, "getting instance details", slog.String("orgID", orgID), slog.String("projectID", projectID), slog.String("instanceID", instanceID))
 
-	// Set the path to a single instance
 	path := utils.SingleInstancePath(orgID, projectID, instanceID)
 
 	resp, err := s.api.Get(ctx, path)
@@ -269,8 +232,8 @@ func (s *instanceService) Get(ctx context.Context, instanceID string, opts ...Ca
 	return &result, nil
 }
 
-// Create provisions a new instance within the resolved organization and project.
-func (s *instanceService) Create(ctx context.Context, req *CreateInstanceRequest, opts ...CallOption) (*CreateInstanceResponse, error) {
+// Create provisions a new instance within the given organization and project.
+func (s *instanceService) Create(ctx context.Context, orgID, projectID string, req *CreateInstanceRequest) (*CreateInstanceResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -285,10 +248,6 @@ func (s *instanceService) Create(ctx context.Context, req *CreateInstanceRequest
 		return nil, err
 	}
 
-	orgID, projectID := s.resolveIDs(opts)
-
-	// Check IDs are supplied and valid
-	// Using new Validate function
 	if err := utils.Validate(ctx, s.logger,
 		utils.OrganizationID(orgID),
 		utils.ProjectID(projectID),
@@ -304,7 +263,6 @@ func (s *instanceService) Create(ctx context.Context, req *CreateInstanceRequest
 		return nil, err
 	}
 
-	// Set the path to instances in the org and project
 	path := utils.InstancesPath(orgID, projectID)
 
 	resp, err := s.api.Post(ctx, path, string(body))
@@ -324,7 +282,7 @@ func (s *instanceService) Create(ctx context.Context, req *CreateInstanceRequest
 }
 
 // Update modifies a specific instance's configuration.
-func (s *instanceService) Update(ctx context.Context, instanceID string, req *UpdateInstanceRequest, opts ...CallOption) (*GetInstanceResponse, error) {
+func (s *instanceService) Update(ctx context.Context, orgID, projectID, instanceID string, req *UpdateInstanceRequest) (*GetInstanceResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -339,10 +297,6 @@ func (s *instanceService) Update(ctx context.Context, instanceID string, req *Up
 		return nil, err
 	}
 
-	orgID, projectID := s.resolveIDs(opts)
-
-	// Check IDs are supplied and valid
-	// Using new Validate function
 	if err := utils.Validate(ctx, s.logger,
 		utils.OrganizationID(orgID),
 		utils.ProjectID(projectID),
@@ -359,7 +313,6 @@ func (s *instanceService) Update(ctx context.Context, instanceID string, req *Up
 		return nil, err
 	}
 
-	// Set the path to a single Instance
 	path := utils.SingleInstancePath(orgID, projectID, instanceID)
 
 	resp, err := s.api.Patch(ctx, path, string(body))
@@ -379,14 +332,10 @@ func (s *instanceService) Update(ctx context.Context, instanceID string, req *Up
 }
 
 // Delete removes a specific instance.
-func (s *instanceService) Delete(ctx context.Context, instanceID string, opts ...CallOption) (*DeleteInstanceResponse, error) {
+func (s *instanceService) Delete(ctx context.Context, orgID, projectID, instanceID string) (*DeleteInstanceResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	orgID, projectID := s.resolveIDs(opts)
-
-	// Check IDs are supplied and valid
-	// Using new Validate function
 	if err := utils.Validate(ctx, s.logger,
 		utils.OrganizationID(orgID),
 		utils.ProjectID(projectID),
@@ -397,7 +346,6 @@ func (s *instanceService) Delete(ctx context.Context, instanceID string, opts ..
 
 	s.logger.InfoContext(ctx, "deleting instance", slog.String("orgID", orgID), slog.String("projectID", projectID), slog.String("instanceID", instanceID))
 
-	// Set the path to instances in the org and project
 	path := utils.SingleInstancePath(orgID, projectID, instanceID)
 
 	resp, err := s.api.Delete(ctx, path)

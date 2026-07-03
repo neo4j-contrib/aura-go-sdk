@@ -16,7 +16,7 @@ import (
 // ============================================================================
 
 // createTestOrganizationService creates an organizationService with a mock API
-// service for testing. No client pointer is set so defaultOrgID is always "".
+// service for testing.
 func createTestOrganizationService(mock *mockAPIService) *organizationService {
 	return &organizationService{
 		api:     mock,
@@ -26,23 +26,12 @@ func createTestOrganizationService(mock *mockAPIService) *organizationService {
 }
 
 // createTestOrganizationServiceWithTimeout creates an organizationService with a
-// specific timeout. Pass the desired context directly to each method call.
+// specific timeout.
 func createTestOrganizationServiceWithTimeout(mock api.RequestService, timeout time.Duration) *organizationService {
 	return &organizationService{
 		api:     mock,
 		timeout: timeout,
 		logger:  testLogger(),
-	}
-}
-
-// createTestOrganizationServiceWithClient creates an organizationService wired to
-// the given client, allowing Get tests to exercise default org ID resolution.
-func createTestOrganizationServiceWithClient(mock *mockAPIService, client *Client) *organizationService {
-	return &organizationService{
-		api:     mock,
-		timeout: 30 * time.Second,
-		logger:  testLogger(),
-		client:  client,
 	}
 }
 
@@ -168,7 +157,6 @@ func TestOrganizationService_List_ContextTimeout(t *testing.T) {
 		delay:    2 * time.Second,
 	}
 
-	// Service timeout is shorter than the mock delay.
 	service := createTestOrganizationServiceWithTimeout(mock, 100*time.Millisecond)
 
 	start := time.Now()
@@ -215,8 +203,7 @@ func TestOrganizationService_List_QuickCancellation(t *testing.T) {
 // ============================================================================
 
 // TestOrganizationService_Get_Success verifies that Get calls
-// GET /organizations/{id} using the client default org ID and maps all response
-// fields.
+// GET /organizations/{id} with the provided org ID and maps all response fields.
 func TestOrganizationService_Get_Success(t *testing.T) {
 	orgID := "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
 	expected := GetOrganizationResponse{
@@ -228,8 +215,8 @@ func TestOrganizationService_Get_Success(t *testing.T) {
 		response: &api.Response{StatusCode: 200, Body: body},
 	}
 
-	service := createTestOrganizationServiceWithClient(mock, &Client{defaultOrgID: orgID})
-	result, err := service.Get(context.Background())
+	service := createTestOrganizationService(mock)
+	result, err := service.Get(context.Background(), orgID)
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -256,8 +243,8 @@ func TestOrganizationService_Get_NotFound(t *testing.T) {
 		err: &api.Error{StatusCode: 404, Message: "Organization not found"},
 	}
 
-	service := createTestOrganizationServiceWithClient(mock, &Client{defaultOrgID: orgID})
-	result, err := service.Get(context.Background())
+	service := createTestOrganizationService(mock)
+	result, err := service.Get(context.Background(), orgID)
 
 	if err == nil {
 		t.Fatal("expected error, got nil")
@@ -283,8 +270,8 @@ func TestOrganizationService_Get_AuthenticationError(t *testing.T) {
 		err: &api.Error{StatusCode: 401, Message: "Invalid credentials"},
 	}
 
-	service := createTestOrganizationServiceWithClient(mock, &Client{defaultOrgID: orgID})
-	_, err := service.Get(context.Background())
+	service := createTestOrganizationService(mock)
+	_, err := service.Get(context.Background(), orgID)
 
 	if err == nil {
 		t.Fatal("expected authentication error, got nil")
@@ -299,56 +286,25 @@ func TestOrganizationService_Get_AuthenticationError(t *testing.T) {
 	}
 }
 
-// TestOrganizationService_Get_MissingOrgID verifies that Get returns a
-// descriptive error without calling the API when no org ID is available from
-// call options or client defaults.
-func TestOrganizationService_Get_MissingOrgID(t *testing.T) {
+// TestOrganizationService_Get_EmptyOrgID verifies that Get returns a
+// descriptive error without calling the API when an empty org ID is passed.
+func TestOrganizationService_Get_EmptyOrgID(t *testing.T) {
 	mock := &mockAPIService{}
 
-	// No client pointer — defaultOrgID is always "".
 	service := createTestOrganizationService(mock)
-	result, err := service.Get(context.Background())
+	result, err := service.Get(context.Background(), "")
 
 	if err == nil {
-		t.Fatal("expected error for missing org ID, got nil")
+		t.Fatal("expected error for empty org ID, got nil")
 	}
 	if result != nil {
-		t.Error("expected result to be nil when org ID is missing")
+		t.Error("expected result to be nil when org ID is empty")
 	}
 	if !strings.Contains(err.Error(), "organization ID is required") {
 		t.Errorf("expected error to contain 'organization ID is required', got: %v", err)
 	}
 	if mock.lastPath != "" {
 		t.Errorf("expected no API call to be made, but got path '%s'", mock.lastPath)
-	}
-}
-
-// TestOrganizationService_Get_WithOrgCallOption verifies that a WithOrg call
-// option overrides the client default org ID and the correct path is used.
-func TestOrganizationService_Get_WithOrgCallOption(t *testing.T) {
-	clientOrgID := "11111111-2222-3333-4444-555555555555"
-	callOrgID := "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
-
-	expected := GetOrganizationResponse{
-		Data: Organization{ID: callOrgID, Name: "Override Org"},
-	}
-	body, _ := json.Marshal(expected)
-	mock := &mockAPIService{
-		response: &api.Response{StatusCode: 200, Body: body},
-	}
-
-	// Client default is clientOrgID; WithOrg should override it with callOrgID.
-	service := createTestOrganizationServiceWithClient(mock, &Client{defaultOrgID: clientOrgID})
-	result, err := service.Get(context.Background(), WithOrg(callOrgID))
-
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	if mock.lastPath != "organizations/"+callOrgID {
-		t.Errorf("expected path 'organizations/%s', got '%s'", callOrgID, mock.lastPath)
-	}
-	if result.Data.ID != callOrgID {
-		t.Errorf("expected org ID '%s', got '%s'", callOrgID, result.Data.ID)
 	}
 }
 
@@ -366,11 +322,10 @@ func TestOrganizationService_Get_ContextTimeout(t *testing.T) {
 		api:     mock,
 		timeout: 100 * time.Millisecond,
 		logger:  testLogger(),
-		client:  &Client{defaultOrgID: orgID},
 	}
 
 	start := time.Now()
-	_, err := service.Get(context.Background())
+	_, err := service.Get(context.Background(), orgID)
 	elapsed := time.Since(start)
 
 	if err == nil {
@@ -402,10 +357,9 @@ func TestOrganizationService_Get_QuickCancellation(t *testing.T) {
 		api:     mock,
 		timeout: 30 * time.Second,
 		logger:  testLogger(),
-		client:  &Client{defaultOrgID: orgID},
 	}
 
-	_, err := service.Get(ctx)
+	_, err := service.Get(ctx, orgID)
 
 	if err == nil {
 		t.Fatal("expected deadline exceeded error")

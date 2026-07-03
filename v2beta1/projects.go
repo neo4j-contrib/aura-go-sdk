@@ -35,27 +35,13 @@ type projectService struct {
 	api     api.RequestService
 	timeout time.Duration
 	logger  *slog.Logger
-	client  *Client
 }
 
-// List returns all projects within the resolved organization. The org ID is
-// resolved from call options, falling back to the client default. Returns an
-// error if no org ID is available from either source.
-func (s *projectService) List(ctx context.Context, opts ...CallOption) (*ListProjectsResponse, error) {
+// List returns all projects within the given organization.
+func (s *projectService) List(ctx context.Context, orgID string) (*ListProjectsResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	var clientDefault string
-	if s.client != nil {
-		s.client.mu.RLock()
-		clientDefault = s.client.defaultOrgID
-		s.client.mu.RUnlock()
-	}
-
-	orgID := resolveOrg(clientDefault, opts)
-
-	// Check IDs are supplied and valid
-	// Using new Validate function
 	if err := utils.Validate(ctx, s.logger,
 		utils.OrganizationID(orgID),
 	); err != nil {

@@ -13,7 +13,7 @@ import (
 	"github.com/neo4j-contrib/aura-go-sdk/v2beta1"
 )
 
-func pollInstance(ctx context.Context, client *v2beta1.Client, instanceID string, want v2beta1.InstanceStatus) error {
+func pollInstance(ctx context.Context, client *v2beta1.Client, orgID, projectID, instanceID string, want v2beta1.InstanceStatus) error {
 	ctxPolling, cancelPolling := context.WithTimeout(ctx, 10*time.Minute)
 	defer cancelPolling()
 
@@ -23,7 +23,7 @@ func pollInstance(ctx context.Context, client *v2beta1.Client, instanceID string
 		case <-ctxPolling.Done():
 			return errors.New("timed out waiting for instance status")
 		default:
-			result, err := client.Instances.Get(ctxPolling, instanceID)
+			result, err := client.Instances.Get(ctxPolling, orgID, projectID, instanceID)
 			if err != nil {
 				return err
 			}
@@ -52,8 +52,6 @@ func main() {
 
 	client, err := v2beta1.NewClient(
 		v2beta1.WithCredentials(clientID, clientSecret),
-		v2beta1.WithDefaultOrg(orgID),
-		v2beta1.WithDefaultProject(projectID),
 		v2beta1.WithTimeout(120*time.Second),
 		v2beta1.WithLogger(customLogger),
 	)
@@ -65,13 +63,13 @@ func main() {
 	ctx, cancelMain := context.WithTimeout(context.Background(), 15*time.Minute)
 	defer cancelMain()
 
-	instances, err := client.Instances.List(ctx)
+	instances, err := client.Instances.List(ctx, orgID, projectID)
 	if err != nil {
 		log.Fatalf("Failed to list instances: %v", err)
 	}
 
 	for _, inst := range instances.Data {
-		details, err := client.Instances.Get(ctx, inst.ID)
+		details, err := client.Instances.Get(ctx, orgID, projectID, inst.ID)
 		if err != nil {
 			log.Fatalf("Failed to get instance details for %s: %v", inst.ID, err)
 		}
@@ -80,7 +78,7 @@ func main() {
 		}
 	}
 
-	newInstance, err := client.Instances.Create(ctx, &v2beta1.CreateInstanceRequest{
+	newInstance, err := client.Instances.Create(ctx, orgID, projectID, &v2beta1.CreateInstanceRequest{
 		Name:          "auraClientV2beta1Example",
 		Type:          "business-critical",
 		CloudProvider: "gcp",
@@ -103,7 +101,7 @@ func main() {
 		newInstance.Data.ProjectID,
 	)
 
-	if err := pollInstance(ctx, client, newInstance.Data.ID, v2beta1.InstanceStatusRunning); err != nil {
+	if err := pollInstance(ctx, client, orgID, projectID, newInstance.Data.ID, v2beta1.InstanceStatusRunning); err != nil {
 		log.Fatalf("Instance did not reach running state: %v", err)
 	}
 
@@ -111,7 +109,7 @@ func main() {
 
 	fmt.Printf("\nCreating new database")
 
-	newDB, err := client.Databases.Create(ctx, newInstance.Data.ID)
+	newDB, err := client.Databases.Create(ctx, orgID, projectID, newInstance.Data.ID)
 	if err != nil {
 		log.Fatalf("Failed to create database: %v", err)
 	}
@@ -121,7 +119,7 @@ func main() {
 	fmt.Println("Will delete instance in ten seconds...")
 	time.Sleep(10 * time.Second)
 
-	_, err = client.Instances.Delete(ctx, newInstance.Data.ID)
+	_, err = client.Instances.Delete(ctx, orgID, projectID, newInstance.Data.ID)
 	if err != nil {
 		log.Fatalf("Failed to delete instance: %v", err)
 	}

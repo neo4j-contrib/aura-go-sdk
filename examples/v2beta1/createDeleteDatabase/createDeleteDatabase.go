@@ -28,8 +28,6 @@ func main() {
 
 	client, err := v2beta1.NewClient(
 		v2beta1.WithCredentials(clientID, clientSecret),
-		v2beta1.WithDefaultOrg(orgID),
-		v2beta1.WithDefaultProject(projectID),
 		v2beta1.WithTimeout(120*time.Second),
 		v2beta1.WithLogger(customLogger),
 	)
@@ -43,7 +41,7 @@ func main() {
 
 	fmt.Printf("\nCreating new database")
 
-	newDB, err := client.Databases.Create(ctx, instanceID)
+	newDB, err := client.Databases.Create(ctx, orgID, projectID, instanceID)
 	if err != nil {
 		log.Fatalf("Failed to create database: %v", err)
 	}
@@ -53,7 +51,7 @@ func main() {
 	fmt.Println("Will delete database in ten seconds...")
 	time.Sleep(10 * time.Second)
 
-	_, err = client.Databases.Delete(ctx, instanceID, newDB.Data.ID)
+	_, err = client.Databases.Delete(ctx, orgID, projectID, instanceID, newDB.Data.ID)
 	if err != nil {
 		log.Fatalf("Failed to delete database: %v", err)
 	}

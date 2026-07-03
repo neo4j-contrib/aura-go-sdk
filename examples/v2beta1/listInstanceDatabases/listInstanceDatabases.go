@@ -28,8 +28,6 @@ func main() {
 
 	client, err := v2beta1.NewClient(
 		v2beta1.WithCredentials(clientID, clientSecret),
-		v2beta1.WithDefaultOrg(orgID),
-		v2beta1.WithDefaultProject(projectID),
 		v2beta1.WithTimeout(120*time.Second),
 		v2beta1.WithLogger(customLogger),
 	)
@@ -41,7 +39,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 6*time.Second)
 	defer cancel()
 
-	databases, err := client.Databases.List(ctx, instanceID)
+	databases, err := client.Databases.List(ctx, orgID, projectID, instanceID)
 	if err != nil {
 		log.Fatalf("Failed to list databases: %v", err)
 	}
