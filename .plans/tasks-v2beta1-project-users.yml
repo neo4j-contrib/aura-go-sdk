@@ -1,0 +1,121 @@
+feature: v2beta1-project-users
+prd: ./prd-v2beta1-project-users.md
+created_at: 2026-07-03T00:00:00Z
+updated_at: 2026-07-03T00:00:00Z
+
+tasks:
+  - id: task-001
+    title: "Add ProjectUsersPath and SingleProjectUserPath helpers to internal/utils"
+    description: |
+      Add two new path helper functions to internal/utils/path_helpers.go:
+      ProjectUsersPath(orgID, projectID string) and SingleProjectUserPath(orgID,
+      projectID, userID string). Both should use the existing resourcePath helper
+      following the same pattern as the other helpers in that file. No new validator
+      constructors are needed — UserID, OrganizationID, and ProjectID already exist.
+    status: pending
+    dependencies: []
+    acceptance_criteria:
+      - "ProjectUsersPath(orgID, projectID) returns 'organizations/{orgID}/projects/{projectID}/users'"
+      - "SingleProjectUserPath(orgID, projectID, userID) returns 'organizations/{orgID}/projects/{projectID}/users/{userID}'"
+      - "go build ./... passes"
+    completed_at: null
+
+  - id: task-002
+    title: "Implement ProjectUserService (types, service, interface, client wiring)"
+    description: |
+      Create v2beta1/project_users.go declaring all types (ProjectUser, ListProjectUsersResponse,
+      GetProjectUserResponse, AddProjectUserRequest, UpdateProjectUserRequest) and the
+      projectUserService struct with List, Add, UpdateRole, and Remove methods. Add
+      ProjectUserService to interfaces.go with its compile-time check. Wire
+      client.ProjectUsers in client.go and increment the services count from 6 to 7.
+      Note: Add returns only error (no response body — HTTP 201 with no content).
+    status: pending
+    dependencies:
+      - task-001
+    acceptance_criteria:
+      - "All types declared with correct json tags matching the spec"
+      - "List calls GET via utils.ProjectUsersPath, validates orgID and projectID"
+      - "Add calls POST via utils.ProjectUsersPath, serialises request body, returns nil on 201"
+      - "UpdateRole calls PATCH via utils.SingleProjectUserPath, serialises request body, returns GetProjectUserResponse"
+      - "Remove calls DELETE via utils.SingleProjectUserPath, returns nil on 204"
+      - "UpdateRole and Remove validate userID via utils.UserID in addition to orgID/projectID"
+      - "ProjectUserService interface and compile-time check added to interfaces.go"
+      - "client.ProjectUsers field present and wired in NewClient; services count = 7"
+      - "go build ./... passes"
+    completed_at: null
+
+  - id: task-003
+    title: "Write tests for ProjectUserService"
+    description: |
+      Create v2beta1/project_users_test.go with createTestProjectUserService and
+      createTestProjectUserServiceWithTimeout constructor helpers. Cover all four methods
+      (List, Add, UpdateRole, Remove) with the full AGENTS.md test matrix: _Success,
+      _InvalidID (table-driven covering orgID, projectID, and userID where applicable),
+      _NotFound, _AuthenticationError, _EmptyResult (List only), _ContextTimeout,
+      _QuickCancellation. For Add and UpdateRole also unmarshal mock.lastBody to assert
+      the request body was serialised correctly.
+    status: pending
+    dependencies:
+      - task-002
+    acceptance_criteria:
+      - "createTestProjectUserService and createTestProjectUserServiceWithTimeout helpers present"
+      - "List_Success, List_EmptyResult, List_InvalidOrgID, List_InvalidProjectID, List_NotFound, List_AuthenticationError, List_ContextTimeout, List_QuickCancellation tests present"
+      - "Add_Success (with lastBody assertion), Add_InvalidOrgID, Add_InvalidProjectID, Add_NotFound, Add_AuthenticationError, Add_ContextTimeout, Add_QuickCancellation tests present"
+      - "UpdateRole_Success (with lastBody assertion), UpdateRole_InvalidOrgID, UpdateRole_InvalidProjectID, UpdateRole_InvalidUserID, UpdateRole_NotFound, UpdateRole_ContextTimeout tests present"
+      - "Remove_Success, Remove_InvalidOrgID, Remove_InvalidProjectID, Remove_InvalidUserID, Remove_NotFound, Remove_ContextTimeout tests present"
+      - "go test -race ./v2beta1/... passes"
+    completed_at: null
+
+  - id: task-004
+    title: "Create example for project users"
+    description: |
+      Add an example program under examples/v2beta1/projectUsers/ following the naming
+      convention of the project (file named projectUsers.go, not main.go). Demonstrate
+      List and Add for project users. Read credentials from AURA_CLIENT_ID and
+      AURA_CLIENT_SECRET environment variables, and org/project IDs from
+      AURA_ORG_ID and AURA_PROJECT_ID. Follow the exact style and verbosity of existing
+      v2beta1 examples — minimal working calls with no extra prose.
+    status: pending
+    dependencies:
+      - task-003
+    acceptance_criteria:
+      - "examples/v2beta1/projectUsers/projectUsers.go exists (not main.go)"
+      - "Example calls client.ProjectUsers.List and client.ProjectUsers.Add"
+      - "Credentials and IDs read from environment variables"
+      - "go build ./examples/... passes"
+    completed_at: null
+
+  - id: task-005
+    title: "Update README.md with project user operations section"
+    description: |
+      Add a new H2 section '## v2beta1 Project User Operations' to README.md with a
+      matching entry in the Table of Contents. The section should contain H3 sub-sections
+      for List, Add, UpdateRole, and Remove, each with a fenced Go code block showing a
+      minimal working call. Follow the exact style of the existing '## v2beta1 Organization
+      User Operations' section — no prose inside code blocks, no extra context.
+    status: pending
+    dependencies:
+      - task-004
+    acceptance_criteria:
+      - "Table of Contents has an entry for '## v2beta1 Project User Operations'"
+      - "Section exists with H3 sub-sections for List, Add, UpdateRole, and Remove"
+      - "Each sub-section has a fenced Go code block showing the minimal call"
+      - "Style matches the v2beta1 Organization User Operations section exactly"
+    completed_at: null
+
+  - id: task-006
+    title: "Add changie changelog fragment for v1.8.0"
+    description: |
+      Run changie new (non-interactive) to create a changelog fragment in
+      .changes/unreleased/ for the new ProjectUserService. Use kind: Added and body text
+      following the 'v2beta1: add ProjectUserService with List, Add, UpdateRole, Remove'
+      convention established in the previous release. Verify all feedback loops pass
+      before committing.
+    status: pending
+    dependencies:
+      - task-005
+    acceptance_criteria:
+      - "At least one .changes/unreleased/*.yaml fragment exists with kind: Added for ProjectUserService"
+      - "go test -race ./... passes"
+      - "golangci-lint run passes"
+    completed_at: null
