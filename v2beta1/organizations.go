@@ -3,7 +3,7 @@ package v2beta1
 import (
 	"context"
 	"encoding/json"
-	"errors"
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -94,14 +94,9 @@ func (s *organizationService) Get(ctx context.Context, opts ...CallOption) (*Get
 
 	s.logger.DebugContext(ctx, "getting organization details", slog.String("orgID", orgID))
 
-	// Organization IDs in the v2beta1 API are standard UUIDs, so ValidateTenantID
-	// (which validates the same UUID format) is intentionally reused here.
-	if err := utils.ValidateTenantID(orgID); err != nil {
-		s.logger.ErrorContext(ctx, "invalid organization ID", slog.String("error", err.Error()))
-		return nil, errors.New("invalid organization ID: must be a valid UUID format (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)")
-	}
+	path := fmt.Sprintf("organizations/%s", orgID)
 
-	resp, err := s.api.Get(ctx, "organizations/"+orgID)
+	resp, err := s.api.Get(ctx, path)
 	if err != nil {
 		s.logger.ErrorContext(ctx, "failed to get organization", slog.String("orgID", orgID), slog.String("error", err.Error()))
 		return nil, err

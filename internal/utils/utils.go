@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"log/slog"
 	"regexp"
+	"strings"
 	"time"
 )
 
@@ -77,6 +78,7 @@ type RequiredID struct {
 // constructors for the different IDs we need to validate
 // Each constructor takes only the value, since the rest is fixed per ID type.
 
+// Checks Organization ID is a long form UUID  xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 func OrganizationID(value string) RequiredID {
 	return RequiredID{
 		Name:       "organization ID",
@@ -87,6 +89,7 @@ func OrganizationID(value string) RequiredID {
 	}
 }
 
+// Checks project ID is a long form UUID  xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 func ProjectID(value string) RequiredID {
 	return RequiredID{
 		Name:       "project ID",
@@ -97,6 +100,7 @@ func ProjectID(value string) RequiredID {
 	}
 }
 
+// Checks instance ID is a short form UUID  xxxxxxxx
 func InstanceID(value string) RequiredID {
 	return RequiredID{
 		Name:       "instance ID",
@@ -107,6 +111,7 @@ func InstanceID(value string) RequiredID {
 	}
 }
 
+// Checks database ID is a short form UUID  xxxxxxxx
 func DatabaseID(value string) RequiredID {
 	return RequiredID{
 		Name:       "database ID",
@@ -114,6 +119,17 @@ func DatabaseID(value string) RequiredID {
 		Format:     ShortID,
 		MissingMsg: "database ID is required",
 		InvalidMsg: "datbase ID must be an 8-character hex string formatted as xxxxxxxx",
+	}
+}
+
+// Checks database backup ID is a long form UUID  xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+func DatabaseBackupID(value string) RequiredID {
+	return RequiredID{
+		Name:       "backup ID",
+		Value:      value,
+		Format:     UUID,
+		MissingMsg: "database backup ID is required",
+		InvalidMsg: "database backup ID must be an hex string formatted as xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
 	}
 }
 
@@ -235,4 +251,51 @@ func TruncateString(s string, n int) string {
 		i++
 	}
 	return s
+}
+
+// ===============================================================================
+// Helper functions for building endpoint paths
+// ===============================================================================
+func resourcePath(parts ...string) string {
+	return strings.Join(parts, "/")
+}
+
+// Returns endpoint path for projects under OrgID
+func ProjectsPath(orgID string) string {
+	return resourcePath("organizations", orgID, "projects")
+}
+
+// Returns endpoint path for a project
+func IndividualProjectPath(orgID, projectID string) string {
+	return resourcePath("organizations", orgID, "projects", projectID)
+}
+
+// Returns endpoint path for instances in an org/project
+func InstancesPath(orgID, projectID string) string {
+	return resourcePath("organizations", orgID, "projects", projectID, "instances")
+}
+
+// Returns endpoint path for an instance
+func SingleInstancePath(orgID, projectID, instanceID string) string {
+	return resourcePath("organizations", orgID, "projects", projectID, "instances", instanceID)
+}
+
+// Returns endpoint path for the databases of an instance
+func DatabasesPath(orgID, projectID, instanceID string) string {
+	return resourcePath("organizations", orgID, "projects", projectID, "instances", instanceID, "databases")
+}
+
+// Returns endpoint path for a database in an instance
+func SingleDatabasePath(orgID, projectID, instanceID, databaseID string) string {
+	return resourcePath("organizations", orgID, "projects", projectID, "instances", instanceID, "databases", databaseID)
+}
+
+// Returns endpoint path for backups of a database
+func BackupsPath(orgID, projectID, instanceID, databaseID string) string {
+	return resourcePath("organizations", orgID, "projects", projectID, "instances", instanceID, "databases", databaseID, "backups")
+}
+
+// Returns endpoint path for a single backup of a database
+func SingleBackupPath(orgID, projectID, instanceID, databaseID, backupID string) string {
+	return resourcePath("organizations", orgID, "projects", projectID, "instances", instanceID, "databases", databaseID, "backups", backupID)
 }

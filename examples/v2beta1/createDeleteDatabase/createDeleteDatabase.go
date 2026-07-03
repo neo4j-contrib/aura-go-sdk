@@ -23,7 +23,7 @@ func main() {
 		log.Fatal("Missing required environment variables: AURA_CLIENT_ID, AURA_CLIENT_SECRET, AURA_ORG_ID, AURA_PROJECT_ID, AURA_INSTANCE_ID")
 	}
 
-	opts := &slog.HandlerOptions{Level: slog.LevelWarn}
+	opts := &slog.HandlerOptions{Level: slog.LevelDebug}
 	customLogger := slog.New(slog.NewTextHandler(os.Stderr, opts))
 
 	client, err := v2beta1.NewClient(
@@ -38,19 +38,27 @@ func main() {
 	}
 	defer client.Close()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 6*time.Second)
-	defer cancel()
+	ctx, cancelMain := context.WithTimeout(context.Background(), 15*time.Minute)
+	defer cancelMain()
 
-	databases, err := client.Databases.List(ctx, instanceID)
+	fmt.Printf("\nCreating new database")
+
+	newDB, err := client.Databases.Create(ctx, instanceID)
 	if err != nil {
-		log.Fatalf("Failed to list databases: %v", err)
+		log.Fatalf("Failed to create database: %v", err)
+	}
+	fmt.Println("\nDatabase created")
+	fmt.Printf("- database id: %s \n", newDB.Data.ID)
+
+	fmt.Println("Will delete database in ten seconds...")
+	time.Sleep(10 * time.Second)
+
+	_, err = client.Databases.Delete(ctx, instanceID, newDB.Data.ID)
+	if err != nil {
+		log.Fatalf("Failed to delete database: %v", err)
 	}
 
-	for _, inst := range databases.Data {
-		fmt.Printf("- ID:%s \n",
-			inst.ID,
-		)
-	}
+	fmt.Printf("\nDatabase %s deleted on Instance %s\n", newDB.Data.ID, instanceID)
 
 	fmt.Println("\nv2beta1 client is working correctly!")
 }

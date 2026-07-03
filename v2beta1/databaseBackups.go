@@ -37,6 +37,11 @@ type ListBackupsResponse struct {
 	Data []DatabaseBackup `json:"data"`
 }
 
+// GetBackupResponse wraps database backup returned by the API.
+type GetBackupResponse struct {
+	Data DatabaseBackup `json:"data"`
+}
+
 // CreateBackupResponse wraps the single database backup returned by the API
 // after a backup is triggered.
 type CreateBackupResponse struct {
@@ -77,9 +82,10 @@ func (s *databaseBackupService) resolveOrgProject(opts []CallOption) (orgID, pro
 	return
 }
 
+// List all of the backups of a database
 func (s *databaseBackupService) List(ctx context.Context, instanceID, databaseID string, opts ...CallOption) (*ListBackupsResponse, error) {
-	ctx, cancel := context.WithTimeout(ctx, s.timeout)
-	defer cancel()
+	ctx, cancelBackupList := context.WithTimeout(ctx, s.timeout)
+	defer cancelBackupList()
 
 	orgID, projectID := s.resolveOrgProject(opts)
 
@@ -101,7 +107,8 @@ func (s *databaseBackupService) List(ctx context.Context, instanceID, databaseID
 		slog.String("databaseID", databaseID),
 	)
 
-	path := backupsPath(orgID, projectID, instanceID, databaseID)
+	path := utils.BackupsPath(orgID, projectID, instanceID, databaseID)
+
 	resp, err := s.api.Get(ctx, path)
 	if err != nil {
 		s.logger.ErrorContext(ctx, "failed to list database backups",
@@ -126,6 +133,7 @@ func (s *databaseBackupService) List(ctx context.Context, instanceID, databaseID
 	return &result, nil
 }
 
+// Create a database backpup.  This may take several minutes to complete.
 func (s *databaseBackupService) Create(ctx context.Context, instanceID, databaseID string, opts ...CallOption) (*CreateBackupResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
@@ -150,7 +158,8 @@ func (s *databaseBackupService) Create(ctx context.Context, instanceID, database
 		slog.String("databaseID", databaseID),
 	)
 
-	path := backupsPath(orgID, projectID, instanceID, databaseID)
+	path := utils.BackupsPath(orgID, projectID, instanceID, databaseID)
+
 	resp, err := s.api.Post(ctx, path, "")
 	if err != nil {
 		s.logger.ErrorContext(ctx, "failed to create database backup",
@@ -168,6 +177,59 @@ func (s *databaseBackupService) Create(ctx context.Context, instanceID, database
 	}
 
 	s.logger.InfoContext(ctx, "database backup created successfully",
+		slog.String("instanceID", instanceID),
+		slog.String("databaseID", databaseID),
+		slog.String("backupID", result.Data.ID),
+	)
+	return &result, nil
+}
+
+// Get information for a backup
+func (s *databaseBackupService) Get(ctx context.Context, instanceID, databaseID, backupID string, opts ...CallOption) (*GetBackupResponse, error) {
+	ctx, cancelGetBackup := context.WithTimeout(ctx, s.timeout)
+	defer cancelGetBackup()
+
+	orgID, projectID := s.resolveOrgProject(opts)
+
+	// Check IDs are supplied and valid
+	// Using new Validate function
+	if err := utils.Validate(ctx, s.logger,
+		utils.OrganizationID(orgID),
+		utils.ProjectID(projectID),
+		utils.InstanceID(instanceID),
+		utils.DatabaseID(databaseID),
+		utils.DatabaseBackupID(backupID),
+	); err != nil {
+		return nil, err
+	}
+
+	s.logger.DebugContext(ctx, "getting database backup information",
+		slog.String("orgID", orgID),
+		slog.String("projectID", projectID),
+		slog.String("instanceID", instanceID),
+		slog.String("databaseID", databaseID),
+	)
+
+	path := utils.SingleBackupPath(orgID, projectID, instanceID, databaseID, backupID)
+
+	resp, err := s.api.Get(ctx, path)
+	if err != nil {
+		s.logger.ErrorContext(ctx, "failed to get database backup",
+			slog.String("instanceID", instanceID),
+			slog.String("databaseID", databaseID),
+			slog.String("backupID", backupID),
+			slog.String("error", err.Error()),
+		)
+		return nil, err
+	}
+
+	var result GetBackupResponse
+	if err := json.Unmarshal(resp.Body, &result); err != nil {
+		s.logger.ErrorContext(ctx, "failed to unmarshal list backups response", slog.String("error", err.Error()))
+		return nil, err
+	}
+
+	s.logger.DebugContext(ctx, "database information obtained successfully",
 		slog.String("instanceID", instanceID),
 		slog.String("databaseID", databaseID),
 		slog.String("backupID", result.Data.ID),

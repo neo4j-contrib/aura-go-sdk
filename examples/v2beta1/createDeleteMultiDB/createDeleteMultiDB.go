@@ -52,7 +52,7 @@ func main() {
 
 	client, err := v2beta1.NewClient(
 		v2beta1.WithCredentials(clientID, clientSecret),
-		v2beta1.WithOrganization(orgID),
+		v2beta1.WithDefaultOrg(orgID),
 		v2beta1.WithDefaultProject(projectID),
 		v2beta1.WithTimeout(120*time.Second),
 		v2beta1.WithLogger(customLogger),
