@@ -51,7 +51,7 @@ func main() {
 			org.ID)
 
 		// Get projects for the organisation
-		projects, err := client.Projects.List(ctx, v2beta1.WithOrg(org.ID))
+		projects, err := client.Projects.List(ctx, org.ID)
 		if err != nil {
 			log.Fatalf("Failed to list projects for organization: %v", err)
 		}

@@ -52,45 +52,18 @@ type CreateBackupResponse struct {
 // Service
 // ============================================================================
 
-// databaseService handles database backup operations for the v2beta1 API.
+// databaseBackupService handles database backup operations for the v2beta1 API.
 type databaseBackupService struct {
 	api     api.RequestService
 	timeout time.Duration
 	logger  *slog.Logger
-	client  *Client
 }
 
-// resolveOrgProject reads both defaults from the client under a single lock and
-// applies call options once, returning the effective org and project IDs.
-func (s *databaseBackupService) resolveOrgProject(opts []CallOption) (orgID, projectID string) {
-	var defaultOrg, defaultProject string
-	if s.client != nil {
-		s.client.mu.RLock()
-		defaultOrg = s.client.defaultOrgID
-		defaultProject = s.client.defaultProjectID
-		s.client.mu.RUnlock()
-	}
-	cfg := applyOptions(opts)
-	orgID = cfg.orgID
-	if orgID == "" {
-		orgID = defaultOrg
-	}
-	projectID = cfg.projectID
-	if projectID == "" {
-		projectID = defaultProject
-	}
-	return
-}
-
-// List all of the backups of a database
-func (s *databaseBackupService) List(ctx context.Context, instanceID, databaseID string, opts ...CallOption) (*ListBackupsResponse, error) {
+// List all of the backups of a database.
+func (s *databaseBackupService) List(ctx context.Context, orgID, projectID, instanceID, databaseID string) (*ListBackupsResponse, error) {
 	ctx, cancelBackupList := context.WithTimeout(ctx, s.timeout)
 	defer cancelBackupList()
 
-	orgID, projectID := s.resolveOrgProject(opts)
-
-	// Check IDs are supplied and valid
-	// Using new Validate function
 	if err := utils.Validate(ctx, s.logger,
 		utils.OrganizationID(orgID),
 		utils.ProjectID(projectID),
@@ -133,15 +106,11 @@ func (s *databaseBackupService) List(ctx context.Context, instanceID, databaseID
 	return &result, nil
 }
 
-// Create a database backpup.  This may take several minutes to complete.
-func (s *databaseBackupService) Create(ctx context.Context, instanceID, databaseID string, opts ...CallOption) (*CreateBackupResponse, error) {
+// Create a database backup. This may take several minutes to complete.
+func (s *databaseBackupService) Create(ctx context.Context, orgID, projectID, instanceID, databaseID string) (*CreateBackupResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	orgID, projectID := s.resolveOrgProject(opts)
-
-	// Check IDs are supplied and valid
-	// Using new Validate function
 	if err := utils.Validate(ctx, s.logger,
 		utils.OrganizationID(orgID),
 		utils.ProjectID(projectID),
@@ -184,15 +153,11 @@ func (s *databaseBackupService) Create(ctx context.Context, instanceID, database
 	return &result, nil
 }
 
-// Get information for a backup
-func (s *databaseBackupService) Get(ctx context.Context, instanceID, databaseID, backupID string, opts ...CallOption) (*GetBackupResponse, error) {
+// Get information for a backup.
+func (s *databaseBackupService) Get(ctx context.Context, orgID, projectID, instanceID, databaseID, backupID string) (*GetBackupResponse, error) {
 	ctx, cancelGetBackup := context.WithTimeout(ctx, s.timeout)
 	defer cancelGetBackup()
 
-	orgID, projectID := s.resolveOrgProject(opts)
-
-	// Check IDs are supplied and valid
-	// Using new Validate function
 	if err := utils.Validate(ctx, s.logger,
 		utils.OrganizationID(orgID),
 		utils.ProjectID(projectID),
@@ -208,6 +173,7 @@ func (s *databaseBackupService) Get(ctx context.Context, instanceID, databaseID,
 		slog.String("projectID", projectID),
 		slog.String("instanceID", instanceID),
 		slog.String("databaseID", databaseID),
+		slog.String("backupID", backupID),
 	)
 
 	path := utils.SingleBackupPath(orgID, projectID, instanceID, databaseID, backupID)
@@ -225,11 +191,11 @@ func (s *databaseBackupService) Get(ctx context.Context, instanceID, databaseID,
 
 	var result GetBackupResponse
 	if err := json.Unmarshal(resp.Body, &result); err != nil {
-		s.logger.ErrorContext(ctx, "failed to unmarshal list backups response", slog.String("error", err.Error()))
+		s.logger.ErrorContext(ctx, "failed to unmarshal get backup response", slog.String("error", err.Error()))
 		return nil, err
 	}
 
-	s.logger.DebugContext(ctx, "database information obtained successfully",
+	s.logger.DebugContext(ctx, "database backup retrieved successfully",
 		slog.String("instanceID", instanceID),
 		slog.String("databaseID", databaseID),
 		slog.String("backupID", result.Data.ID),

@@ -40,13 +40,10 @@ type organizationService struct {
 	api     api.RequestService
 	timeout time.Duration
 	logger  *slog.Logger
-	client  *Client
 }
 
 // List returns all organizations accessible to the authenticated user.
-// opts is accepted for interface uniformity but is not used by this endpoint —
-// organizations are a top-level resource and require no org or project scoping.
-func (s *organizationService) List(ctx context.Context, opts ...CallOption) (*ListOrganizationsResponse, error) {
+func (s *organizationService) List(ctx context.Context) (*ListOrganizationsResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -68,24 +65,11 @@ func (s *organizationService) List(ctx context.Context, opts ...CallOption) (*Li
 	return &result, nil
 }
 
-// Get retrieves details for a specific organization. The org ID is resolved from
-// call options, falling back to the client default. Returns an error if no org ID
-// is available from either source.
-func (s *organizationService) Get(ctx context.Context, opts ...CallOption) (*GetOrganizationResponse, error) {
+// Get retrieves details for a specific organization by ID.
+func (s *organizationService) Get(ctx context.Context, orgID string) (*GetOrganizationResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	var clientDefault string
-	if s.client != nil {
-		s.client.mu.RLock()
-		clientDefault = s.client.defaultOrgID
-		s.client.mu.RUnlock()
-	}
-
-	orgID := resolveOrg(clientDefault, opts)
-
-	// Check IDs are supplied and valid
-	// Using new Validate function
 	if err := utils.Validate(ctx, s.logger,
 		utils.OrganizationID(orgID),
 	); err != nil {

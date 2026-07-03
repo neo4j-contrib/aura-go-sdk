@@ -20,7 +20,6 @@ func createTestDatabaseServiceWithTimeout(mock api.RequestService, timeout time.
 }
 
 func TestDatabaseList_Success(t *testing.T) {
-	// orgID/projectID must be valid UUIDs; instanceID must be 8-char hex.
 	const (
 		orgID      = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
 		projectID  = "11111111-2222-3333-4444-555555555555"
@@ -40,9 +39,7 @@ func TestDatabaseList_Success(t *testing.T) {
 	}
 
 	service := createTestDatabaseService(mock)
-	service.client = &Client{defaultOrgID: orgID, defaultProjectID: projectID}
-
-	result, err := service.List(context.Background(), instanceID)
+	result, err := service.List(context.Background(), orgID, projectID, instanceID)
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -78,9 +75,7 @@ func TestDatabaseList_EmptyResult(t *testing.T) {
 	}
 
 	service := createTestDatabaseService(mock)
-	service.client = &Client{defaultOrgID: orgID, defaultProjectID: projectID}
-
-	result, err := service.List(context.Background(), instanceID)
+	result, err := service.List(context.Background(), orgID, projectID, instanceID)
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -110,9 +105,8 @@ func TestDatabaseList_InvalidInstanceID(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mock := &mockAPIService{}
 			service := createTestDatabaseService(mock)
-			service.client = &Client{defaultOrgID: orgID, defaultProjectID: projectID}
 
-			result, err := service.List(context.Background(), tc.instanceID)
+			result, err := service.List(context.Background(), orgID, projectID, tc.instanceID)
 
 			if err == nil {
 				t.Fatal("expected error for invalid instance ID, got nil")
@@ -128,13 +122,15 @@ func TestDatabaseList_InvalidInstanceID(t *testing.T) {
 }
 
 func TestDatabaseList_MissingOrgID(t *testing.T) {
-	const instanceID = "abcdef01"
+	const (
+		projectID  = "11111111-2222-3333-4444-555555555555"
+		instanceID = "abcdef01"
+	)
 
 	mock := &mockAPIService{}
 	service := createTestDatabaseService(mock)
-	// no client set — resolveOrgProject returns empty strings
 
-	result, err := service.List(context.Background(), instanceID)
+	result, err := service.List(context.Background(), "", projectID, instanceID)
 
 	if err == nil {
 		t.Fatal("expected error for missing org ID, got nil")
@@ -157,22 +153,9 @@ func TestDatabaseList_MissingProjectID(t *testing.T) {
 	)
 
 	mock := &mockAPIService{}
-	client, err := NewClient(
-		WithCredentials("id", "secret"),
-		WithDefaultOrg(orgID),
-	)
-	if err != nil {
-		t.Fatalf("failed to create client: %v", err)
-	}
+	service := createTestDatabaseService(mock)
 
-	service := &databaseService{
-		api:     mock,
-		timeout: 30 * time.Second,
-		logger:  testLogger(),
-		client:  client,
-	}
-
-	result, err := service.List(context.Background(), instanceID)
+	result, err := service.List(context.Background(), orgID, "", instanceID)
 
 	if err == nil {
 		t.Fatal("expected error for missing project ID, got nil")
@@ -200,9 +183,7 @@ func TestDatabaseList_NotFound(t *testing.T) {
 	}
 
 	service := createTestDatabaseService(mock)
-	service.client = &Client{defaultOrgID: orgID, defaultProjectID: projectID}
-
-	result, err := service.List(context.Background(), instanceID)
+	result, err := service.List(context.Background(), orgID, projectID, instanceID)
 
 	if err == nil {
 		t.Fatal("expected error, got nil")
@@ -232,9 +213,7 @@ func TestDatabaseList_AuthenticationError(t *testing.T) {
 	}
 
 	service := createTestDatabaseService(mock)
-	service.client = &Client{defaultOrgID: orgID, defaultProjectID: projectID}
-
-	_, err := service.List(context.Background(), instanceID)
+	_, err := service.List(context.Background(), orgID, projectID, instanceID)
 
 	if err == nil {
 		t.Fatal("expected authentication error, got nil")
@@ -263,10 +242,9 @@ func TestDatabaseList_ContextTimeout(t *testing.T) {
 	}
 
 	service := createTestDatabaseServiceWithTimeout(mock, 10*time.Millisecond)
-	service.client = &Client{defaultOrgID: orgID, defaultProjectID: projectID}
 
 	start := time.Now()
-	_, err := service.List(context.Background(), instanceID)
+	_, err := service.List(context.Background(), orgID, projectID, instanceID)
 	elapsed := time.Since(start)
 
 	if err == nil {
@@ -298,9 +276,7 @@ func TestDatabaseList_QuickCancellation(t *testing.T) {
 	}
 
 	service := createTestDatabaseServiceWithTimeout(mock, 30*time.Second)
-	service.client = &Client{defaultOrgID: orgID, defaultProjectID: projectID}
-
-	_, err := service.List(ctx, instanceID)
+	_, err := service.List(ctx, orgID, projectID, instanceID)
 
 	if err == nil {
 		t.Fatal("expected deadline exceeded error")
@@ -331,9 +307,7 @@ func TestDatabasesCreate_Success(t *testing.T) {
 	}
 
 	service := createTestDatabaseService(mock)
-	service.client = &Client{defaultOrgID: orgID, defaultProjectID: projectID}
-
-	result, err := service.Create(context.Background(), instanceID)
+	result, err := service.Create(context.Background(), orgID, projectID, instanceID)
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -370,9 +344,8 @@ func TestDatabasesCreate_InvalidInstanceID(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mock := &mockAPIService{}
 			service := createTestDatabaseService(mock)
-			service.client = &Client{defaultOrgID: orgID, defaultProjectID: projectID}
 
-			result, err := service.Create(context.Background(), tc.instanceID)
+			result, err := service.Create(context.Background(), orgID, projectID, tc.instanceID)
 
 			if err == nil {
 				t.Fatal("expected error for invalid instance ID, got nil")
@@ -388,12 +361,15 @@ func TestDatabasesCreate_InvalidInstanceID(t *testing.T) {
 }
 
 func TestDatabasesCreate_MissingOrgID(t *testing.T) {
-	const instanceID = "abcdef01"
+	const (
+		projectID  = "11111111-2222-3333-4444-555555555555"
+		instanceID = "abcdef01"
+	)
 
 	mock := &mockAPIService{}
 	service := createTestDatabaseService(mock)
 
-	result, err := service.Create(context.Background(), instanceID)
+	result, err := service.Create(context.Background(), "", projectID, instanceID)
 
 	if err == nil {
 		t.Fatal("expected error for missing org ID, got nil")
@@ -416,22 +392,9 @@ func TestDatabasesCreate_MissingProjectID(t *testing.T) {
 	)
 
 	mock := &mockAPIService{}
-	client, err := NewClient(
-		WithCredentials("id", "secret"),
-		WithDefaultOrg(orgID),
-	)
-	if err != nil {
-		t.Fatalf("failed to create client: %v", err)
-	}
+	service := createTestDatabaseService(mock)
 
-	service := &databaseService{
-		api:     mock,
-		timeout: 30 * time.Second,
-		logger:  testLogger(),
-		client:  client,
-	}
-
-	result, err := service.Create(context.Background(), instanceID)
+	result, err := service.Create(context.Background(), orgID, "", instanceID)
 
 	if err == nil {
 		t.Fatal("expected error for missing project ID, got nil")
@@ -459,9 +422,7 @@ func TestDatabasesCreate_NotFound(t *testing.T) {
 	}
 
 	service := createTestDatabaseService(mock)
-	service.client = &Client{defaultOrgID: orgID, defaultProjectID: projectID}
-
-	result, err := service.Create(context.Background(), instanceID)
+	result, err := service.Create(context.Background(), orgID, projectID, instanceID)
 
 	if err == nil {
 		t.Fatal("expected error, got nil")
@@ -491,9 +452,7 @@ func TestDatabasesCreate_AuthenticationError(t *testing.T) {
 	}
 
 	service := createTestDatabaseService(mock)
-	service.client = &Client{defaultOrgID: orgID, defaultProjectID: projectID}
-
-	_, err := service.Create(context.Background(), instanceID)
+	_, err := service.Create(context.Background(), orgID, projectID, instanceID)
 
 	if err == nil {
 		t.Fatal("expected authentication error, got nil")
@@ -522,10 +481,9 @@ func TestDatabasesCreate_ContextTimeout(t *testing.T) {
 	}
 
 	service := createTestDatabaseServiceWithTimeout(mock, 10*time.Millisecond)
-	service.client = &Client{defaultOrgID: orgID, defaultProjectID: projectID}
 
 	start := time.Now()
-	_, err := service.Create(context.Background(), instanceID)
+	_, err := service.Create(context.Background(), orgID, projectID, instanceID)
 	elapsed := time.Since(start)
 
 	if err == nil {
@@ -557,9 +515,7 @@ func TestDatabasesCreate_QuickCancellation(t *testing.T) {
 	}
 
 	service := createTestDatabaseServiceWithTimeout(mock, 30*time.Second)
-	service.client = &Client{defaultOrgID: orgID, defaultProjectID: projectID}
-
-	_, err := service.Create(ctx, instanceID)
+	_, err := service.Create(ctx, orgID, projectID, instanceID)
 
 	if err == nil {
 		t.Fatal("expected deadline exceeded error")
@@ -591,9 +547,7 @@ func TestDatabasesGet_Success(t *testing.T) {
 	}
 
 	service := createTestDatabaseService(mock)
-	service.client = &Client{defaultOrgID: orgID, defaultProjectID: projectID}
-
-	result, err := service.Get(context.Background(), instanceID, databaseID)
+	result, err := service.Get(context.Background(), orgID, projectID, instanceID, databaseID)
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -631,9 +585,8 @@ func TestDatabasesGet_InvalidInstanceID(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mock := &mockAPIService{}
 			service := createTestDatabaseService(mock)
-			service.client = &Client{defaultOrgID: orgID, defaultProjectID: projectID}
 
-			result, err := service.Get(context.Background(), tc.instanceID, databaseID)
+			result, err := service.Get(context.Background(), orgID, projectID, tc.instanceID, databaseID)
 
 			if err == nil {
 				t.Fatal("expected error for invalid instance ID, got nil")
@@ -669,9 +622,8 @@ func TestDatabasesGet_InvalidDatabaseID(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mock := &mockAPIService{}
 			service := createTestDatabaseService(mock)
-			service.client = &Client{defaultOrgID: orgID, defaultProjectID: projectID}
 
-			result, err := service.Get(context.Background(), instanceID, tc.databaseID)
+			result, err := service.Get(context.Background(), orgID, projectID, instanceID, tc.databaseID)
 
 			if err == nil {
 				t.Fatal("expected error for invalid database ID, got nil")
@@ -688,6 +640,7 @@ func TestDatabasesGet_InvalidDatabaseID(t *testing.T) {
 
 func TestDatabasesGet_MissingOrgID(t *testing.T) {
 	const (
+		projectID  = "11111111-2222-3333-4444-555555555555"
 		instanceID = "abcdef01"
 		databaseID = "12345678"
 	)
@@ -695,7 +648,7 @@ func TestDatabasesGet_MissingOrgID(t *testing.T) {
 	mock := &mockAPIService{}
 	service := createTestDatabaseService(mock)
 
-	result, err := service.Get(context.Background(), instanceID, databaseID)
+	result, err := service.Get(context.Background(), "", projectID, instanceID, databaseID)
 
 	if err == nil {
 		t.Fatal("expected error for missing org ID, got nil")
@@ -719,22 +672,9 @@ func TestDatabasesGet_MissingProjectID(t *testing.T) {
 	)
 
 	mock := &mockAPIService{}
-	client, err := NewClient(
-		WithCredentials("id", "secret"),
-		WithDefaultOrg(orgID),
-	)
-	if err != nil {
-		t.Fatalf("failed to create client: %v", err)
-	}
+	service := createTestDatabaseService(mock)
 
-	service := &databaseService{
-		api:     mock,
-		timeout: 30 * time.Second,
-		logger:  testLogger(),
-		client:  client,
-	}
-
-	result, err := service.Get(context.Background(), instanceID, databaseID)
+	result, err := service.Get(context.Background(), orgID, "", instanceID, databaseID)
 
 	if err == nil {
 		t.Fatal("expected error for missing project ID, got nil")
@@ -763,9 +703,7 @@ func TestDatabasesGet_NotFound(t *testing.T) {
 	}
 
 	service := createTestDatabaseService(mock)
-	service.client = &Client{defaultOrgID: orgID, defaultProjectID: projectID}
-
-	result, err := service.Get(context.Background(), instanceID, databaseID)
+	result, err := service.Get(context.Background(), orgID, projectID, instanceID, databaseID)
 
 	if err == nil {
 		t.Fatal("expected error, got nil")
@@ -796,9 +734,7 @@ func TestDatabasesGet_AuthenticationError(t *testing.T) {
 	}
 
 	service := createTestDatabaseService(mock)
-	service.client = &Client{defaultOrgID: orgID, defaultProjectID: projectID}
-
-	_, err := service.Get(context.Background(), instanceID, databaseID)
+	_, err := service.Get(context.Background(), orgID, projectID, instanceID, databaseID)
 
 	if err == nil {
 		t.Fatal("expected authentication error, got nil")
@@ -828,10 +764,9 @@ func TestDatabasesGet_ContextTimeout(t *testing.T) {
 	}
 
 	service := createTestDatabaseServiceWithTimeout(mock, 10*time.Millisecond)
-	service.client = &Client{defaultOrgID: orgID, defaultProjectID: projectID}
 
 	start := time.Now()
-	_, err := service.Get(context.Background(), instanceID, databaseID)
+	_, err := service.Get(context.Background(), orgID, projectID, instanceID, databaseID)
 	elapsed := time.Since(start)
 
 	if err == nil {
@@ -864,9 +799,7 @@ func TestDatabasesGet_QuickCancellation(t *testing.T) {
 	}
 
 	service := createTestDatabaseServiceWithTimeout(mock, 30*time.Second)
-	service.client = &Client{defaultOrgID: orgID, defaultProjectID: projectID}
-
-	_, err := service.Get(ctx, instanceID, databaseID)
+	_, err := service.Get(ctx, orgID, projectID, instanceID, databaseID)
 
 	if err == nil {
 		t.Fatal("expected deadline exceeded error")
@@ -898,9 +831,7 @@ func TestDatabasesDelete_Success(t *testing.T) {
 	}
 
 	service := createTestDatabaseService(mock)
-	service.client = &Client{defaultOrgID: orgID, defaultProjectID: projectID}
-
-	result, err := service.Delete(context.Background(), instanceID, databaseID)
+	result, err := service.Delete(context.Background(), orgID, projectID, instanceID, databaseID)
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -939,9 +870,8 @@ func TestDatabasesDelete_InvalidInstanceID(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mock := &mockAPIService{}
 			service := createTestDatabaseService(mock)
-			service.client = &Client{defaultOrgID: orgID, defaultProjectID: projectID}
 
-			result, err := service.Delete(context.Background(), tc.instanceID, databaseID)
+			result, err := service.Delete(context.Background(), orgID, projectID, tc.instanceID, databaseID)
 
 			if err == nil {
 				t.Fatal("expected error for invalid instance ID, got nil")
@@ -977,9 +907,8 @@ func TestDatabasesDelete_InvalidDatabaseID(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mock := &mockAPIService{}
 			service := createTestDatabaseService(mock)
-			service.client = &Client{defaultOrgID: orgID, defaultProjectID: projectID}
 
-			result, err := service.Delete(context.Background(), instanceID, tc.databaseID)
+			result, err := service.Delete(context.Background(), orgID, projectID, instanceID, tc.databaseID)
 
 			if err == nil {
 				t.Fatal("expected error for invalid database ID, got nil")
@@ -996,6 +925,7 @@ func TestDatabasesDelete_InvalidDatabaseID(t *testing.T) {
 
 func TestDatabasesDelete_MissingOrgID(t *testing.T) {
 	const (
+		projectID  = "11111111-2222-3333-4444-555555555555"
 		instanceID = "abcdef01"
 		databaseID = "12345678"
 	)
@@ -1003,7 +933,7 @@ func TestDatabasesDelete_MissingOrgID(t *testing.T) {
 	mock := &mockAPIService{}
 	service := createTestDatabaseService(mock)
 
-	result, err := service.Delete(context.Background(), instanceID, databaseID)
+	result, err := service.Delete(context.Background(), "", projectID, instanceID, databaseID)
 
 	if err == nil {
 		t.Fatal("expected error for missing org ID, got nil")
@@ -1027,22 +957,9 @@ func TestDatabasesDelete_MissingProjectID(t *testing.T) {
 	)
 
 	mock := &mockAPIService{}
-	client, err := NewClient(
-		WithCredentials("id", "secret"),
-		WithDefaultOrg(orgID),
-	)
-	if err != nil {
-		t.Fatalf("failed to create client: %v", err)
-	}
+	service := createTestDatabaseService(mock)
 
-	service := &databaseService{
-		api:     mock,
-		timeout: 30 * time.Second,
-		logger:  testLogger(),
-		client:  client,
-	}
-
-	result, err := service.Delete(context.Background(), instanceID, databaseID)
+	result, err := service.Delete(context.Background(), orgID, "", instanceID, databaseID)
 
 	if err == nil {
 		t.Fatal("expected error for missing project ID, got nil")
@@ -1071,9 +988,7 @@ func TestDatabasesDelete_NotFound(t *testing.T) {
 	}
 
 	service := createTestDatabaseService(mock)
-	service.client = &Client{defaultOrgID: orgID, defaultProjectID: projectID}
-
-	result, err := service.Delete(context.Background(), instanceID, databaseID)
+	result, err := service.Delete(context.Background(), orgID, projectID, instanceID, databaseID)
 
 	if err == nil {
 		t.Fatal("expected error, got nil")
@@ -1104,9 +1019,7 @@ func TestDatabasesDelete_AuthenticationError(t *testing.T) {
 	}
 
 	service := createTestDatabaseService(mock)
-	service.client = &Client{defaultOrgID: orgID, defaultProjectID: projectID}
-
-	_, err := service.Delete(context.Background(), instanceID, databaseID)
+	_, err := service.Delete(context.Background(), orgID, projectID, instanceID, databaseID)
 
 	if err == nil {
 		t.Fatal("expected authentication error, got nil")
@@ -1136,10 +1049,9 @@ func TestDatabasesDelete_ContextTimeout(t *testing.T) {
 	}
 
 	service := createTestDatabaseServiceWithTimeout(mock, 10*time.Millisecond)
-	service.client = &Client{defaultOrgID: orgID, defaultProjectID: projectID}
 
 	start := time.Now()
-	_, err := service.Delete(context.Background(), instanceID, databaseID)
+	_, err := service.Delete(context.Background(), orgID, projectID, instanceID, databaseID)
 	elapsed := time.Since(start)
 
 	if err == nil {
@@ -1172,9 +1084,7 @@ func TestDatabasesDelete_QuickCancellation(t *testing.T) {
 	}
 
 	service := createTestDatabaseServiceWithTimeout(mock, 30*time.Second)
-	service.client = &Client{defaultOrgID: orgID, defaultProjectID: projectID}
-
-	_, err := service.Delete(ctx, instanceID, databaseID)
+	_, err := service.Delete(ctx, orgID, projectID, instanceID, databaseID)
 
 	if err == nil {
 		t.Fatal("expected deadline exceeded error")

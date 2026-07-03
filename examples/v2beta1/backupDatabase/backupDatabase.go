@@ -29,8 +29,6 @@ func main() {
 
 	client, err := v2beta1.NewClient(
 		v2beta1.WithCredentials(clientID, clientSecret),
-		v2beta1.WithDefaultOrg(orgID),
-		v2beta1.WithDefaultProject(projectID),
 		v2beta1.WithTimeout(120*time.Second),
 		v2beta1.WithLogger(customLogger),
 	)
@@ -42,16 +40,16 @@ func main() {
 	ctx, cancelMain := context.WithTimeout(context.Background(), 15*time.Minute)
 	defer cancelMain()
 
-	fmt.Printf("\\nBacking up database")
+	fmt.Printf("\nBacking up database")
 
-	newBackup, err := client.DatabaseBackups.Create(ctx, instanceID, databaseID)
+	newBackup, err := client.DatabaseBackups.Create(ctx, orgID, projectID, instanceID, databaseID)
 	if err != nil {
 		log.Fatalf("Failed to backup database: %v", err)
 	}
 	fmt.Println("\nDatabase backup started")
 	fmt.Printf("- backup id: %s \n", newBackup.Data.ID)
 
-	getBackup, err := client.DatabaseBackups.Get(ctx, instanceID, databaseID, newBackup.Data.ID)
+	getBackup, err := client.DatabaseBackups.Get(ctx, orgID, projectID, instanceID, databaseID, newBackup.Data.ID)
 	if err != nil {
 		log.Fatalf("Failed to get database backup information: %v", err)
 	}
