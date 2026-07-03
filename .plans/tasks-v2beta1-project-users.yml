@@ -93,7 +93,7 @@ tasks:
       for List, Add, UpdateRole, and Remove, each with a fenced Go code block showing a
       minimal working call. Follow the exact style of the existing '## v2beta1 Organization
       User Operations' section — no prose inside code blocks, no extra context.
-    status: pending
+    status: completed
     dependencies:
       - task-004
     acceptance_criteria:
@@ -101,7 +101,7 @@ tasks:
       - "Section exists with H3 sub-sections for List, Add, UpdateRole, and Remove"
       - "Each sub-section has a fenced Go code block showing the minimal call"
       - "Style matches the v2beta1 Organization User Operations section exactly"
-    completed_at: null
+    completed_at: 2026-07-03T16:15:00Z
 
   - id: task-006
     title: "Add changie changelog fragment for v1.8.0"

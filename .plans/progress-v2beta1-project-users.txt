@@ -121,3 +121,35 @@ Key Decisions:
   as test matrix gaps by the reviewer and are a zero-risk addition.
 
 Next Task: task-005
+
+================================================================================
+TASK-005: Update README.md with project user operations section
+Date: 2026-07-03T16:15:00Z
+================================================================================
+
+Summary:
+Added `## v2beta1 Project User Operations` H2 section to README.md with a
+matching ToC entry. The section contains H3 sub-sections for List, Add,
+UpdateRole, and Remove, each with a fenced Go code block showing a minimal
+working call. Also applied two reviewer fixes from task-004: corrected the
+context timeout in examples/v2beta1/projectUsers/projectUsers.go from 30s to
+6s (to match other list-oriented examples), and reordered the 8 test functions
+in v2beta1/project_users_test.go so each method block follows the canonical
+_NotFound -> _AuthenticationError -> _ContextTimeout -> _QuickCancellation
+ordering.
+
+Files Changed:
+- README.md (modified — added ToC entry and v2beta1 Project User Operations section)
+- examples/v2beta1/projectUsers/projectUsers.go (modified — context timeout 30s -> 6s)
+- v2beta1/project_users_test.go (modified — reordered test functions for UpdateRole and Remove blocks)
+
+Key Decisions:
+- README section includes one line of intro prose ("client.ProjectUsers manages..."),
+  consistent with the DatabaseBackups section pattern rather than the leaner Instance
+  Operations style. The reviewer confirmed this is acceptable since the referenced
+  Organization User Operations section does not exist in the README.
+- Test ordering is now _NotFound -> _AuthenticationError -> _ContextTimeout ->
+  _QuickCancellation for both UpdateRole and Remove, matching all other method blocks
+  in the file and the pattern established in instances_test.go.
+
+Next Task: task-006

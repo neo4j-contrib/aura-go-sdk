@@ -782,6 +782,35 @@ func TestProjectUserService_UpdateRole_NotFound(t *testing.T) {
 	}
 }
 
+// TestProjectUserService_UpdateRole_AuthenticationError verifies that a 401 API
+// error exposes IsUnauthorized() == true.
+func TestProjectUserService_UpdateRole_AuthenticationError(t *testing.T) {
+	const (
+		orgID     = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		projectID = "11111111-2222-3333-4444-555555555555"
+		userID    = "cccccccc-dddd-eeee-ffff-000000000001"
+	)
+
+	mock := &mockAPIService{
+		err: &api.Error{StatusCode: 401, Message: "Invalid credentials"},
+	}
+
+	service := createTestProjectUserService(mock)
+	req := &UpdateProjectUserRequest{ProjectRoles: []string{"viewer"}}
+	_, err := service.UpdateRole(context.Background(), orgID, projectID, userID, req)
+
+	if err == nil {
+		t.Fatal("expected authentication error, got nil")
+	}
+	apiErr, ok := err.(*api.Error)
+	if !ok {
+		t.Fatalf("expected *api.Error, got %T: %v", err, err)
+	}
+	if !apiErr.IsUnauthorized() {
+		t.Error("expected IsUnauthorized() to be true")
+	}
+}
+
 // TestProjectUserService_UpdateRole_ContextTimeout verifies that the service
 // timeout fires before the mock delay, returning context.DeadlineExceeded.
 func TestProjectUserService_UpdateRole_ContextTimeout(t *testing.T) {
@@ -812,6 +841,37 @@ func TestProjectUserService_UpdateRole_ContextTimeout(t *testing.T) {
 	}
 	if elapsed > 500*time.Millisecond {
 		t.Errorf("timeout took too long: %v (expected ~100ms)", elapsed)
+	}
+}
+
+// TestProjectUserService_UpdateRole_QuickCancellation verifies that a pre-expired
+// context causes UpdateRole to fail immediately with a context error.
+func TestProjectUserService_UpdateRole_QuickCancellation(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Nanosecond)
+	defer cancel()
+	time.Sleep(10 * time.Millisecond) // Let deadline expire.
+
+	const (
+		orgID     = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		projectID = "11111111-2222-3333-4444-555555555555"
+		userID    = "cccccccc-dddd-eeee-ffff-000000000001"
+	)
+
+	body, _ := json.Marshal(GetProjectUserResponse{})
+	mock := &mockAPIServiceWithDelay{
+		response: &api.Response{StatusCode: 200, Body: body},
+		delay:    0,
+	}
+
+	service := createTestProjectUserServiceWithTimeout(mock, 30*time.Second)
+	req := &UpdateProjectUserRequest{ProjectRoles: []string{"viewer"}}
+	_, err := service.UpdateRole(ctx, orgID, projectID, userID, req)
+
+	if err == nil {
+		t.Fatal("expected deadline exceeded error")
+	}
+	if !errors.Is(err, context.DeadlineExceeded) && !errors.Is(err, context.Canceled) {
+		t.Errorf("expected context error, got: %v", err)
 	}
 }
 
@@ -989,66 +1049,6 @@ func TestProjectUserService_Remove_NotFound(t *testing.T) {
 	}
 }
 
-// TestProjectUserService_UpdateRole_AuthenticationError verifies that a 401 API
-// error exposes IsUnauthorized() == true.
-func TestProjectUserService_UpdateRole_AuthenticationError(t *testing.T) {
-	const (
-		orgID     = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
-		projectID = "11111111-2222-3333-4444-555555555555"
-		userID    = "cccccccc-dddd-eeee-ffff-000000000001"
-	)
-
-	mock := &mockAPIService{
-		err: &api.Error{StatusCode: 401, Message: "Invalid credentials"},
-	}
-
-	service := createTestProjectUserService(mock)
-	req := &UpdateProjectUserRequest{ProjectRoles: []string{"viewer"}}
-	_, err := service.UpdateRole(context.Background(), orgID, projectID, userID, req)
-
-	if err == nil {
-		t.Fatal("expected authentication error, got nil")
-	}
-	apiErr, ok := err.(*api.Error)
-	if !ok {
-		t.Fatalf("expected *api.Error, got %T: %v", err, err)
-	}
-	if !apiErr.IsUnauthorized() {
-		t.Error("expected IsUnauthorized() to be true")
-	}
-}
-
-// TestProjectUserService_UpdateRole_QuickCancellation verifies that a pre-expired
-// context causes UpdateRole to fail immediately with a context error.
-func TestProjectUserService_UpdateRole_QuickCancellation(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Nanosecond)
-	defer cancel()
-	time.Sleep(10 * time.Millisecond) // Let deadline expire.
-
-	const (
-		orgID     = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
-		projectID = "11111111-2222-3333-4444-555555555555"
-		userID    = "cccccccc-dddd-eeee-ffff-000000000001"
-	)
-
-	body, _ := json.Marshal(GetProjectUserResponse{})
-	mock := &mockAPIServiceWithDelay{
-		response: &api.Response{StatusCode: 200, Body: body},
-		delay:    0,
-	}
-
-	service := createTestProjectUserServiceWithTimeout(mock, 30*time.Second)
-	req := &UpdateProjectUserRequest{ProjectRoles: []string{"viewer"}}
-	_, err := service.UpdateRole(ctx, orgID, projectID, userID, req)
-
-	if err == nil {
-		t.Fatal("expected deadline exceeded error")
-	}
-	if !errors.Is(err, context.DeadlineExceeded) && !errors.Is(err, context.Canceled) {
-		t.Errorf("expected context error, got: %v", err)
-	}
-}
-
 // TestProjectUserService_Remove_AuthenticationError verifies that a 401 API error
 // exposes IsUnauthorized() == true.
 func TestProjectUserService_Remove_AuthenticationError(t *testing.T) {
@@ -1074,35 +1074,6 @@ func TestProjectUserService_Remove_AuthenticationError(t *testing.T) {
 	}
 	if !apiErr.IsUnauthorized() {
 		t.Error("expected IsUnauthorized() to be true")
-	}
-}
-
-// TestProjectUserService_Remove_QuickCancellation verifies that a pre-expired
-// context causes Remove to fail immediately with a context error.
-func TestProjectUserService_Remove_QuickCancellation(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Nanosecond)
-	defer cancel()
-	time.Sleep(10 * time.Millisecond) // Let deadline expire.
-
-	const (
-		orgID     = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
-		projectID = "11111111-2222-3333-4444-555555555555"
-		userID    = "cccccccc-dddd-eeee-ffff-000000000001"
-	)
-
-	mock := &mockAPIServiceWithDelay{
-		response: &api.Response{StatusCode: 204, Body: []byte{}},
-		delay:    0,
-	}
-
-	service := createTestProjectUserServiceWithTimeout(mock, 30*time.Second)
-	err := service.Remove(ctx, orgID, projectID, userID)
-
-	if err == nil {
-		t.Fatal("expected deadline exceeded error")
-	}
-	if !errors.Is(err, context.DeadlineExceeded) && !errors.Is(err, context.Canceled) {
-		t.Errorf("expected context error, got: %v", err)
 	}
 }
 
@@ -1134,5 +1105,34 @@ func TestProjectUserService_Remove_ContextTimeout(t *testing.T) {
 	}
 	if elapsed > 500*time.Millisecond {
 		t.Errorf("timeout took too long: %v (expected ~100ms)", elapsed)
+	}
+}
+
+// TestProjectUserService_Remove_QuickCancellation verifies that a pre-expired
+// context causes Remove to fail immediately with a context error.
+func TestProjectUserService_Remove_QuickCancellation(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Nanosecond)
+	defer cancel()
+	time.Sleep(10 * time.Millisecond) // Let deadline expire.
+
+	const (
+		orgID     = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		projectID = "11111111-2222-3333-4444-555555555555"
+		userID    = "cccccccc-dddd-eeee-ffff-000000000001"
+	)
+
+	mock := &mockAPIServiceWithDelay{
+		response: &api.Response{StatusCode: 204, Body: []byte{}},
+		delay:    0,
+	}
+
+	service := createTestProjectUserServiceWithTimeout(mock, 30*time.Second)
+	err := service.Remove(ctx, orgID, projectID, userID)
+
+	if err == nil {
+		t.Fatal("expected deadline exceeded error")
+	}
+	if !errors.Is(err, context.DeadlineExceeded) && !errors.Is(err, context.Canceled) {
+		t.Errorf("expected context error, got: %v", err)
 	}
 }
