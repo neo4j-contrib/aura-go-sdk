@@ -24,6 +24,7 @@ Client Id and Secret are required and these can be obtained from the [Neo4j Aura
 - [v2beta1 Database Backup Operations](#v2beta1-database-backup-operations) (List, Get, Create)
 - [v2beta1 Organization User Operations](#v2beta1-organization-user-operations) (List, Get, UpdateRole, Remove)
 - [v2beta1 Organization Invite Operations](#v2beta1-organization-invite-operations) (List, Create, Delete)
+- [v2beta1 Project User Operations](#v2beta1-project-user-operations) (List, Add, UpdateRole, Remove)
 - [Error Handling](#error-handling)
 - [Best Practices](#best-practices)
 - [CI & Releases](#ci--releases)
@@ -1141,6 +1142,67 @@ if err != nil {
 }
 
 fmt.Println("Invite deleted")
+```
+
+---
+
+## v2beta1 Project User Operations
+
+`client.ProjectUsers` manages the users within an Aura project.
+
+### List Project Users
+
+```go
+ctx := context.Background()
+
+users, err := client.ProjectUsers.List(ctx, "your-org-uuid", "your-project-uuid")
+if err != nil {
+    log.Fatalf("Error: %v", err)
+}
+
+for _, user := range users.Data {
+    fmt.Printf("User: %s (%s) roles: %v\n", user.Email, user.UserID, user.ProjectRoles)
+}
+```
+
+### Add a Project User
+
+```go
+ctx := context.Background()
+
+err := client.ProjectUsers.Add(ctx, "your-org-uuid", "your-project-uuid", &v2beta1.AddProjectUserRequest{
+    UserID:       "user-uuid",
+    ProjectRoles: []string{"viewer"},
+})
+if err != nil {
+    log.Fatalf("Error: %v", err)
+}
+```
+
+### Update a Project User's Role
+
+```go
+ctx := context.Background()
+
+user, err := client.ProjectUsers.UpdateRole(ctx, "your-org-uuid", "your-project-uuid", "user-uuid", &v2beta1.UpdateProjectUserRequest{
+    ProjectRoles: []string{"editor"},
+})
+if err != nil {
+    log.Fatalf("Error: %v", err)
+}
+
+fmt.Printf("Updated roles: %v\n", user.Data.ProjectRoles)
+```
+
+### Remove a Project User
+
+```go
+ctx := context.Background()
+
+err := client.ProjectUsers.Remove(ctx, "your-org-uuid", "your-project-uuid", "user-uuid")
+if err != nil {
+    log.Fatalf("Error: %v", err)
+}
 ```
 
 ---

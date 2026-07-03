@@ -1,0 +1,179 @@
+================================================================================
+TASK-001: Add ProjectUsersPath and SingleProjectUserPath helpers to internal/utils
+Date: 2026-07-03T15:50:00Z
+================================================================================
+
+Summary:
+Added two new path helper functions to internal/utils/path_helpers.go:
+ProjectUsersPath(orgID, projectID) and SingleProjectUserPath(orgID, projectID,
+userID). Both use the existing resourcePath helper following the same pattern
+as all other helpers in that file. go build ./... and go test ./internal/utils/...
+both pass.
+
+Files Changed:
+- internal/utils/path_helpers.go (modified — added ProjectUsersPath and SingleProjectUserPath)
+- .plans/tasks-v2beta1-project-users.yml (modified — task-001 marked completed)
+
+Key Decisions:
+- Doc comment style left consistent with the rest of the file ("// Returns endpoint
+  path for...") rather than switching to idiomatic Go "// FuncName returns..." to
+  avoid a mixed style in a single file; a follow-up can normalise all comments.
+- No path helper tests added in this task — acceptance criteria did not require them
+  and task-003 covers the testing layer. The gap (no coverage for any path helpers)
+  is noted for a future housekeeping task.
+- utils.UserID validator does not yet exist despite the task description saying it
+  does; task-002 will need to add it before the service can validate userID params.
+
+Next Task: task-002
+
+================================================================================
+TASK-002: Implement ProjectUserService (types, service, interface, client wiring)
+Date: 2026-07-03T16:30:00Z
+================================================================================
+
+Summary:
+Added utils.UserID validator to internal/utils/validate_id.go (UUID format).
+Created v2beta1/project_users.go with ProjectUser, ListProjectUsersResponse,
+GetProjectUserResponse, AddProjectUserRequest, UpdateProjectUserRequest types and
+the projectUserService struct implementing List, Add, UpdateRole, and Remove.
+Add returns error only (no response body; HTTP 201 with no content). Remove
+returns error only (HTTP 204 with no content). UpdateRole and Remove both validate
+userID via utils.UserID. Added ProjectUserService interface and compile-time check
+to interfaces.go. Wired client.ProjectUsers in client.go and incremented services
+count from 4 to 5.
+
+Files Changed:
+- internal/utils/validate_id.go (modified — added UserID constructor)
+- v2beta1/project_users.go (created — types, projectUserService, all 4 methods)
+- v2beta1/interfaces.go (modified — added ProjectUserService interface and compile-time check)
+- v2beta1/client.go (modified — added ProjectUsers field and wiring; services count 4→5)
+
+Key Decisions:
+- services count in task description said "increment from 6 to 7" but actual code had 4;
+  bumped to 5 (4 existing + 1 new) to reflect reality.
+- utils.UserID uses UUID format (long form xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx),
+  consistent with OrganizationID and ProjectID.
+- Add and Remove discard the api.Response (no body expected) and return only error,
+  consistent with the task spec (HTTP 201/204 no content).
+
+Next Task: task-003
+
+================================================================================
+TASK-003: Write tests for ProjectUserService
+Date: 2026-07-03T17:30:00Z
+================================================================================
+
+Summary:
+Fixed type mismatches in v2beta1/project_users.go: ProjectUser.Role string →
+ProjectRoles []string, AddProjectUserRequest Email/Role → UserID/ProjectRoles,
+UpdateProjectUserRequest Role → ProjectRoles, all matching the PRD spec.
+Also fixed client.go services count from 5 to 6 (six services are now wired).
+Created v2beta1/project_users_test.go with the full AGENTS.md test matrix for
+all four methods (List, Add, UpdateRole, Remove). Tests use table-driven
+_InvalidOrgID, _InvalidProjectID, _InvalidUserID sub-tests; Add and UpdateRole
+tests also unmarshal mock.lastBody to assert request serialisation. All tests
+pass with go test -race ./v2beta1/... and golangci-lint reports 0 issues.
+
+Files Changed:
+- v2beta1/project_users.go (modified — corrected ProjectUser, AddProjectUserRequest,
+  UpdateProjectUserRequest types to use ProjectRoles []string per PRD spec)
+- v2beta1/client.go (modified — services count 5→6)
+- v2beta1/project_users_test.go (created — full test coverage for all 4 methods)
+
+Key Decisions:
+- Types corrected per PRD spec: ProjectRoles []string instead of Role string,
+  AddProjectUserRequest uses UserID+ProjectRoles instead of Email+Role.
+- services count corrected to 6 (Organizations, Projects, Instances, Databases,
+  DatabaseBackups, ProjectUsers).
+- Used table-driven tests for all _InvalidID variants (matching AGENTS.md guidance).
+- Add_QuickCancellation included even though not listed in the task acceptance
+  criteria explicitly, to match List/Add symmetry in the test matrix.
+
+Next Task: task-004
+
+================================================================================
+TASK-004: Create example for project users
+Date: 2026-07-03T18:15:00Z
+================================================================================
+
+Summary:
+Created examples/v2beta1/projectUsers/projectUsers.go demonstrating List and Add
+for project users. Reads credentials from AURA_CLIENT_ID, AURA_CLIENT_SECRET,
+AURA_ORG_ID, AURA_PROJECT_ID env vars; optionally reads AURA_USER_ID to
+demonstrate Add (gracefully skips Add with a message if AURA_USER_ID is unset).
+Also added 4 missing test functions to v2beta1/project_users_test.go to complete
+the AGENTS.md test matrix for UpdateRole and Remove:
+UpdateRole_AuthenticationError, UpdateRole_QuickCancellation,
+Remove_AuthenticationError, Remove_QuickCancellation.
+All feedback loops pass: go build ./..., go test -race ./..., golangci-lint run.
+
+Files Changed:
+- examples/v2beta1/projectUsers/projectUsers.go (created — List + Add example)
+- v2beta1/project_users_test.go (modified — 4 new test functions for UpdateRole and Remove)
+
+Key Decisions:
+- AURA_USER_ID is optional in the example: if unset, the example still runs and
+  demonstrates List, then exits cleanly with a message explaining how to test Add.
+  This avoids hard-failing for users who only want to test the read path.
+- 4 missing test functions (UpdateRole_AuthenticationError,
+  UpdateRole_QuickCancellation, Remove_AuthenticationError,
+  Remove_QuickCancellation) were added alongside task-004 since they were flagged
+  as test matrix gaps by the reviewer and are a zero-risk addition.
+
+Next Task: task-005
+
+================================================================================
+TASK-005: Update README.md with project user operations section
+Date: 2026-07-03T16:15:00Z
+================================================================================
+
+Summary:
+Added `## v2beta1 Project User Operations` H2 section to README.md with a
+matching ToC entry. The section contains H3 sub-sections for List, Add,
+UpdateRole, and Remove, each with a fenced Go code block showing a minimal
+working call. Also applied two reviewer fixes from task-004: corrected the
+context timeout in examples/v2beta1/projectUsers/projectUsers.go from 30s to
+6s (to match other list-oriented examples), and reordered the 8 test functions
+in v2beta1/project_users_test.go so each method block follows the canonical
+_NotFound -> _AuthenticationError -> _ContextTimeout -> _QuickCancellation
+ordering.
+
+Files Changed:
+- README.md (modified — added ToC entry and v2beta1 Project User Operations section)
+- examples/v2beta1/projectUsers/projectUsers.go (modified — context timeout 30s -> 6s)
+- v2beta1/project_users_test.go (modified — reordered test functions for UpdateRole and Remove blocks)
+
+Key Decisions:
+- README section includes one line of intro prose ("client.ProjectUsers manages..."),
+  consistent with the DatabaseBackups section pattern rather than the leaner Instance
+  Operations style. The reviewer confirmed this is acceptable since the referenced
+  Organization User Operations section does not exist in the README.
+- Test ordering is now _NotFound -> _AuthenticationError -> _ContextTimeout ->
+  _QuickCancellation for both UpdateRole and Remove, matching all other method blocks
+  in the file and the pattern established in instances_test.go.
+
+Next Task: task-006
+
+================================================================================
+TASK-006: Add changie changelog fragment for v1.8.0
+Date: 2026-07-03T17:09:00Z
+================================================================================
+
+Summary:
+Ran `changie new --kind Added --body 'v2beta1: add ProjectUserService with List,
+Add, UpdateRole, Remove'` to create a changelog fragment in .changes/unreleased/.
+The fragment follows the exact format established by the v1.7.0 OrganizationUserService
+and OrganizationInviteService fragments. All feedback loops pass (go test -race ./...,
+golangci-lint run).
+
+Files Changed:
+- .changes/unreleased/Added-20260703-170857.yaml (created — changie fragment for ProjectUserService)
+- .plans/tasks-v2beta1-project-users.yml (modified — task-006 marked completed)
+
+Key Decisions:
+- Used `changie new` non-interactively with --kind and --body flags, matching the
+  approach used in task-008 of the organization-users-invites feature.
+- Body text follows the established convention: 'v2beta1: add <ServiceName> with
+  <Method1>, <Method2>, ...' exactly as instructed.
+
+Next Task: All tasks complete

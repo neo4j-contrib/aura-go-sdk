@@ -79,3 +79,13 @@ func BackupsPath(orgID, projectID, instanceID, databaseID string) string {
 func SingleBackupPath(orgID, projectID, instanceID, databaseID, backupID string) string {
 	return resourcePath("organizations", orgID, "projects", projectID, "instances", instanceID, "databases", databaseID, "backups", backupID)
 }
+
+// Returns endpoint path for users in a project
+func ProjectUsersPath(orgID, projectID string) string {
+	return resourcePath("organizations", orgID, "projects", projectID, "users")
+}
+
+// Returns endpoint path for a single user in a project
+func SingleProjectUserPath(orgID, projectID, userID string) string {
+	return resourcePath("organizations", orgID, "projects", projectID, "users", userID)
+}
