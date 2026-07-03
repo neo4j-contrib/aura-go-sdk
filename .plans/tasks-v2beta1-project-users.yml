@@ -104,7 +104,7 @@ tasks:
     completed_at: 2026-07-03T16:15:00Z
 
   - id: task-006
-    title: "Add changie changelog fragment for v1.8.0"
+    title: "Add changie changelog fragment for v1.7.0"
     description: |
       Run changie new (non-interactive) to create a changelog fragment in
       .changes/unreleased/ for the new ProjectUserService. Use kind: Added and body text
