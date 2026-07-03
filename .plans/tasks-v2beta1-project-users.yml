@@ -12,13 +12,13 @@ tasks:
       projectID, userID string). Both should use the existing resourcePath helper
       following the same pattern as the other helpers in that file. No new validator
       constructors are needed — UserID, OrganizationID, and ProjectID already exist.
-    status: pending
+    status: completed
     dependencies: []
     acceptance_criteria:
       - "ProjectUsersPath(orgID, projectID) returns 'organizations/{orgID}/projects/{projectID}/users'"
       - "SingleProjectUserPath(orgID, projectID, userID) returns 'organizations/{orgID}/projects/{projectID}/users/{userID}'"
       - "go build ./... passes"
-    completed_at: null
+    completed_at: 2026-07-03T15:50:00Z
 
   - id: task-002
     title: "Implement ProjectUserService (types, service, interface, client wiring)"

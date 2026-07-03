@@ -1,0 +1,27 @@
+================================================================================
+TASK-001: Add ProjectUsersPath and SingleProjectUserPath helpers to internal/utils
+Date: 2026-07-03T15:50:00Z
+================================================================================
+
+Summary:
+Added two new path helper functions to internal/utils/path_helpers.go:
+ProjectUsersPath(orgID, projectID) and SingleProjectUserPath(orgID, projectID,
+userID). Both use the existing resourcePath helper following the same pattern
+as all other helpers in that file. go build ./... and go test ./internal/utils/...
+both pass.
+
+Files Changed:
+- internal/utils/path_helpers.go (modified — added ProjectUsersPath and SingleProjectUserPath)
+- .plans/tasks-v2beta1-project-users.yml (modified — task-001 marked completed)
+
+Key Decisions:
+- Doc comment style left consistent with the rest of the file ("// Returns endpoint
+  path for...") rather than switching to idiomatic Go "// FuncName returns..." to
+  avoid a mixed style in a single file; a follow-up can normalise all comments.
+- No path helper tests added in this task — acceptance criteria did not require them
+  and task-003 covers the testing layer. The gap (no coverage for any path helpers)
+  is noted for a future housekeeping task.
+- utils.UserID validator does not yet exist despite the task description saying it
+  does; task-002 will need to add it before the service can validate userID params.
+
+Next Task: task-002
