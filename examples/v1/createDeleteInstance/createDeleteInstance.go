@@ -55,7 +55,7 @@ func main() {
 		log.Fatal("Missing required environment variables: AURA_CLIENT_ID, AURA_CLIENT_SECRET, AURA_TENANT_ID")
 	}
 
-	opts := &slog.HandlerOptions{Level: slog.LevelWarn}
+	opts := &slog.HandlerOptions{Level: slog.LevelDebug}
 	handler := slog.NewTextHandler(os.Stderr, opts)
 	customLogger := slog.New(handler)
 
@@ -80,6 +80,7 @@ func main() {
 		CloudProvider: "gcp",
 		Region:        "europe-west1",
 		Memory:        "1GB",
+		Version:       "5",
 	}
 
 	// Each call gets its own context so it can be individually cancelled or traced.
@@ -125,6 +126,15 @@ func main() {
 
 	// It's going to take several minutes for the instance to come up
 	// We'll poll for status until it's running
+	// As it will take several minutes, we need to create a new context
+	// with a longer timeout of 5 minutes
+	ctx, cancel = context.WithTimeout(context.Background(), time.Duration(time.Minute*5))
+	defer cancel()
+
+	// Wait for two seconds for Aura API internals to
+	// sync up with information about the new instance
+	time.Sleep(2 * time.Second)
+
 	err = pollInstance(ctx, *client, newInstance.Data.ID, "running")
 	if err != nil {
 		log.Fatal("Unable to obtain status of new instance", err)
