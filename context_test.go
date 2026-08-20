@@ -724,8 +724,7 @@ func BenchmarkContextCreation_PerOperation(b *testing.B) {
 	}
 	service := createTestInstanceService(mock)
 
-	b.ResetTimer()
-	for range b.N {
+	for b.Loop() {
 		_, _ = service.List(context.Background())
 	}
 }
