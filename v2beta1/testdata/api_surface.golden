@@ -1,0 +1,467 @@
+package v2beta1
+
+VAR
+var ClientVersion = clientVersionFallback
+
+
+FUNC
+func IsNotFound(err error) bool
+
+
+TYPE AddProjectUserRequest
+type AddProjectUserRequest struct {
+	UserID       string   `json:"user_id"`
+	ProjectRoles []string `json:"project_roles"`
+}
+
+
+TYPE BackupStatus
+type BackupStatus string
+
+
+TYPE Client
+type Client struct {
+	Organizations       OrganizationService
+	Projects            ProjectService
+	Instances           InstanceService
+	Databases           DatabaseService
+	DatabaseBackups     DatabaseBackupService
+	OrganizationUsers   OrganizationUserService
+	OrganizationInvites OrganizationInviteService
+	ProjectUsers        ProjectUserService
+	// contains filtered or unexported fields
+}
+
+func NewClient(opts ...Option) (*Client, error)
+
+func (*Client) Close()
+
+
+TYPE CloudProvider
+type CloudProvider string
+
+
+TYPE CreateBackupResponse
+type CreateBackupResponse struct {
+	Data DatabaseBackup `json:"data"`
+}
+
+
+TYPE CreateDatabaseResponse
+type CreateDatabaseResponse struct {
+	Data DatabaseResponse `json:"data"`
+}
+
+
+TYPE CreateInstanceData
+type CreateInstanceData struct {
+	ID              string             `json:"id"`
+	Name            string             `json:"name"`
+	CloudProvider   CloudProvider      `json:"cloud_provider"`
+	ConnectionURL   string             `json:"connection_url"`
+	CreatedAt       time.Time          `json:"created_at"`
+	Region          string             `json:"region"`
+	Type            InstanceType       `json:"type"`
+	Username        string             `json:"username"`
+	Password        string             `json:"password"`
+	DefaultDatabase string             `json:"default_database_id"`
+	Status          InstanceStatus     `json:"legacy_status"`
+	GraphAnalytics  GraphAnalyticsMode `json:"graph_analytics"`
+	VectorOptimised bool               `json:"vector_optimized"`
+	MultiDatabase   bool               `json:"multi_database"`
+	ProjectID       string             `json:"project_id"`
+	Storage         string             `json:"storage"`
+}
+
+
+TYPE CreateInstanceRequest
+type CreateInstanceRequest struct {
+	Name           string             `json:"name"`
+	CloudProvider  CloudProvider      `json:"cloud_provider"`
+	Region         string             `json:"region"`
+	Type           InstanceType       `json:"type"`
+	Memory         string             `json:"memory"`
+	MultiDatabase  bool               `json:"multi_database,omitempty"`
+	GraphAnalytics GraphAnalyticsMode `json:"graph_analytics,omitempty"`
+}
+
+
+TYPE CreateInstanceResponse
+type CreateInstanceResponse struct {
+	Data CreateInstanceData `json:"data"`
+}
+
+
+TYPE CreateOrganizationInviteRequest
+type CreateOrganizationInviteRequest struct {
+	Email          string               `json:"email"`
+	Roles          []string             `json:"roles"`
+	ProjectInvites []ProjectInviteEntry `json:"project_invites,omitempty"`
+}
+
+
+TYPE CreateOrganizationInviteResponse
+type CreateOrganizationInviteResponse struct {
+	Data OrganizationInvite `json:"data"`
+}
+
+
+TYPE DatabaseBackup
+type DatabaseBackup struct {
+	ID         string       `json:"id"`
+	Timestamp  string       `json:"timestamp"`
+	Status     BackupStatus `json:"status"`
+	Exportable bool         `json:"exportable"`
+}
+
+
+TYPE DatabaseBackupService
+type DatabaseBackupService interface {
+	List(ctx context.Context, orgID, projectID, instanceID, databaseID string) (*ListBackupsResponse, error)
+
+	Create(ctx context.Context, orgID, projectID, instanceID, databaseID string) (*CreateBackupResponse, error)
+
+	Get(ctx context.Context, orgID, projectID, instanceID, databaseID, backupID string) (*GetBackupResponse, error)
+}
+
+
+TYPE DatabaseResponse
+type DatabaseResponse struct {
+	ID string `json:"id"`
+}
+
+
+TYPE DatabaseService
+type DatabaseService interface {
+	List(ctx context.Context, orgID, projectID, instanceID string) (*ListDatabasesResponse, error)
+
+	Get(ctx context.Context, orgID, projectID, instanceID, databaseID string) (*GetDatabaseResponse, error)
+
+	Create(ctx context.Context, orgID, projectID, instanceID string) (*CreateDatabaseResponse, error)
+
+	Delete(ctx context.Context, orgID, projectID, instanceID, databaseID string) (*DeleteDatabaseResponse, error)
+}
+
+
+TYPE DeleteDatabaseResponse
+type DeleteDatabaseResponse struct {
+	Data DatabaseResponse `json:"data"`
+}
+
+
+TYPE DeleteInstanceResponse
+type DeleteInstanceResponse struct {
+	Data InstanceDetails `json:"data"`
+}
+
+
+TYPE Error
+type Error = api.Error
+
+
+TYPE ErrorDetail
+type ErrorDetail = api.ErrorDetail
+
+
+TYPE GetBackupResponse
+type GetBackupResponse struct {
+	Data DatabaseBackup `json:"data"`
+}
+
+
+TYPE GetDatabaseResponse
+type GetDatabaseResponse struct {
+	Data DatabaseResponse `json:"data"`
+}
+
+
+TYPE GetInstanceResponse
+type GetInstanceResponse struct {
+	Data InstanceDetails `json:"data"`
+}
+
+
+TYPE GetOrganizationResponse
+type GetOrganizationResponse struct {
+	Data Organization `json:"data"`
+}
+
+
+TYPE GetOrganizationUserResponse
+type GetOrganizationUserResponse struct {
+	Data OrganizationUserDetails `json:"data"`
+}
+
+
+TYPE GetProjectUserResponse
+type GetProjectUserResponse struct {
+	Data ProjectUser `json:"data"`
+}
+
+
+TYPE GraphAnalyticsMode
+type GraphAnalyticsMode string
+
+
+TYPE InstanceDetails
+type InstanceDetails struct {
+	ID              string             `json:"id"`
+	Name            string             `json:"name"`
+	Status          InstanceStatus     `json:"legacy_status"`
+	CloudProvider   CloudProvider      `json:"cloud_provider"`
+	Region          string             `json:"region"`
+	Type            InstanceType       `json:"type"`
+	Memory          string             `json:"memory"`
+	Storage         string             `json:"storage"`
+	GraphAnalytics  GraphAnalyticsMode `json:"graph_analytics"`
+	VectorOptimised bool               `json:"vector_optimized"`
+	MultiDatabase   bool               `json:"multi_database"`
+}
+
+
+TYPE InstanceService
+type InstanceService interface {
+	List(ctx context.Context, orgID, projectID string) (*ListInstancesResponse, error)
+
+	Get(ctx context.Context, orgID, projectID, instanceID string) (*GetInstanceResponse, error)
+
+	Create(ctx context.Context, orgID, projectID string, req *CreateInstanceRequest) (*CreateInstanceResponse, error)
+
+	Update(ctx context.Context, orgID, projectID, instanceID string, req *UpdateInstanceRequest) (*GetInstanceResponse, error)
+
+	Delete(ctx context.Context, orgID, projectID, instanceID string) (*DeleteInstanceResponse, error)
+}
+
+
+TYPE InstanceStatus
+type InstanceStatus string
+
+
+TYPE InstanceSummary
+type InstanceSummary struct {
+	ID            string         `json:"id"`
+	Name          string         `json:"name"`
+	Status        InstanceStatus `json:"status"`
+	CloudProvider string         `json:"cloud_provider"`
+	CreatedAt     time.Time      `json:"created_at"`
+}
+
+
+TYPE InstanceType
+type InstanceType string
+
+
+TYPE ListBackupsResponse
+type ListBackupsResponse struct {
+	Data []DatabaseBackup `json:"data"`
+}
+
+
+TYPE ListDatabasesResponse
+type ListDatabasesResponse struct {
+	Data []DatabaseResponse `json:"data"`
+}
+
+
+TYPE ListInstancesResponse
+type ListInstancesResponse struct {
+	Data []InstanceSummary `json:"data"`
+}
+
+
+TYPE ListOrganizationInvitesResponse
+type ListOrganizationInvitesResponse struct {
+	Data []OrganizationInvite `json:"data"`
+}
+
+
+TYPE ListOrganizationUsersResponse
+type ListOrganizationUsersResponse struct {
+	Data []OrganizationUser `json:"data"`
+}
+
+
+TYPE ListOrganizationsResponse
+type ListOrganizationsResponse struct {
+	Data []Organization `json:"data"`
+}
+
+
+TYPE ListProjectUsersResponse
+type ListProjectUsersResponse struct {
+	Data []ProjectUser `json:"data"`
+}
+
+
+TYPE ListProjectsResponse
+type ListProjectsResponse struct {
+	Data []Project `json:"data"`
+}
+
+
+TYPE MFAEnrolledMethod
+type MFAEnrolledMethod struct {
+	ID         string `json:"id"`
+	EnrolledAt string `json:"enrolled_at"`
+}
+
+
+TYPE Option
+type Option func(*options) error
+
+func WithBaseURL(baseURL string) Option
+
+func WithCredentials(clientID, clientSecret string) Option
+
+func WithDefaultHeaders(headers map[string]string) Option
+
+func WithHTTPClient(client *http.Client) Option
+
+func WithInsecureBaseURL(baseURL string) Option
+
+func WithLogger(logger *slog.Logger) Option
+
+func WithMaxResponseSize(responseSize int) Option
+
+func WithMaxRetry(maxRetry int) Option
+
+func WithTimeout(timeout time.Duration) Option
+
+func WithUserAgent(ua string) Option
+
+
+TYPE Organization
+type Organization struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+
+TYPE OrganizationInvite
+type OrganizationInvite struct {
+	ID                string               `json:"id"`
+	Email             string               `json:"email"`
+	InvitedBy         string               `json:"invited_by"`
+	OrganizationID    string               `json:"organization_id"`
+	OrganizationRoles []string             `json:"organization_roles"`
+	ProjectInvites    []ProjectInviteEntry `json:"project_invites"`
+	Status            string               `json:"status"`
+	ExpiresAt         string               `json:"expires_at"`
+}
+
+
+TYPE OrganizationInviteService
+type OrganizationInviteService interface {
+	List(ctx context.Context, orgID string) (*ListOrganizationInvitesResponse, error)
+
+	Create(ctx context.Context, orgID string, req *CreateOrganizationInviteRequest) (*CreateOrganizationInviteResponse, error)
+
+	Delete(ctx context.Context, orgID, inviteID string) error
+}
+
+
+TYPE OrganizationService
+type OrganizationService interface {
+	List(ctx context.Context) (*ListOrganizationsResponse, error)
+
+	Get(ctx context.Context, orgID string) (*GetOrganizationResponse, error)
+}
+
+
+TYPE OrganizationUser
+type OrganizationUser struct {
+	UserID                     string              `json:"user_id"`
+	Email                      string              `json:"email"`
+	OrganizationRoles          []string            `json:"organization_roles"`
+	ExemptFromAutomaticRemoval bool                `json:"exempt_from_automatic_removal"`
+	MFAEnrollmentStatus        string              `json:"mfa_enrollment_status"`
+	MFAEnrolledMethods         []MFAEnrolledMethod `json:"mfa_enrolled_methods"`
+	LastActivityAt             *string             `json:"last_activity_at"`
+}
+
+
+TYPE OrganizationUserDetails
+type OrganizationUserDetails struct {
+	OrganizationUser
+	Projects []OrganizationUserProject `json:"projects"`
+}
+
+
+TYPE OrganizationUserProject
+type OrganizationUserProject struct {
+	ID           string   `json:"id"`
+	Name         string   `json:"name"`
+	ProjectRoles []string `json:"project_roles"`
+}
+
+
+TYPE OrganizationUserService
+type OrganizationUserService interface {
+	List(ctx context.Context, orgID string) (*ListOrganizationUsersResponse, error)
+
+	Get(ctx context.Context, orgID, userID string) (*GetOrganizationUserResponse, error)
+
+	UpdateRole(ctx context.Context, orgID, userID string, req *UpdateOrganizationUserRequest) (*GetOrganizationUserResponse, error)
+
+	Remove(ctx context.Context, orgID, userID string) error
+}
+
+
+TYPE Project
+type Project struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+
+TYPE ProjectInviteEntry
+type ProjectInviteEntry struct {
+	ProjectID    string   `json:"project_id"`
+	ProjectRoles []string `json:"project_roles"`
+}
+
+
+TYPE ProjectService
+type ProjectService interface {
+	List(ctx context.Context, orgID string) (*ListProjectsResponse, error)
+}
+
+
+TYPE ProjectUser
+type ProjectUser struct {
+	UserID       string   `json:"user_id"`
+	Email        string   `json:"email"`
+	ProjectRoles []string `json:"project_roles"`
+}
+
+
+TYPE ProjectUserService
+type ProjectUserService interface {
+	List(ctx context.Context, orgID, projectID string) (*ListProjectUsersResponse, error)
+
+	Add(ctx context.Context, orgID, projectID string, req *AddProjectUserRequest) error
+
+	UpdateRole(ctx context.Context, orgID, projectID, userID string, req *UpdateProjectUserRequest) (*GetProjectUserResponse, error)
+
+	Remove(ctx context.Context, orgID, projectID, userID string) error
+}
+
+
+TYPE UpdateInstanceRequest
+type UpdateInstanceRequest struct {
+	Name   string `json:"name,omitempty"`
+	Memory string `json:"memory,omitempty"`
+}
+
+
+TYPE UpdateOrganizationUserRequest
+type UpdateOrganizationUserRequest struct {
+	OrganizationRoles []string `json:"organization_roles"`
+}
+
+
+TYPE UpdateProjectUserRequest
+type UpdateProjectUserRequest struct {
+	ProjectRoles []string `json:"project_roles"`
+}
+

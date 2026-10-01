@@ -1478,6 +1478,18 @@ Three GitHub Actions workflows manage CI and the release process.
 | **Changelog check** | Every PR | Fails if the PR changes `.go` files but has no entry in `.changes/unreleased/` |
 | **Release** | Push of a `vX.Y.Z` tag | Gates on tests, extracts the changelog section, creates a GitHub Release |
 
+### API surface contract test
+
+`go test` includes `TestAPISurface`, which snapshots every exported identifier in the `aura` and `v2beta1` packages and fails if it drifts from `testdata/api_surface.golden`. This catches accidental breaking changes that wouldn't otherwise fail the build — for example, an unintentional addition or removal of an exported method.
+
+If a PR intentionally changes the public API, regenerate the snapshot and commit it:
+
+```bash
+UPDATE_GOLDEN=1 go test . ./v2beta1 -run TestAPISurface
+```
+
+Review the resulting diff in `testdata/api_surface.golden` as part of the code review — it's the actual contract change. Breaking changes (removed/renamed exports, new interface methods) still need a `Changed` changie entry.
+
 ### Making a release
 
 Releases follow a three-step process. changie collects the unreleased fragment files and determines the correct semver bump automatically from the change kinds (`Added` → minor, `Fixed`/`Security` → patch, `Changed`/`Removed` → major).

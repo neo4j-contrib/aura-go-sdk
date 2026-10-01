@@ -28,6 +28,7 @@ go fmt ./...
 - `internal/api`: HTTP request service abstraction
 - `internal/httpclient`: retryable HTTP client wrapping `retryablehttp`
 - `internal/utils`: validation helpers (ValidateInstanceID, ValidateTenantID, ValidateSnapshotID, etc.)
+- `internal/apisurface`: renders the exported API of a package (`aura`, `v2beta1`) to deterministic text for the golden-file contract test (see "API Surface Golden Test" below)
 - Each service (instanceService, tenantService, etc.) holds `api api.RequestService`, `timeout time.Duration`, `logger *slog.Logger`
 - Services apply `context.WithTimeout` on every method call; cancellation propagates through the HTTP layer
 
@@ -197,9 +198,27 @@ Add a new H2 section `## Foo Operations` to `README.md` and a matching entry in 
 - No prose between code blocks. If a method has a variant (e.g. optional fields), promote it to its own H3 sub-section rather than using a prose lead-in sentence.
 - Every code block must be a complete, callable snippet — never declare only `req` without the API call that uses it.
 
+### 7. API surface golden test
+
+Adding `Foos` to `AuraAPIClient` and `FooService` to `interfaces.go` changes the exported surface of the package, so `TestAPISurface` will fail until the golden file is regenerated:
+
+```bash
+UPDATE_GOLDEN=1 go test . ./v2beta1 -run TestAPISurface
+```
+
+Commit the resulting diff in `testdata/api_surface.golden` (or `v2beta1/testdata/api_surface.golden`) alongside the code change. Review the diff itself — it is the actual contract change being shipped. Adding a method to an existing interface, removing/renaming an exported identifier, or changing a signature is breaking and needs a `Changed` changie entry; adding a wholly new type/service is `Added`.
+
+## API Surface Golden Test
+
+`api_surface_test.go` (root) and `v2beta1/api_surface_test.go` each run `TestAPISurface`, which dumps every exported const/var/func/type/method/interface method in the package (bodies, doc comments, and receiver variable names stripped) and diffs it against `testdata/api_surface.golden`. This is a contract test: it fails on *any* exported-surface change, including ones that don't break the build (e.g. a new exported method on a concrete struct that isn't part of an interface).
+
+- To regenerate after a deliberate change: `UPDATE_GOLDEN=1 go test . ./v2beta1 -run TestAPISurface`
+- A failing `TestAPISurface` with no corresponding golden-file update in the diff means an accidental surface change — investigate before regenerating
+- Pure comment/doc-string edits do not affect the golden output and won't trigger this test
+
 ## PR Conventions
 
 - One logical change per PR; breaking changes (renamed types, removed fields, interface additions) get their own PR
 - A changie fragment in `.changes/unreleased/` is required for every user-visible change — run `changie new` and commit the generated YAML alongside your code
 - PRs that touch only docs, CI, or tests may add the `no-changelog` label to bypass the changelog check workflow
-- Required checks before review: `go test -race ./...`, `golangci-lint run`, `go build ./...` (includes `examples/`)
+- Required checks before review: `go test -race ./...`, `golangci-lint run`, `go build ./...` (includes `examples/`) — `go test -race ./...` includes `TestAPISurface`, so an unreviewed surface change fails CI rather than just the changelog check

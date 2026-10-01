@@ -1,0 +1,497 @@
+package aura
+
+VAR
+var ClientVersion = clientVersionFallback
+
+
+FUNC
+func IsNotFound(err error) bool
+
+
+TYPE AuraAPIClient
+type AuraAPIClient struct {
+	Tenants        TenantService
+	Instances      InstanceService
+	Snapshots      SnapshotService
+	CMEK           CMEKService
+	GraphAnalytics GDSSessionService
+	Prometheus     PrometheusService
+	// contains filtered or unexported fields
+}
+
+func NewClient(opts ...Option) (*AuraAPIClient, error)
+
+func (*AuraAPIClient) Close()
+
+
+TYPE CMEKService
+type CMEKService interface {
+	List(ctx context.Context, tenantID string) (*GetCMEKsResponse, error)
+}
+
+
+TYPE ConnectionMetrics
+type ConnectionMetrics struct {
+	ActiveConnections int     `json:"active_connections"`
+	MaxConnections    int     `json:"max_connections"`
+	UsagePercent      float64 `json:"usage_percent"`
+}
+
+
+TYPE CreateGDSSessionConfigData
+type CreateGDSSessionConfigData struct {
+	Name          string `json:"name"`
+	TTL           string `json:"ttl"`
+	TenantID      string `json:"tenant_id"`
+	InstanceID    string `json:"instance_id"`
+	DatabaseID    string `json:"database_uuid"`
+	CloudProvider string `json:"cloud_provider"`
+	Region        string `json:"region"`
+	Memory        string `json:"memory"`
+}
+
+
+TYPE CreateInstanceConfigData
+type CreateInstanceConfigData struct {
+	Name                 string `json:"name"`
+	TenantID             string `json:"tenant_id"`
+	CloudProvider        string `json:"cloud_provider"`
+	Region               string `json:"region"`
+	Type                 string `json:"type"`
+	Version              string `json:"version"`
+	Memory               string `json:"memory"`
+	VectorOptimized      bool   `json:"vector_optimized,omitempty"`
+	GraphAnalyticsPlugin bool   `json:"graph_analytics_plugin,omitempty"`
+	CustomerManagedKeyID string `json:"customer_managed_key_id,omitempty"`
+}
+
+
+TYPE CreateInstanceData
+type CreateInstanceData struct {
+	ID            string `json:"id"`
+	Name          string `json:"name"`
+	TenantID      string `json:"tenant_id"`
+	CloudProvider string `json:"cloud_provider"`
+	ConnectionURL string `json:"connection_url"`
+	Region        string `json:"region"`
+	Type          string `json:"type"`
+	Username      string `json:"username"`
+	Password      string `json:"password"`
+}
+
+func (CreateInstanceData) String() string
+
+
+TYPE CreateInstanceResponse
+type CreateInstanceResponse struct {
+	Data CreateInstanceData `json:"data"`
+}
+
+
+TYPE CreateSnapshotData
+type CreateSnapshotData struct {
+	SnapshotID string `json:"snapshot_id"`
+}
+
+
+TYPE CreateSnapshotResponse
+type CreateSnapshotResponse struct {
+	Data CreateSnapshotData `json:"data"`
+}
+
+
+TYPE DeleteGDSSession
+type DeleteGDSSession struct {
+	ID string `json:"id"`
+}
+
+
+TYPE DeleteGDSSessionResponse
+type DeleteGDSSessionResponse struct {
+	Data DeleteGDSSession `json:"data"`
+}
+
+
+TYPE DeleteInstanceResponse
+type DeleteInstanceResponse struct {
+	Data InstanceData `json:"data"`
+}
+
+
+TYPE Error
+type Error = api.Error
+
+
+TYPE ErrorDetail
+type ErrorDetail = api.ErrorDetail
+
+
+TYPE GDSSessionService
+type GDSSessionService interface {
+	List(ctx context.Context) (*GetGDSSessionListResponse, error)
+
+	Estimate(ctx context.Context, GDSSessionSizeEstimateRequest *GetGDSSessionSizeEstimation) (*GDSSessionSizeEstimationResponse, error)
+
+	Create(ctx context.Context, GDSSessionConfigRequest *CreateGDSSessionConfigData) (*GetGDSSessionResponse, error)
+
+	Get(ctx context.Context, GDSSessionID string) (*GetGDSSessionResponse, error)
+
+	Delete(ctx context.Context, GDSSessionID string) (*DeleteGDSSessionResponse, error)
+}
+
+
+TYPE GDSSessionSizeEstimationData
+type GDSSessionSizeEstimationData struct {
+	EstimatedMemory string `json:"estimated_memory"`
+	RecommendedSize string `json:"recommended_size"`
+}
+
+
+TYPE GDSSessionSizeEstimationResponse
+type GDSSessionSizeEstimationResponse struct {
+	Data GDSSessionSizeEstimationData `json:"data"`
+}
+
+
+TYPE GetCMEKsData
+type GetCMEKsData struct {
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	TenantID string `json:"tenant_id"`
+}
+
+
+TYPE GetCMEKsResponse
+type GetCMEKsResponse struct {
+	Data []GetCMEKsData `json:"data"`
+}
+
+
+TYPE GetGDSSessionData
+type GetGDSSessionData struct {
+	ID            string    `json:"id"`
+	Name          string    `json:"name"`
+	Memory        string    `json:"memory"`
+	InstanceID    string    `json:"instance_id"`
+	DatabaseID    string    `json:"database_uuid"`
+	Status        string    `json:"status"`
+	CreatedAt     time.Time `json:"created_at"`
+	Host          string    `json:"host"`
+	ExpiresAt     time.Time `json:"expiry_date"`
+	TTL           string    `json:"ttl"`
+	UserID        string    `json:"user_id"`
+	TenantID      string    `json:"tenant_id"`
+	CloudProvider string    `json:"cloud_provider"`
+	Region        string    `json:"region"`
+}
+
+func (*GetGDSSessionData) UnmarshalJSON(data []byte) error
+
+
+TYPE GetGDSSessionListResponse
+type GetGDSSessionListResponse struct {
+	Data []GetGDSSessionData `json:"data"`
+}
+
+
+TYPE GetGDSSessionResponse
+type GetGDSSessionResponse struct {
+	Data GetGDSSessionData `json:"data"`
+}
+
+
+TYPE GetGDSSessionSizeEstimation
+type GetGDSSessionSizeEstimation struct {
+	NodeCount                 int      `json:"node_count"`
+	NodePropertyCount         int      `json:"node_property_count"`
+	NodeLabelCount            int      `json:"node_label_count"`
+	RelationshipCount         int      `json:"relationship_count"`
+	RelationshipPropertyCount int      `json:"relationship_property_count"`
+	AlgorithmCategories       []string `json:"algorithm_categories"`
+}
+
+
+TYPE GetInstanceResponse
+type GetInstanceResponse struct {
+	Data InstanceData `json:"data"`
+}
+
+
+TYPE GetSnapshotData
+type GetSnapshotData struct {
+	InstanceID string    `json:"instance_id"`
+	SnapshotID string    `json:"snapshot_id"`
+	Profile    string    `json:"profile"`
+	Status     string    `json:"status"`
+	Timestamp  time.Time `json:"timestamp"`
+	Exportable bool      `json:"exportable"`
+}
+
+func (*GetSnapshotData) UnmarshalJSON(data []byte) error
+
+
+TYPE GetSnapshotDataResponse
+type GetSnapshotDataResponse struct {
+	Data GetSnapshotData `json:"data"`
+}
+
+
+TYPE GetSnapshotsResponse
+type GetSnapshotsResponse struct {
+	Data []GetSnapshotData `json:"data"`
+}
+
+
+TYPE GetTenantMetricsURLData
+type GetTenantMetricsURLData struct {
+	Endpoint string `json:"endpoint"`
+}
+
+
+TYPE GetTenantMetricsURLResponse
+type GetTenantMetricsURLResponse struct {
+	Data GetTenantMetricsURLData `json:"data"`
+}
+
+
+TYPE GetTenantResponse
+type GetTenantResponse struct {
+	Data TenantResponseData `json:"data"`
+}
+
+
+TYPE InstanceData
+type InstanceData struct {
+	ID              string         `json:"id"`
+	Name            string         `json:"name"`
+	Status          InstanceStatus `json:"status"`
+	TenantID        string         `json:"tenant_id"`
+	CloudProvider   string         `json:"cloud_provider"`
+	ConnectionURL   string         `json:"connection_url"`
+	Region          string         `json:"region"`
+	Type            string         `json:"type"`
+	Memory          string         `json:"memory"`
+	Storage         *string        `json:"storage"`
+	CDCEnrichment   string         `json:"cdc_enrichment_mode"`
+	GDSPlugin       bool           `json:"graph_analytics_plugin"`
+	MetricsURL      string         `json:"metrics_integration_url"`
+	Secondaries     int            `json:"secondaries_count"`
+	VectorOptimized bool           `json:"vector_optimized"`
+	CreatedAt       *time.Time     `json:"created_at,omitempty"`
+}
+
+
+TYPE InstanceService
+type InstanceService interface {
+	List(ctx context.Context) (*ListInstancesResponse, error)
+
+	Get(ctx context.Context, instanceID string) (*GetInstanceResponse, error)
+
+	Create(ctx context.Context, instanceRequest *CreateInstanceConfigData) (*CreateInstanceResponse, error)
+
+	CreateFromInstance(ctx context.Context, sourceInstanceID string, instanceRequest *CreateInstanceConfigData) (*CreateInstanceResponse, error)
+
+	CreateFromSnapshot(ctx context.Context, sourceInstanceID string, sourceSnapshotID string, instanceRequest *CreateInstanceConfigData) (*CreateInstanceResponse, error)
+
+	Delete(ctx context.Context, instanceID string) (*DeleteInstanceResponse, error)
+
+	Pause(ctx context.Context, instanceID string) (*GetInstanceResponse, error)
+
+	Resume(ctx context.Context, instanceID string) (*GetInstanceResponse, error)
+
+	Update(ctx context.Context, instanceID string, instanceRequest *UpdateInstanceData) (*GetInstanceResponse, error)
+
+	OverwriteFromInstance(ctx context.Context, instanceID string, sourceInstanceID string) (*OverwriteInstanceResponse, error)
+
+	OverwriteFromSnapshot(ctx context.Context, instanceID string, sourceSnapshotID string) (*OverwriteInstanceResponse, error)
+}
+
+
+TYPE InstanceStatus
+type InstanceStatus string
+
+
+TYPE ListInstanceData
+type ListInstanceData struct {
+	ID            string     `json:"id"`
+	Name          string     `json:"name"`
+	CreatedAt     *time.Time `json:"created_at,omitempty"`
+	TenantID      string     `json:"tenant_id"`
+	CloudProvider string     `json:"cloud_provider"`
+}
+
+
+TYPE ListInstancesResponse
+type ListInstancesResponse struct {
+	Data []ListInstanceData `json:"data"`
+}
+
+
+TYPE ListTenantsResponse
+type ListTenantsResponse struct {
+	Data []TenantsResponseData `json:"data"`
+}
+
+
+TYPE Option
+type Option func(*options) error
+
+func WithBaseURL(baseURL string) Option
+
+func WithCredentials(clientID, clientSecret string) Option
+
+func WithDefaultHeaders(headers map[string]string) Option
+
+func WithHTTPClient(client *http.Client) Option
+
+func WithInsecureBaseURL(baseURL string) Option
+
+func WithLogger(logger *slog.Logger) Option
+
+func WithMaxResponseSize(responseSize int) Option
+
+func WithMaxRetry(maxRetry int) Option
+
+func WithTimeout(timeout time.Duration) Option
+
+func WithUserAgent(ua string) Option
+
+
+TYPE OverwriteInstanceResponse
+type OverwriteInstanceResponse struct {
+	Data string `json:"data"`
+}
+
+
+TYPE PrometheusHealthMetrics
+type PrometheusHealthMetrics struct {
+	InstanceID      string            `json:"instance_id"`
+	Timestamp       time.Time         `json:"timestamp"`
+	Resources       ResourceMetrics   `json:"resources"`
+	Query           QueryMetrics      `json:"query"`
+	Connections     ConnectionMetrics `json:"connections"`
+	Storage         StorageMetrics    `json:"storage"`
+	OverallStatus   string            `json:"overall_status"`
+	Issues          []string          `json:"issues"`
+	Recommendations []string          `json:"recommendations"`
+}
+
+
+TYPE PrometheusMetric
+type PrometheusMetric struct {
+	Name      string
+	Labels    map[string]string
+	Value     float64
+	Timestamp int64
+}
+
+
+TYPE PrometheusMetricsResponse
+type PrometheusMetricsResponse struct {
+	Metrics map[string][]PrometheusMetric
+}
+
+
+TYPE PrometheusService
+type PrometheusService interface {
+	FetchRawMetrics(ctx context.Context, prometheusURL string) (*PrometheusMetricsResponse, error)
+
+	GetMetricValue(ctx context.Context, metrics *PrometheusMetricsResponse, name string, labelFilters map[string]string) (float64, error)
+
+	GetInstanceHealth(ctx context.Context, instanceID string, prometheusURL string) (*PrometheusHealthMetrics, error)
+}
+
+
+TYPE QueryMetrics
+type QueryMetrics struct {
+	QueryExecutionTotal float64 `json:"query_execution_total"`
+	AvgLatencyMS        float64 `json:"avg_latency_ms"`
+}
+
+
+TYPE ResourceMetrics
+type ResourceMetrics struct {
+	CPUUsagePercent    float64 `json:"cpu_usage_percent"`
+	MemoryUsagePercent float64 `json:"memory_usage_percent"`
+}
+
+
+TYPE RestoreSnapshotResponse
+type RestoreSnapshotResponse struct {
+	Data InstanceData `json:"data"`
+}
+
+
+TYPE SnapshotDate
+type SnapshotDate struct {
+	Year  int
+	Month time.Month
+	Day   int
+}
+
+func Today() *SnapshotDate
+
+
+TYPE SnapshotService
+type SnapshotService interface {
+	List(ctx context.Context, instanceID string, snapshotDate *SnapshotDate) (*GetSnapshotsResponse, error)
+
+	Create(ctx context.Context, instanceID string) (*CreateSnapshotResponse, error)
+
+	Get(ctx context.Context, instanceID string, snapshotID string) (*GetSnapshotDataResponse, error)
+
+	Restore(ctx context.Context, instanceID string, snapshotID string) (*RestoreSnapshotResponse, error)
+}
+
+
+TYPE StorageMetrics
+type StorageMetrics struct {
+	PageCacheHitRate float64 `json:"page_cache_hit_rate,omitempty"`
+}
+
+
+TYPE TenantInstanceConfiguration
+type TenantInstanceConfiguration struct {
+	CloudProvider string `json:"cloud_provider"`
+	Region        string `json:"region"`
+	RegionName    string `json:"region_name"`
+	Type          string `json:"type"`
+	Memory        string `json:"memory"`
+	Storage       string `json:"storage"`
+	Version       string `json:"version"`
+}
+
+
+TYPE TenantResponseData
+type TenantResponseData struct {
+	ID                     string                        `json:"id"`
+	Name                   string                        `json:"name"`
+	InstanceConfigurations []TenantInstanceConfiguration `json:"instance_configurations"`
+}
+
+
+TYPE TenantService
+type TenantService interface {
+	List(ctx context.Context) (*ListTenantsResponse, error)
+
+	Get(ctx context.Context, tenantID string) (*GetTenantResponse, error)
+
+	GetMetrics(ctx context.Context, tenantID string) (*GetTenantMetricsURLResponse, error)
+}
+
+
+TYPE TenantsResponseData
+type TenantsResponseData struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+
+TYPE UpdateInstanceData
+type UpdateInstanceData struct {
+	Name              string `json:"name,omitempty"`
+	Memory            string `json:"memory,omitempty"`
+	CDCEnrichmentMode string `json:"cdc_enrichment_mode,omitempty"`
+	SecondariesCount  int    `json:"secondaries_count,omitempty"`
+}
+
