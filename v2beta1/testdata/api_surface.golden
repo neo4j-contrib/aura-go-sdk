@@ -117,11 +117,11 @@ type DatabaseBackup struct {
 
 TYPE DatabaseBackupService
 type DatabaseBackupService interface {
-	List(ctx context.Context, orgID, projectID, instanceID, databaseID string) (*ListBackupsResponse, error)
+	List(ctx context.Context, opts ...ScopeOption) (*ListBackupsResponse, error)
 
-	Create(ctx context.Context, orgID, projectID, instanceID, databaseID string) (*CreateBackupResponse, error)
+	Create(ctx context.Context, opts ...ScopeOption) (*CreateBackupResponse, error)
 
-	Get(ctx context.Context, orgID, projectID, instanceID, databaseID, backupID string) (*GetBackupResponse, error)
+	Get(ctx context.Context, opts ...ScopeOption) (*GetBackupResponse, error)
 }
 
 
@@ -133,13 +133,13 @@ type DatabaseResponse struct {
 
 TYPE DatabaseService
 type DatabaseService interface {
-	List(ctx context.Context, orgID, projectID, instanceID string) (*ListDatabasesResponse, error)
+	List(ctx context.Context, opts ...ScopeOption) (*ListDatabasesResponse, error)
 
-	Get(ctx context.Context, orgID, projectID, instanceID, databaseID string) (*GetDatabaseResponse, error)
+	Get(ctx context.Context, opts ...ScopeOption) (*GetDatabaseResponse, error)
 
-	Create(ctx context.Context, orgID, projectID, instanceID string) (*CreateDatabaseResponse, error)
+	Create(ctx context.Context, opts ...ScopeOption) (*CreateDatabaseResponse, error)
 
-	Delete(ctx context.Context, orgID, projectID, instanceID, databaseID string) (*DeleteDatabaseResponse, error)
+	Delete(ctx context.Context, opts ...ScopeOption) (*DeleteDatabaseResponse, error)
 }
 
 
@@ -221,15 +221,15 @@ type InstanceDetails struct {
 
 TYPE InstanceService
 type InstanceService interface {
-	List(ctx context.Context, orgID, projectID string) (*ListInstancesResponse, error)
+	List(ctx context.Context, opts ...ScopeOption) (*ListInstancesResponse, error)
 
-	Get(ctx context.Context, orgID, projectID, instanceID string) (*GetInstanceResponse, error)
+	Get(ctx context.Context, opts ...ScopeOption) (*GetInstanceResponse, error)
 
-	Create(ctx context.Context, orgID, projectID string, req *CreateInstanceRequest) (*CreateInstanceResponse, error)
+	Create(ctx context.Context, req *CreateInstanceRequest, opts ...ScopeOption) (*CreateInstanceResponse, error)
 
-	Update(ctx context.Context, orgID, projectID, instanceID string, req *UpdateInstanceRequest) (*GetInstanceResponse, error)
+	Update(ctx context.Context, req *UpdateInstanceRequest, opts ...ScopeOption) (*GetInstanceResponse, error)
 
-	Delete(ctx context.Context, orgID, projectID, instanceID string) (*DeleteInstanceResponse, error)
+	Delete(ctx context.Context, opts ...ScopeOption) (*DeleteInstanceResponse, error)
 }
 
 
@@ -315,6 +315,12 @@ func WithCredentials(clientID, clientSecret string) Option
 
 func WithDefaultHeaders(headers map[string]string) Option
 
+func WithDefaultInstance(instanceID string) Option
+
+func WithDefaultOrg(orgID string) Option
+
+func WithDefaultProject(projectID string) Option
+
 func WithHTTPClient(client *http.Client) Option
 
 func WithInsecureBaseURL(baseURL string) Option
@@ -352,11 +358,11 @@ type OrganizationInvite struct {
 
 TYPE OrganizationInviteService
 type OrganizationInviteService interface {
-	List(ctx context.Context, orgID string) (*ListOrganizationInvitesResponse, error)
+	List(ctx context.Context, opts ...ScopeOption) (*ListOrganizationInvitesResponse, error)
 
-	Create(ctx context.Context, orgID string, req *CreateOrganizationInviteRequest) (*CreateOrganizationInviteResponse, error)
+	Create(ctx context.Context, req *CreateOrganizationInviteRequest, opts ...ScopeOption) (*CreateOrganizationInviteResponse, error)
 
-	Delete(ctx context.Context, orgID, inviteID string) error
+	Delete(ctx context.Context, opts ...ScopeOption) error
 }
 
 
@@ -364,7 +370,7 @@ TYPE OrganizationService
 type OrganizationService interface {
 	List(ctx context.Context) (*ListOrganizationsResponse, error)
 
-	Get(ctx context.Context, orgID string) (*GetOrganizationResponse, error)
+	Get(ctx context.Context, opts ...ScopeOption) (*GetOrganizationResponse, error)
 }
 
 
@@ -397,13 +403,13 @@ type OrganizationUserProject struct {
 
 TYPE OrganizationUserService
 type OrganizationUserService interface {
-	List(ctx context.Context, orgID string) (*ListOrganizationUsersResponse, error)
+	List(ctx context.Context, opts ...ScopeOption) (*ListOrganizationUsersResponse, error)
 
-	Get(ctx context.Context, orgID, userID string) (*GetOrganizationUserResponse, error)
+	Get(ctx context.Context, opts ...ScopeOption) (*GetOrganizationUserResponse, error)
 
-	UpdateRole(ctx context.Context, orgID, userID string, req *UpdateOrganizationUserRequest) (*GetOrganizationUserResponse, error)
+	UpdateRole(ctx context.Context, req *UpdateOrganizationUserRequest, opts ...ScopeOption) (*GetOrganizationUserResponse, error)
 
-	Remove(ctx context.Context, orgID, userID string) error
+	Remove(ctx context.Context, opts ...ScopeOption) error
 }
 
 
@@ -423,7 +429,7 @@ type ProjectInviteEntry struct {
 
 TYPE ProjectService
 type ProjectService interface {
-	List(ctx context.Context, orgID string) (*ListProjectsResponse, error)
+	List(ctx context.Context, opts ...ScopeOption) (*ListProjectsResponse, error)
 }
 
 
@@ -437,14 +443,32 @@ type ProjectUser struct {
 
 TYPE ProjectUserService
 type ProjectUserService interface {
-	List(ctx context.Context, orgID, projectID string) (*ListProjectUsersResponse, error)
+	List(ctx context.Context, opts ...ScopeOption) (*ListProjectUsersResponse, error)
 
-	Add(ctx context.Context, orgID, projectID string, req *AddProjectUserRequest) error
+	Add(ctx context.Context, req *AddProjectUserRequest, opts ...ScopeOption) error
 
-	UpdateRole(ctx context.Context, orgID, projectID, userID string, req *UpdateProjectUserRequest) (*GetProjectUserResponse, error)
+	UpdateRole(ctx context.Context, req *UpdateProjectUserRequest, opts ...ScopeOption) (*GetProjectUserResponse, error)
 
-	Remove(ctx context.Context, orgID, projectID, userID string) error
+	Remove(ctx context.Context, opts ...ScopeOption) error
 }
+
+
+TYPE ScopeOption
+type ScopeOption func(*requestScope)
+
+func WithBackup(backupID string) ScopeOption
+
+func WithDatabase(databaseID string) ScopeOption
+
+func WithInstance(instanceID string) ScopeOption
+
+func WithInvite(inviteID string) ScopeOption
+
+func WithOrg(orgID string) ScopeOption
+
+func WithProject(projectID string) ScopeOption
+
+func WithUser(userID string) ScopeOption
 
 
 TYPE UpdateInstanceRequest

@@ -71,7 +71,7 @@ func TestOrganizationInviteService_List_Success(t *testing.T) {
 	}
 
 	service := createTestOrganizationInviteService(mock)
-	result, err := service.List(context.Background(), orgID)
+	result, err := service.List(context.Background(), WithOrg(orgID))
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -107,7 +107,7 @@ func TestOrganizationInviteService_List_EmptyResult(t *testing.T) {
 	}
 
 	service := createTestOrganizationInviteService(mock)
-	result, err := service.List(context.Background(), orgID)
+	result, err := service.List(context.Background(), WithOrg(orgID))
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -134,7 +134,7 @@ func TestOrganizationInviteService_List_InvalidOrgID(t *testing.T) {
 			mock := &mockAPIService{}
 			service := createTestOrganizationInviteService(mock)
 
-			result, err := service.List(context.Background(), tc.orgID)
+			result, err := service.List(context.Background(), WithOrg(tc.orgID))
 
 			if err == nil {
 				t.Fatal("expected error for invalid org ID, got nil")
@@ -158,7 +158,7 @@ func TestOrganizationInviteService_List_NotFound(t *testing.T) {
 	}
 
 	service := createTestOrganizationInviteService(mock)
-	result, err := service.List(context.Background(), orgID)
+	result, err := service.List(context.Background(), WithOrg(orgID))
 
 	if err == nil {
 		t.Fatal("expected error, got nil")
@@ -185,7 +185,7 @@ func TestOrganizationInviteService_List_AuthenticationError(t *testing.T) {
 	}
 
 	service := createTestOrganizationInviteService(mock)
-	_, err := service.List(context.Background(), orgID)
+	_, err := service.List(context.Background(), WithOrg(orgID))
 
 	if err == nil {
 		t.Fatal("expected authentication error, got nil")
@@ -213,7 +213,7 @@ func TestOrganizationInviteService_List_ContextTimeout(t *testing.T) {
 	service := createTestOrganizationInviteServiceWithTimeout(mock, 100*time.Millisecond)
 
 	start := time.Now()
-	_, err := service.List(context.Background(), orgID)
+	_, err := service.List(context.Background(), WithOrg(orgID))
 	elapsed := time.Since(start)
 
 	if err == nil {
@@ -242,7 +242,7 @@ func TestOrganizationInviteService_List_QuickCancellation(t *testing.T) {
 	}
 
 	service := createTestOrganizationInviteServiceWithTimeout(mock, 30*time.Second)
-	_, err := service.List(ctx, orgID)
+	_, err := service.List(ctx, WithOrg(orgID))
 
 	if err == nil {
 		t.Fatal("expected deadline exceeded error")
@@ -285,7 +285,7 @@ func TestOrganizationInviteService_Create_Success(t *testing.T) {
 	}
 
 	service := createTestOrganizationInviteService(mock)
-	result, err := service.Create(context.Background(), orgID, req)
+	result, err := service.Create(context.Background(), req, WithOrg(orgID))
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -346,7 +346,7 @@ func TestOrganizationInviteService_Create_Success_OmitEmptyProjectInvites(t *tes
 	}
 
 	service := createTestOrganizationInviteService(mock)
-	_, err := service.Create(context.Background(), orgID, req)
+	_, err := service.Create(context.Background(), req, WithOrg(orgID))
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -380,7 +380,7 @@ func TestOrganizationInviteService_Create_InvalidOrgID(t *testing.T) {
 			mock := &mockAPIService{}
 			service := createTestOrganizationInviteService(mock)
 
-			result, err := service.Create(context.Background(), tc.orgID, req)
+			result, err := service.Create(context.Background(), req, WithOrg(tc.orgID))
 
 			if err == nil {
 				t.Fatal("expected error for invalid org ID, got nil")
@@ -405,7 +405,7 @@ func TestOrganizationInviteService_Create_NotFound(t *testing.T) {
 	}
 
 	service := createTestOrganizationInviteService(mock)
-	result, err := service.Create(context.Background(), orgID, req)
+	result, err := service.Create(context.Background(), req, WithOrg(orgID))
 
 	if err == nil {
 		t.Fatal("expected error, got nil")
@@ -437,7 +437,7 @@ func TestOrganizationInviteService_Create_ContextTimeout(t *testing.T) {
 	service := createTestOrganizationInviteServiceWithTimeout(mock, 100*time.Millisecond)
 
 	start := time.Now()
-	_, err := service.Create(context.Background(), orgID, req)
+	_, err := service.Create(context.Background(), req, WithOrg(orgID))
 	elapsed := time.Since(start)
 
 	if err == nil {
@@ -461,7 +461,7 @@ func TestOrganizationInviteService_Create_AuthenticationError(t *testing.T) {
 	}
 
 	service := createTestOrganizationInviteService(mock)
-	_, err := service.Create(context.Background(), orgID, req)
+	_, err := service.Create(context.Background(), req, WithOrg(orgID))
 
 	if err == nil {
 		t.Fatal("expected authentication error, got nil")
@@ -492,7 +492,7 @@ func TestOrganizationInviteService_Create_QuickCancellation(t *testing.T) {
 	}
 
 	service := createTestOrganizationInviteServiceWithTimeout(mock, 30*time.Second)
-	_, err := service.Create(ctx, orgID, req)
+	_, err := service.Create(ctx, req, WithOrg(orgID))
 
 	if err == nil {
 		t.Fatal("expected deadline exceeded error")
@@ -516,7 +516,7 @@ func TestOrganizationInviteService_Delete_Success(t *testing.T) {
 	}
 
 	service := createTestOrganizationInviteService(mock)
-	err := service.Delete(context.Background(), orgID, inviteID)
+	err := service.Delete(context.Background(), WithOrg(orgID), WithInvite(inviteID))
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -548,7 +548,7 @@ func TestOrganizationInviteService_Delete_InvalidOrgID(t *testing.T) {
 			mock := &mockAPIService{}
 			service := createTestOrganizationInviteService(mock)
 
-			err := service.Delete(context.Background(), tc.orgID, inviteID)
+			err := service.Delete(context.Background(), WithOrg(tc.orgID), WithInvite(inviteID))
 
 			if err == nil {
 				t.Fatal("expected error for invalid org ID, got nil")
@@ -579,7 +579,7 @@ func TestOrganizationInviteService_Delete_InvalidInviteID(t *testing.T) {
 			mock := &mockAPIService{}
 			service := createTestOrganizationInviteService(mock)
 
-			err := service.Delete(context.Background(), orgID, tc.inviteID)
+			err := service.Delete(context.Background(), WithOrg(orgID), WithInvite(tc.inviteID))
 
 			if err == nil {
 				t.Fatal("expected error for invalid invite ID, got nil")
@@ -601,7 +601,7 @@ func TestOrganizationInviteService_Delete_NotFound(t *testing.T) {
 	}
 
 	service := createTestOrganizationInviteService(mock)
-	err := service.Delete(context.Background(), orgID, inviteID)
+	err := service.Delete(context.Background(), WithOrg(orgID), WithInvite(inviteID))
 
 	if err == nil {
 		t.Fatal("expected error, got nil")
@@ -626,7 +626,7 @@ func TestOrganizationInviteService_Delete_AuthenticationError(t *testing.T) {
 	}
 
 	service := createTestOrganizationInviteService(mock)
-	err := service.Delete(context.Background(), orgID, inviteID)
+	err := service.Delete(context.Background(), WithOrg(orgID), WithInvite(inviteID))
 
 	if err == nil {
 		t.Fatal("expected authentication error, got nil")
@@ -654,7 +654,7 @@ func TestOrganizationInviteService_Delete_ContextTimeout(t *testing.T) {
 	service := createTestOrganizationInviteServiceWithTimeout(mock, 100*time.Millisecond)
 
 	start := time.Now()
-	err := service.Delete(context.Background(), orgID, inviteID)
+	err := service.Delete(context.Background(), WithOrg(orgID), WithInvite(inviteID))
 	elapsed := time.Since(start)
 
 	if err == nil {
@@ -683,7 +683,7 @@ func TestOrganizationInviteService_Delete_QuickCancellation(t *testing.T) {
 	}
 
 	service := createTestOrganizationInviteServiceWithTimeout(mock, 30*time.Second)
-	err := service.Delete(ctx, orgID, inviteID)
+	err := service.Delete(ctx, WithOrg(orgID), WithInvite(inviteID))
 
 	if err == nil {
 		t.Fatal("expected deadline exceeded error")

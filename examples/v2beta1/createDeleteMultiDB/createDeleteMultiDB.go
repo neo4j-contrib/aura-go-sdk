@@ -23,7 +23,12 @@ func pollInstance(ctx context.Context, client *v2beta1.Client, orgID, projectID,
 		case <-ctxPolling.Done():
 			return errors.New("timed out waiting for instance status")
 		default:
-			result, err := client.Instances.Get(ctxPolling, orgID, projectID, instanceID)
+			result, err := client.Instances.Get(
+				ctxPolling,
+				v2beta1.WithOrg(orgID),
+				v2beta1.WithProject(projectID),
+				v2beta1.WithInstance(instanceID),
+			)
 			if err != nil {
 				return err
 			}
@@ -50,10 +55,14 @@ func main() {
 	opts := &slog.HandlerOptions{Level: slog.LevelError}
 	customLogger := slog.New(slog.NewTextHandler(os.Stderr, opts))
 
+	// The org/project scope is constant across this program, so it is set once as a
+	// client-level default and inherited by every database operation below.
 	client, err := v2beta1.NewClient(
 		v2beta1.WithCredentials(clientID, clientSecret),
 		v2beta1.WithTimeout(120*time.Second),
 		v2beta1.WithLogger(customLogger),
+		v2beta1.WithDefaultOrg(orgID),
+		v2beta1.WithDefaultProject(projectID),
 	)
 	if err != nil {
 		log.Fatalf("Failed to create client: %v", err)
@@ -63,13 +72,21 @@ func main() {
 	ctx, cancelMain := context.WithTimeout(context.Background(), 15*time.Minute)
 	defer cancelMain()
 
-	instances, err := client.Instances.List(ctx, orgID, projectID)
+	instances, err := client.Instances.List(ctx,
+		v2beta1.WithOrg(orgID),
+		v2beta1.WithProject(projectID),
+	)
 	if err != nil {
 		log.Fatalf("Failed to list instances: %v", err)
 	}
 
 	for _, inst := range instances.Data {
-		details, err := client.Instances.Get(ctx, orgID, projectID, inst.ID)
+		details, err := client.Instances.Get(
+			ctx,
+			v2beta1.WithOrg(orgID),
+			v2beta1.WithProject(projectID),
+			v2beta1.WithInstance(inst.ID),
+		)
 		if err != nil {
 			log.Fatalf("Failed to get instance details for %s: %v", inst.ID, err)
 		}
@@ -78,14 +95,17 @@ func main() {
 		}
 	}
 
-	newInstance, err := client.Instances.Create(ctx, orgID, projectID, &v2beta1.CreateInstanceRequest{
+	newInstance, err := client.Instances.Create(ctx, &v2beta1.CreateInstanceRequest{
 		Name:          "auraClientV2beta1Example",
 		Type:          "business-critical",
 		CloudProvider: "gcp",
 		Region:        "europe-west1",
 		Memory:        "16GB",
 		MultiDatabase: true,
-	})
+	},
+		v2beta1.WithOrg(orgID),
+		v2beta1.WithProject(projectID),
+	)
 	if err != nil {
 		log.Fatalf("Failed to create instance: %v", err)
 	}
@@ -109,7 +129,9 @@ func main() {
 
 	fmt.Printf("\nCreating new database")
 
-	newDB, err := client.Databases.Create(ctx, orgID, projectID, newInstance.Data.ID)
+	// The org/project scope is inherited from the client default; only the new
+	// instance (the leaf that varies per instance) is supplied per call.
+	newDB, err := client.Databases.Create(ctx, v2beta1.WithInstance(newInstance.Data.ID))
 	if err != nil {
 		log.Fatalf("Failed to create database: %v", err)
 	}
@@ -119,7 +141,12 @@ func main() {
 	fmt.Println("Will delete instance in ten seconds...")
 	time.Sleep(10 * time.Second)
 
-	_, err = client.Instances.Delete(ctx, orgID, projectID, newInstance.Data.ID)
+	_, err = client.Instances.Delete(
+		ctx,
+		v2beta1.WithOrg(orgID),
+		v2beta1.WithProject(projectID),
+		v2beta1.WithInstance(newInstance.Data.ID),
+	)
 	if err != nil {
 		log.Fatalf("Failed to delete instance: %v", err)
 	}

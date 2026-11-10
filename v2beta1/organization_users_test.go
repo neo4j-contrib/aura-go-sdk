@@ -66,7 +66,7 @@ func TestOrganizationUserService_List_Success(t *testing.T) {
 	}
 
 	service := createTestOrganizationUserService(mock)
-	result, err := service.List(context.Background(), orgID)
+	result, err := service.List(context.Background(), WithOrg(orgID))
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -102,7 +102,7 @@ func TestOrganizationUserService_List_EmptyResult(t *testing.T) {
 	}
 
 	service := createTestOrganizationUserService(mock)
-	result, err := service.List(context.Background(), orgID)
+	result, err := service.List(context.Background(), WithOrg(orgID))
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -129,7 +129,7 @@ func TestOrganizationUserService_List_InvalidOrgID(t *testing.T) {
 			mock := &mockAPIService{}
 			service := createTestOrganizationUserService(mock)
 
-			result, err := service.List(context.Background(), tc.orgID)
+			result, err := service.List(context.Background(), WithOrg(tc.orgID))
 
 			if err == nil {
 				t.Fatal("expected error for invalid org ID, got nil")
@@ -153,7 +153,7 @@ func TestOrganizationUserService_List_NotFound(t *testing.T) {
 	}
 
 	service := createTestOrganizationUserService(mock)
-	result, err := service.List(context.Background(), orgID)
+	result, err := service.List(context.Background(), WithOrg(orgID))
 
 	if err == nil {
 		t.Fatal("expected error, got nil")
@@ -180,7 +180,7 @@ func TestOrganizationUserService_List_AuthenticationError(t *testing.T) {
 	}
 
 	service := createTestOrganizationUserService(mock)
-	_, err := service.List(context.Background(), orgID)
+	_, err := service.List(context.Background(), WithOrg(orgID))
 
 	if err == nil {
 		t.Fatal("expected authentication error, got nil")
@@ -208,7 +208,7 @@ func TestOrganizationUserService_List_ContextTimeout(t *testing.T) {
 	service := createTestOrganizationUserServiceWithTimeout(mock, 100*time.Millisecond)
 
 	start := time.Now()
-	_, err := service.List(context.Background(), orgID)
+	_, err := service.List(context.Background(), WithOrg(orgID))
 	elapsed := time.Since(start)
 
 	if err == nil {
@@ -237,7 +237,7 @@ func TestOrganizationUserService_List_QuickCancellation(t *testing.T) {
 	}
 
 	service := createTestOrganizationUserServiceWithTimeout(mock, 30*time.Second)
-	_, err := service.List(ctx, orgID)
+	_, err := service.List(ctx, WithOrg(orgID))
 
 	if err == nil {
 		t.Fatal("expected deadline exceeded error")
@@ -276,7 +276,7 @@ func TestOrganizationUserService_Get_Success(t *testing.T) {
 	}
 
 	service := createTestOrganizationUserService(mock)
-	result, err := service.Get(context.Background(), orgID, userID)
+	result, err := service.Get(context.Background(), WithOrg(orgID), WithUser(userID))
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -320,7 +320,7 @@ func TestOrganizationUserService_Get_InvalidOrgID(t *testing.T) {
 			mock := &mockAPIService{}
 			service := createTestOrganizationUserService(mock)
 
-			result, err := service.Get(context.Background(), tc.orgID, userID)
+			result, err := service.Get(context.Background(), WithOrg(tc.orgID), WithUser(userID))
 
 			if err == nil {
 				t.Fatal("expected error for invalid org ID, got nil")
@@ -353,7 +353,7 @@ func TestOrganizationUserService_Get_InvalidUserID(t *testing.T) {
 			mock := &mockAPIService{}
 			service := createTestOrganizationUserService(mock)
 
-			result, err := service.Get(context.Background(), orgID, tc.userID)
+			result, err := service.Get(context.Background(), WithOrg(orgID), WithUser(tc.userID))
 
 			if err == nil {
 				t.Fatal("expected error for invalid user ID, got nil")
@@ -378,7 +378,7 @@ func TestOrganizationUserService_Get_NotFound(t *testing.T) {
 	}
 
 	service := createTestOrganizationUserService(mock)
-	result, err := service.Get(context.Background(), orgID, userID)
+	result, err := service.Get(context.Background(), WithOrg(orgID), WithUser(userID))
 
 	if err == nil {
 		t.Fatal("expected error, got nil")
@@ -406,7 +406,7 @@ func TestOrganizationUserService_Get_AuthenticationError(t *testing.T) {
 	}
 
 	service := createTestOrganizationUserService(mock)
-	_, err := service.Get(context.Background(), orgID, userID)
+	_, err := service.Get(context.Background(), WithOrg(orgID), WithUser(userID))
 
 	if err == nil {
 		t.Fatal("expected authentication error, got nil")
@@ -435,7 +435,7 @@ func TestOrganizationUserService_Get_ContextTimeout(t *testing.T) {
 	service := createTestOrganizationUserServiceWithTimeout(mock, 100*time.Millisecond)
 
 	start := time.Now()
-	_, err := service.Get(context.Background(), orgID, userID)
+	_, err := service.Get(context.Background(), WithOrg(orgID), WithUser(userID))
 	elapsed := time.Since(start)
 
 	if err == nil {
@@ -465,7 +465,7 @@ func TestOrganizationUserService_Get_QuickCancellation(t *testing.T) {
 	}
 
 	service := createTestOrganizationUserServiceWithTimeout(mock, 30*time.Second)
-	_, err := service.Get(ctx, orgID, userID)
+	_, err := service.Get(ctx, WithOrg(orgID), WithUser(userID))
 
 	if err == nil {
 		t.Fatal("expected deadline exceeded error")
@@ -504,7 +504,7 @@ func TestOrganizationUserService_UpdateRole_Success(t *testing.T) {
 	}
 
 	service := createTestOrganizationUserService(mock)
-	result, err := service.UpdateRole(context.Background(), orgID, userID, req)
+	result, err := service.UpdateRole(context.Background(), req, WithOrg(orgID), WithUser(userID))
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -549,7 +549,7 @@ func TestOrganizationUserService_UpdateRole_InvalidOrgID(t *testing.T) {
 			mock := &mockAPIService{}
 			service := createTestOrganizationUserService(mock)
 
-			result, err := service.UpdateRole(context.Background(), tc.orgID, userID, req)
+			result, err := service.UpdateRole(context.Background(), req, WithOrg(tc.orgID), WithUser(userID))
 
 			if err == nil {
 				t.Fatal("expected error for invalid org ID, got nil")
@@ -575,7 +575,7 @@ func TestOrganizationUserService_UpdateRole_NotFound(t *testing.T) {
 	}
 
 	service := createTestOrganizationUserService(mock)
-	result, err := service.UpdateRole(context.Background(), orgID, userID, req)
+	result, err := service.UpdateRole(context.Background(), req, WithOrg(orgID), WithUser(userID))
 
 	if err == nil {
 		t.Fatal("expected error, got nil")
@@ -608,7 +608,7 @@ func TestOrganizationUserService_UpdateRole_ContextTimeout(t *testing.T) {
 	service := createTestOrganizationUserServiceWithTimeout(mock, 100*time.Millisecond)
 
 	start := time.Now()
-	_, err := service.UpdateRole(context.Background(), orgID, userID, req)
+	_, err := service.UpdateRole(context.Background(), req, WithOrg(orgID), WithUser(userID))
 	elapsed := time.Since(start)
 
 	if err == nil {
@@ -641,7 +641,7 @@ func TestOrganizationUserService_UpdateRole_InvalidUserID(t *testing.T) {
 			mock := &mockAPIService{}
 			service := createTestOrganizationUserService(mock)
 
-			result, err := service.UpdateRole(context.Background(), orgID, tc.userID, req)
+			result, err := service.UpdateRole(context.Background(), req, WithOrg(orgID), WithUser(tc.userID))
 
 			if err == nil {
 				t.Fatal("expected error for invalid user ID, got nil")
@@ -667,7 +667,7 @@ func TestOrganizationUserService_UpdateRole_AuthenticationError(t *testing.T) {
 	}
 
 	service := createTestOrganizationUserService(mock)
-	_, err := service.UpdateRole(context.Background(), orgID, userID, req)
+	_, err := service.UpdateRole(context.Background(), req, WithOrg(orgID), WithUser(userID))
 
 	if err == nil {
 		t.Fatal("expected authentication error, got nil")
@@ -699,7 +699,7 @@ func TestOrganizationUserService_UpdateRole_QuickCancellation(t *testing.T) {
 	}
 
 	service := createTestOrganizationUserServiceWithTimeout(mock, 30*time.Second)
-	_, err := service.UpdateRole(ctx, orgID, userID, req)
+	_, err := service.UpdateRole(ctx, req, WithOrg(orgID), WithUser(userID))
 
 	if err == nil {
 		t.Fatal("expected deadline exceeded error")
@@ -723,7 +723,7 @@ func TestOrganizationUserService_Remove_Success(t *testing.T) {
 	}
 
 	service := createTestOrganizationUserService(mock)
-	err := service.Remove(context.Background(), orgID, userID)
+	err := service.Remove(context.Background(), WithOrg(orgID), WithUser(userID))
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -755,7 +755,7 @@ func TestOrganizationUserService_Remove_InvalidOrgID(t *testing.T) {
 			mock := &mockAPIService{}
 			service := createTestOrganizationUserService(mock)
 
-			err := service.Remove(context.Background(), tc.orgID, userID)
+			err := service.Remove(context.Background(), WithOrg(tc.orgID), WithUser(userID))
 
 			if err == nil {
 				t.Fatal("expected error for invalid org ID, got nil")
@@ -785,7 +785,7 @@ func TestOrganizationUserService_Remove_InvalidUserID(t *testing.T) {
 			mock := &mockAPIService{}
 			service := createTestOrganizationUserService(mock)
 
-			err := service.Remove(context.Background(), orgID, tc.userID)
+			err := service.Remove(context.Background(), WithOrg(orgID), WithUser(tc.userID))
 
 			if err == nil {
 				t.Fatal("expected error for invalid user ID, got nil")
@@ -807,7 +807,7 @@ func TestOrganizationUserService_Remove_NotFound(t *testing.T) {
 	}
 
 	service := createTestOrganizationUserService(mock)
-	err := service.Remove(context.Background(), orgID, userID)
+	err := service.Remove(context.Background(), WithOrg(orgID), WithUser(userID))
 
 	if err == nil {
 		t.Fatal("expected error, got nil")
@@ -835,7 +835,7 @@ func TestOrganizationUserService_Remove_ContextTimeout(t *testing.T) {
 	service := createTestOrganizationUserServiceWithTimeout(mock, 100*time.Millisecond)
 
 	start := time.Now()
-	err := service.Remove(context.Background(), orgID, userID)
+	err := service.Remove(context.Background(), WithOrg(orgID), WithUser(userID))
 	elapsed := time.Since(start)
 
 	if err == nil {
@@ -864,7 +864,7 @@ func TestOrganizationUserService_Remove_QuickCancellation(t *testing.T) {
 	}
 
 	service := createTestOrganizationUserServiceWithTimeout(mock, 30*time.Second)
-	err := service.Remove(ctx, orgID, userID)
+	err := service.Remove(ctx, WithOrg(orgID), WithUser(userID))
 
 	if err == nil {
 		t.Fatal("expected deadline exceeded error")
@@ -881,7 +881,7 @@ func TestOrganizationUserService_Remove_InvalidUserID_ErrorMessage(t *testing.T)
 	mock := &mockAPIService{}
 	service := createTestOrganizationUserService(mock)
 
-	err := service.Remove(context.Background(), orgID, "")
+	err := service.Remove(context.Background(), WithOrg(orgID), WithUser(""))
 
 	if err == nil {
 		t.Fatal("expected error for empty user ID, got nil")

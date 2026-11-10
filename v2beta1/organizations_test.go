@@ -216,7 +216,7 @@ func TestOrganizationService_Get_Success(t *testing.T) {
 	}
 
 	service := createTestOrganizationService(mock)
-	result, err := service.Get(context.Background(), orgID)
+	result, err := service.Get(context.Background(), WithOrg(orgID))
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -244,7 +244,7 @@ func TestOrganizationService_Get_NotFound(t *testing.T) {
 	}
 
 	service := createTestOrganizationService(mock)
-	result, err := service.Get(context.Background(), orgID)
+	result, err := service.Get(context.Background(), WithOrg(orgID))
 
 	if err == nil {
 		t.Fatal("expected error, got nil")
@@ -271,7 +271,7 @@ func TestOrganizationService_Get_AuthenticationError(t *testing.T) {
 	}
 
 	service := createTestOrganizationService(mock)
-	_, err := service.Get(context.Background(), orgID)
+	_, err := service.Get(context.Background(), WithOrg(orgID))
 
 	if err == nil {
 		t.Fatal("expected authentication error, got nil")
@@ -292,7 +292,7 @@ func TestOrganizationService_Get_EmptyOrgID(t *testing.T) {
 	mock := &mockAPIService{}
 
 	service := createTestOrganizationService(mock)
-	result, err := service.Get(context.Background(), "")
+	result, err := service.Get(context.Background(), WithOrg(""))
 
 	if err == nil {
 		t.Fatal("expected error for empty org ID, got nil")
@@ -325,7 +325,7 @@ func TestOrganizationService_Get_ContextTimeout(t *testing.T) {
 	}
 
 	start := time.Now()
-	_, err := service.Get(context.Background(), orgID)
+	_, err := service.Get(context.Background(), WithOrg(orgID))
 	elapsed := time.Since(start)
 
 	if err == nil {
@@ -359,7 +359,7 @@ func TestOrganizationService_Get_QuickCancellation(t *testing.T) {
 		logger:  testLogger(),
 	}
 
-	_, err := service.Get(ctx, orgID)
+	_, err := service.Get(ctx, WithOrg(orgID))
 
 	if err == nil {
 		t.Fatal("expected deadline exceeded error")

@@ -38,7 +38,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 6*time.Second)
 	defer cancel()
 
-	users, err := client.OrganizationUsers.List(ctx, orgID)
+	users, err := client.OrganizationUsers.List(ctx, v2beta1.WithOrg(orgID))
 	if err != nil {
 		log.Fatalf("Failed to list organization users: %v", err)
 	}
@@ -51,7 +51,7 @@ func main() {
 
 	fmt.Println()
 
-	user, err := client.OrganizationUsers.Get(ctx, orgID, userID)
+	user, err := client.OrganizationUsers.Get(ctx, v2beta1.WithOrg(orgID), v2beta1.WithUser(userID))
 	if err != nil {
 		log.Fatalf("Failed to get organization user: %v", err)
 	}

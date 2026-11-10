@@ -14,7 +14,7 @@ import (
 // Types
 // ============================================================================
 
-// GetDatabase wraps the list of databases  returned by the API.
+// GetDatabaseResponse wraps the single database returned by the API.
 type GetDatabaseResponse struct {
 	Data DatabaseResponse `json:"data"`
 }
@@ -24,7 +24,7 @@ type CreateDatabaseResponse struct {
 	Data DatabaseResponse `json:"data"`
 }
 
-// ListDatabases wraps the list of databases  returned by the API.
+// ListDatabasesResponse wraps the list of databases returned by the API.
 type ListDatabasesResponse struct {
 	Data []DatabaseResponse `json:"data"`
 }
@@ -44,77 +44,43 @@ type DatabaseResponse struct {
 // ============================================================================
 
 // databaseService handles database operations for the v2beta1 API.
+//
+// It is scoped through the client-level default scope; each call may override
+// individual fields of it via the ScopeOption values passed to the method.
 type databaseService struct {
-	api     api.RequestService
-	timeout time.Duration
-	logger  *slog.Logger
+	api          api.RequestService
+	timeout      time.Duration
+	logger       *slog.Logger
+	defaultScope requestScope
 }
 
-func (s *databaseService) Create(ctx context.Context, orgID, projectID, instanceID string) (*CreateDatabaseResponse, error) {
+// List returns all databases on the instance selected by the scope options,
+// inheriting any unset field from the client's default scope.
+func (s *databaseService) List(ctx context.Context, opts ...ScopeOption) (*ListDatabasesResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
-	if err := utils.Validate(ctx, s.logger,
-		utils.OrganizationID(orgID),
-		utils.ProjectID(projectID),
-		utils.InstanceID(instanceID),
-	); err != nil {
-		return nil, err
-	}
-
-	s.logger.DebugContext(ctx, "creating database",
-		slog.String("orgID", orgID),
-		slog.String("projectID", projectID),
-		slog.String("instanceID", instanceID),
-	)
-
-	path := utils.DatabasesPath(orgID, projectID, instanceID)
-	resp, err := s.api.Post(ctx, path, "")
-	if err != nil {
-		s.logger.ErrorContext(ctx, "failed to create database",
-			slog.String("instanceID", instanceID),
-			slog.String("error", err.Error()),
-		)
-		return nil, err
-	}
-
-	var result CreateDatabaseResponse
-
-	if err := json.Unmarshal(resp.Body, &result); err != nil {
-		s.logger.ErrorContext(ctx, "failed to unmarshal create database response", slog.String("error", err.Error()))
-		return nil, err
-	}
-
-	s.logger.DebugContext(ctx, "database created successfully",
-		slog.String("instanceID", instanceID),
-	)
-
-	return &result, nil
-}
-
-func (s *databaseService) List(ctx context.Context, orgID, projectID, instanceID string) (*ListDatabasesResponse, error) {
-	ctx, cancel := context.WithTimeout(ctx, s.timeout)
-	defer cancel()
+	sc := resolveScope(s.defaultScope, opts)
 
 	if err := utils.Validate(ctx, s.logger,
-		utils.OrganizationID(orgID),
-		utils.ProjectID(projectID),
-		utils.InstanceID(instanceID),
+		utils.OrganizationID(sc.orgID),
+		utils.ProjectID(sc.projectID),
+		utils.InstanceID(sc.instanceID),
 	); err != nil {
 		return nil, err
 	}
 
 	s.logger.DebugContext(ctx, "listing databases",
-		slog.String("orgID", orgID),
-		slog.String("projectID", projectID),
-		slog.String("instanceID", instanceID),
+		slog.String("orgID", sc.orgID),
+		slog.String("projectID", sc.projectID),
+		slog.String("instanceID", sc.instanceID),
 	)
 
-	path := utils.DatabasesPath(orgID, projectID, instanceID)
+	path := utils.DatabasesPath(sc.orgID, sc.projectID, sc.instanceID)
 	resp, err := s.api.Get(ctx, path)
 	if err != nil {
 		s.logger.ErrorContext(ctx, "failed to list instance databases",
-			slog.String("instanceID", instanceID),
+			slog.String("instanceID", sc.instanceID),
 			slog.String("error", err.Error()),
 		)
 		return nil, err
@@ -127,38 +93,43 @@ func (s *databaseService) List(ctx context.Context, orgID, projectID, instanceID
 	}
 
 	s.logger.DebugContext(ctx, "databases listed successfully",
-		slog.String("instanceID", instanceID),
+		slog.String("instanceID", sc.instanceID),
 		slog.Int("count", len(result.Data)),
 	)
+
 	return &result, nil
 }
 
-func (s *databaseService) Get(ctx context.Context, orgID, projectID, instanceID, databaseID string) (*GetDatabaseResponse, error) {
+// Get returns information about a single database selected by the scope options,
+// inheriting any unset field from the client's default scope.
+func (s *databaseService) Get(ctx context.Context, opts ...ScopeOption) (*GetDatabaseResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
+	sc := resolveScope(s.defaultScope, opts)
+
 	if err := utils.Validate(ctx, s.logger,
-		utils.OrganizationID(orgID),
-		utils.ProjectID(projectID),
-		utils.InstanceID(instanceID),
-		utils.DatabaseID(databaseID),
+		utils.OrganizationID(sc.orgID),
+		utils.ProjectID(sc.projectID),
+		utils.InstanceID(sc.instanceID),
+		utils.DatabaseID(sc.databaseID),
 	); err != nil {
 		return nil, err
 	}
 
 	s.logger.DebugContext(ctx, "getting database",
-		slog.String("orgID", orgID),
-		slog.String("projectID", projectID),
-		slog.String("instanceID", instanceID),
-		slog.String("databaseID", databaseID),
+		slog.String("orgID", sc.orgID),
+		slog.String("projectID", sc.projectID),
+		slog.String("instanceID", sc.instanceID),
+		slog.String("databaseID", sc.databaseID),
 	)
 
-	path := utils.SingleDatabasePath(orgID, projectID, instanceID, databaseID)
+	path := utils.SingleDatabasePath(sc.orgID, sc.projectID, sc.instanceID, sc.databaseID)
 	resp, err := s.api.Get(ctx, path)
 	if err != nil {
 		s.logger.ErrorContext(ctx, "failed to get database",
-			slog.String("instanceID", instanceID),
-			slog.String("databaseID", databaseID),
+			slog.String("instanceID", sc.instanceID),
+			slog.String("databaseID", sc.databaseID),
 			slog.String("error", err.Error()),
 		)
 		return nil, err
@@ -171,41 +142,97 @@ func (s *databaseService) Get(ctx context.Context, orgID, projectID, instanceID,
 	}
 
 	s.logger.DebugContext(ctx, "database retrieved successfully",
-		slog.String("instanceID", instanceID),
-		slog.String("databaseID", databaseID),
+		slog.String("instanceID", sc.instanceID),
+		slog.String("databaseID", sc.databaseID),
 	)
+
 	return &result, nil
 }
 
-func (s *databaseService) Delete(ctx context.Context, orgID, projectID, instanceID, databaseID string) (*DeleteDatabaseResponse, error) {
+// Create provisions a new database for the instance selected by the scope options.
+func (s *databaseService) Create(ctx context.Context, opts ...ScopeOption) (*CreateDatabaseResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
+	sc := resolveScope(s.defaultScope, opts)
+
 	if err := utils.Validate(ctx, s.logger,
-		utils.OrganizationID(orgID),
-		utils.ProjectID(projectID),
-		utils.InstanceID(instanceID),
-		utils.DatabaseID(databaseID),
+		utils.OrganizationID(sc.orgID),
+		utils.ProjectID(sc.projectID),
+		utils.InstanceID(sc.instanceID),
+	); err != nil {
+		return nil, err
+	}
+
+	s.logger.DebugContext(ctx, "creating database",
+		slog.String("orgID", sc.orgID),
+		slog.String("projectID", sc.projectID),
+		slog.String("instanceID", sc.instanceID),
+	)
+
+	path := utils.DatabasesPath(sc.orgID, sc.projectID, sc.instanceID)
+	resp, err := s.api.Post(ctx, path, "")
+	if err != nil {
+		s.logger.ErrorContext(ctx, "failed to create database",
+			slog.String("instanceID", sc.instanceID),
+			slog.String("error", err.Error()),
+		)
+		return nil, err
+	}
+
+	var result CreateDatabaseResponse
+	if err := json.Unmarshal(resp.Body, &result); err != nil {
+		s.logger.ErrorContext(ctx, "failed to unmarshal create database response", slog.String("error", err.Error()))
+		return nil, err
+	}
+
+	s.logger.DebugContext(ctx, "database created successfully",
+		slog.String("instanceID", sc.instanceID),
+	)
+
+	return &result, nil
+}
+
+// Delete removes the database selected by the scope options from an instance.
+func (s *databaseService) Delete(ctx context.Context, opts ...ScopeOption) (*DeleteDatabaseResponse, error) {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	sc := resolveScope(s.defaultScope, opts)
+
+	if err := utils.Validate(ctx, s.logger,
+		utils.OrganizationID(sc.orgID),
+		utils.ProjectID(sc.projectID),
+		utils.InstanceID(sc.instanceID),
+		utils.DatabaseID(sc.databaseID),
 	); err != nil {
 		return nil, err
 	}
 
 	s.logger.DebugContext(ctx, "deleting database",
-		slog.String("orgID", orgID),
-		slog.String("projectID", projectID),
-		slog.String("instanceID", instanceID),
-		slog.String("databaseID", databaseID),
+		slog.String("orgID", sc.orgID),
+		slog.String("projectID", sc.projectID),
+		slog.String("instanceID", sc.instanceID),
+		slog.String("databaseID", sc.databaseID),
 	)
 
-	path := utils.SingleDatabasePath(orgID, projectID, instanceID, databaseID)
+	path := utils.SingleDatabasePath(sc.orgID, sc.projectID, sc.instanceID, sc.databaseID)
 	resp, err := s.api.Delete(ctx, path)
 	if err != nil {
 		s.logger.ErrorContext(ctx, "failed to delete database",
-			slog.String("instanceID", instanceID),
-			slog.String("databaseID", databaseID),
+			slog.String("instanceID", sc.instanceID),
+			slog.String("databaseID", sc.databaseID),
 			slog.String("error", err.Error()),
 		)
 		return nil, err
+	}
+
+	if len(resp.Body) == 0 {
+		s.logger.InfoContext(ctx, "database deleted successfully",
+			slog.String("instanceID", sc.instanceID),
+			slog.String("databaseID", sc.databaseID),
+		)
+		return &DeleteDatabaseResponse{}, nil
 	}
 
 	var result DeleteDatabaseResponse
@@ -215,8 +242,9 @@ func (s *databaseService) Delete(ctx context.Context, orgID, projectID, instance
 	}
 
 	s.logger.InfoContext(ctx, "database deleted successfully",
-		slog.String("instanceID", instanceID),
-		slog.String("databaseID", databaseID),
+		slog.String("instanceID", sc.instanceID),
+		slog.String("databaseID", sc.databaseID),
 	)
+
 	return &result, nil
 }

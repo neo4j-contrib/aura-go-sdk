@@ -42,14 +42,25 @@ func main() {
 
 	fmt.Printf("\nBacking up database")
 
-	newBackup, err := client.DatabaseBackups.Create(ctx, orgID, projectID, instanceID, databaseID)
+	newBackup, err := client.DatabaseBackups.Create(ctx,
+		v2beta1.WithOrg(orgID),
+		v2beta1.WithProject(projectID),
+		v2beta1.WithInstance(instanceID),
+		v2beta1.WithDatabase(databaseID),
+	)
 	if err != nil {
 		log.Fatalf("Failed to backup database: %v", err)
 	}
 	fmt.Println("\nDatabase backup started")
 	fmt.Printf("- backup id: %s \n", newBackup.Data.ID)
 
-	getBackup, err := client.DatabaseBackups.Get(ctx, orgID, projectID, instanceID, databaseID, newBackup.Data.ID)
+	getBackup, err := client.DatabaseBackups.Get(ctx,
+		v2beta1.WithOrg(orgID),
+		v2beta1.WithProject(projectID),
+		v2beta1.WithInstance(instanceID),
+		v2beta1.WithDatabase(databaseID),
+		v2beta1.WithBackup(newBackup.Data.ID),
+	)
 	if err != nil {
 		log.Fatalf("Failed to get database backup information: %v", err)
 	}

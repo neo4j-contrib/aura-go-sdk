@@ -61,7 +61,7 @@ func TestProjectUserService_List_Success(t *testing.T) {
 	}
 
 	service := createTestProjectUserService(mock)
-	result, err := service.List(context.Background(), orgID, projectID)
+	result, err := service.List(context.Background(), WithOrg(orgID), WithProject(projectID))
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -101,7 +101,7 @@ func TestProjectUserService_List_EmptyResult(t *testing.T) {
 	}
 
 	service := createTestProjectUserService(mock)
-	result, err := service.List(context.Background(), orgID, projectID)
+	result, err := service.List(context.Background(), WithOrg(orgID), WithProject(projectID))
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -131,7 +131,7 @@ func TestProjectUserService_List_InvalidOrgID(t *testing.T) {
 			mock := &mockAPIService{}
 			service := createTestProjectUserService(mock)
 
-			result, err := service.List(context.Background(), tc.orgID, projectID)
+			result, err := service.List(context.Background(), WithOrg(tc.orgID), WithProject(projectID))
 
 			if err == nil {
 				t.Fatalf("expected error for orgID %q, got nil", tc.orgID)
@@ -169,7 +169,7 @@ func TestProjectUserService_List_InvalidProjectID(t *testing.T) {
 			mock := &mockAPIService{}
 			service := createTestProjectUserService(mock)
 
-			result, err := service.List(context.Background(), orgID, tc.projectID)
+			result, err := service.List(context.Background(), WithOrg(orgID), WithProject(tc.projectID))
 
 			if err == nil {
 				t.Fatalf("expected error for projectID %q, got nil", tc.projectID)
@@ -200,7 +200,7 @@ func TestProjectUserService_List_NotFound(t *testing.T) {
 	}
 
 	service := createTestProjectUserService(mock)
-	result, err := service.List(context.Background(), orgID, projectID)
+	result, err := service.List(context.Background(), WithOrg(orgID), WithProject(projectID))
 
 	if err == nil {
 		t.Fatal("expected error, got nil")
@@ -230,7 +230,7 @@ func TestProjectUserService_List_AuthenticationError(t *testing.T) {
 	}
 
 	service := createTestProjectUserService(mock)
-	_, err := service.List(context.Background(), orgID, projectID)
+	_, err := service.List(context.Background(), WithOrg(orgID), WithProject(projectID))
 
 	if err == nil {
 		t.Fatal("expected authentication error, got nil")
@@ -261,7 +261,7 @@ func TestProjectUserService_List_ContextTimeout(t *testing.T) {
 	service := createTestProjectUserServiceWithTimeout(mock, 100*time.Millisecond)
 
 	start := time.Now()
-	_, err := service.List(context.Background(), orgID, projectID)
+	_, err := service.List(context.Background(), WithOrg(orgID), WithProject(projectID))
 	elapsed := time.Since(start)
 
 	if err == nil {
@@ -294,7 +294,7 @@ func TestProjectUserService_List_QuickCancellation(t *testing.T) {
 	}
 
 	service := createTestProjectUserServiceWithTimeout(mock, 30*time.Second)
-	_, err := service.List(ctx, orgID, projectID)
+	_, err := service.List(ctx, WithOrg(orgID), WithProject(projectID))
 
 	if err == nil {
 		t.Fatal("expected deadline exceeded error")
@@ -327,7 +327,7 @@ func TestProjectUserService_Add_Success(t *testing.T) {
 		UserID:       userID,
 		ProjectRoles: []string{"admin"},
 	}
-	err := service.Add(context.Background(), orgID, projectID, req)
+	err := service.Add(context.Background(), req, WithOrg(orgID), WithProject(projectID))
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -378,7 +378,7 @@ func TestProjectUserService_Add_InvalidOrgID(t *testing.T) {
 			mock := &mockAPIService{}
 			service := createTestProjectUserService(mock)
 
-			err := service.Add(context.Background(), tc.orgID, projectID, req)
+			err := service.Add(context.Background(), req, WithOrg(tc.orgID), WithProject(projectID))
 
 			if err == nil {
 				t.Fatalf("expected error for orgID %q, got nil", tc.orgID)
@@ -418,7 +418,7 @@ func TestProjectUserService_Add_InvalidProjectID(t *testing.T) {
 			mock := &mockAPIService{}
 			service := createTestProjectUserService(mock)
 
-			err := service.Add(context.Background(), orgID, tc.projectID, req)
+			err := service.Add(context.Background(), req, WithOrg(orgID), WithProject(tc.projectID))
 
 			if err == nil {
 				t.Fatalf("expected error for projectID %q, got nil", tc.projectID)
@@ -450,7 +450,7 @@ func TestProjectUserService_Add_NotFound(t *testing.T) {
 		UserID:       "cccccccc-dddd-eeee-ffff-000000000001",
 		ProjectRoles: []string{"admin"},
 	}
-	err := service.Add(context.Background(), orgID, projectID, req)
+	err := service.Add(context.Background(), req, WithOrg(orgID), WithProject(projectID))
 
 	if err == nil {
 		t.Fatal("expected error, got nil")
@@ -481,7 +481,7 @@ func TestProjectUserService_Add_AuthenticationError(t *testing.T) {
 		UserID:       "cccccccc-dddd-eeee-ffff-000000000001",
 		ProjectRoles: []string{"admin"},
 	}
-	err := service.Add(context.Background(), orgID, projectID, req)
+	err := service.Add(context.Background(), req, WithOrg(orgID), WithProject(projectID))
 
 	if err == nil {
 		t.Fatal("expected authentication error, got nil")
@@ -515,7 +515,7 @@ func TestProjectUserService_Add_ContextTimeout(t *testing.T) {
 	}
 
 	start := time.Now()
-	err := service.Add(context.Background(), orgID, projectID, req)
+	err := service.Add(context.Background(), req, WithOrg(orgID), WithProject(projectID))
 	elapsed := time.Since(start)
 
 	if err == nil {
@@ -551,7 +551,7 @@ func TestProjectUserService_Add_QuickCancellation(t *testing.T) {
 		UserID:       "cccccccc-dddd-eeee-ffff-000000000001",
 		ProjectRoles: []string{"admin"},
 	}
-	err := service.Add(ctx, orgID, projectID, req)
+	err := service.Add(ctx, req, WithOrg(orgID), WithProject(projectID))
 
 	if err == nil {
 		t.Fatal("expected deadline exceeded error")
@@ -592,7 +592,7 @@ func TestProjectUserService_UpdateRole_Success(t *testing.T) {
 	req := &UpdateProjectUserRequest{
 		ProjectRoles: []string{"viewer"},
 	}
-	result, err := service.UpdateRole(context.Background(), orgID, projectID, userID, req)
+	result, err := service.UpdateRole(context.Background(), req, WithOrg(orgID), WithProject(projectID), WithUser(userID))
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -646,7 +646,7 @@ func TestProjectUserService_UpdateRole_InvalidOrgID(t *testing.T) {
 			mock := &mockAPIService{}
 			service := createTestProjectUserService(mock)
 
-			result, err := service.UpdateRole(context.Background(), tc.orgID, projectID, userID, req)
+			result, err := service.UpdateRole(context.Background(), req, WithOrg(tc.orgID), WithProject(projectID), WithUser(userID))
 
 			if err == nil {
 				t.Fatalf("expected error for orgID %q, got nil", tc.orgID)
@@ -689,7 +689,7 @@ func TestProjectUserService_UpdateRole_InvalidProjectID(t *testing.T) {
 			mock := &mockAPIService{}
 			service := createTestProjectUserService(mock)
 
-			result, err := service.UpdateRole(context.Background(), orgID, tc.projectID, userID, req)
+			result, err := service.UpdateRole(context.Background(), req, WithOrg(orgID), WithProject(tc.projectID), WithUser(userID))
 
 			if err == nil {
 				t.Fatalf("expected error for projectID %q, got nil", tc.projectID)
@@ -732,7 +732,7 @@ func TestProjectUserService_UpdateRole_InvalidUserID(t *testing.T) {
 			mock := &mockAPIService{}
 			service := createTestProjectUserService(mock)
 
-			result, err := service.UpdateRole(context.Background(), orgID, projectID, tc.userID, req)
+			result, err := service.UpdateRole(context.Background(), req, WithOrg(orgID), WithProject(projectID), WithUser(tc.userID))
 
 			if err == nil {
 				t.Fatalf("expected error for userID %q, got nil", tc.userID)
@@ -765,7 +765,7 @@ func TestProjectUserService_UpdateRole_NotFound(t *testing.T) {
 
 	service := createTestProjectUserService(mock)
 	req := &UpdateProjectUserRequest{ProjectRoles: []string{"viewer"}}
-	result, err := service.UpdateRole(context.Background(), orgID, projectID, userID, req)
+	result, err := service.UpdateRole(context.Background(), req, WithOrg(orgID), WithProject(projectID), WithUser(userID))
 
 	if err == nil {
 		t.Fatal("expected error, got nil")
@@ -797,7 +797,7 @@ func TestProjectUserService_UpdateRole_AuthenticationError(t *testing.T) {
 
 	service := createTestProjectUserService(mock)
 	req := &UpdateProjectUserRequest{ProjectRoles: []string{"viewer"}}
-	_, err := service.UpdateRole(context.Background(), orgID, projectID, userID, req)
+	_, err := service.UpdateRole(context.Background(), req, WithOrg(orgID), WithProject(projectID), WithUser(userID))
 
 	if err == nil {
 		t.Fatal("expected authentication error, got nil")
@@ -830,7 +830,7 @@ func TestProjectUserService_UpdateRole_ContextTimeout(t *testing.T) {
 	req := &UpdateProjectUserRequest{ProjectRoles: []string{"viewer"}}
 
 	start := time.Now()
-	_, err := service.UpdateRole(context.Background(), orgID, projectID, userID, req)
+	_, err := service.UpdateRole(context.Background(), req, WithOrg(orgID), WithProject(projectID), WithUser(userID))
 	elapsed := time.Since(start)
 
 	if err == nil {
@@ -865,7 +865,7 @@ func TestProjectUserService_UpdateRole_QuickCancellation(t *testing.T) {
 
 	service := createTestProjectUserServiceWithTimeout(mock, 30*time.Second)
 	req := &UpdateProjectUserRequest{ProjectRoles: []string{"viewer"}}
-	_, err := service.UpdateRole(ctx, orgID, projectID, userID, req)
+	_, err := service.UpdateRole(ctx, req, WithOrg(orgID), WithProject(projectID), WithUser(userID))
 
 	if err == nil {
 		t.Fatal("expected deadline exceeded error")
@@ -893,7 +893,7 @@ func TestProjectUserService_Remove_Success(t *testing.T) {
 	}
 
 	service := createTestProjectUserService(mock)
-	err := service.Remove(context.Background(), orgID, projectID, userID)
+	err := service.Remove(context.Background(), WithOrg(orgID), WithProject(projectID), WithUser(userID))
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -930,7 +930,7 @@ func TestProjectUserService_Remove_InvalidOrgID(t *testing.T) {
 			mock := &mockAPIService{}
 			service := createTestProjectUserService(mock)
 
-			err := service.Remove(context.Background(), tc.orgID, projectID, userID)
+			err := service.Remove(context.Background(), WithOrg(tc.orgID), WithProject(projectID), WithUser(userID))
 
 			if err == nil {
 				t.Fatalf("expected error for orgID %q, got nil", tc.orgID)
@@ -968,7 +968,7 @@ func TestProjectUserService_Remove_InvalidProjectID(t *testing.T) {
 			mock := &mockAPIService{}
 			service := createTestProjectUserService(mock)
 
-			err := service.Remove(context.Background(), orgID, tc.projectID, userID)
+			err := service.Remove(context.Background(), WithOrg(orgID), WithProject(tc.projectID), WithUser(userID))
 
 			if err == nil {
 				t.Fatalf("expected error for projectID %q, got nil", tc.projectID)
@@ -1006,7 +1006,7 @@ func TestProjectUserService_Remove_InvalidUserID(t *testing.T) {
 			mock := &mockAPIService{}
 			service := createTestProjectUserService(mock)
 
-			err := service.Remove(context.Background(), orgID, projectID, tc.userID)
+			err := service.Remove(context.Background(), WithOrg(orgID), WithProject(projectID), WithUser(tc.userID))
 
 			if err == nil {
 				t.Fatalf("expected error for userID %q, got nil", tc.userID)
@@ -1035,7 +1035,7 @@ func TestProjectUserService_Remove_NotFound(t *testing.T) {
 	}
 
 	service := createTestProjectUserService(mock)
-	err := service.Remove(context.Background(), orgID, projectID, userID)
+	err := service.Remove(context.Background(), WithOrg(orgID), WithProject(projectID), WithUser(userID))
 
 	if err == nil {
 		t.Fatal("expected error, got nil")
@@ -1063,7 +1063,7 @@ func TestProjectUserService_Remove_AuthenticationError(t *testing.T) {
 	}
 
 	service := createTestProjectUserService(mock)
-	err := service.Remove(context.Background(), orgID, projectID, userID)
+	err := service.Remove(context.Background(), WithOrg(orgID), WithProject(projectID), WithUser(userID))
 
 	if err == nil {
 		t.Fatal("expected authentication error, got nil")
@@ -1094,7 +1094,7 @@ func TestProjectUserService_Remove_ContextTimeout(t *testing.T) {
 	service := createTestProjectUserServiceWithTimeout(mock, 100*time.Millisecond)
 
 	start := time.Now()
-	err := service.Remove(context.Background(), orgID, projectID, userID)
+	err := service.Remove(context.Background(), WithOrg(orgID), WithProject(projectID), WithUser(userID))
 	elapsed := time.Since(start)
 
 	if err == nil {
@@ -1127,7 +1127,7 @@ func TestProjectUserService_Remove_QuickCancellation(t *testing.T) {
 	}
 
 	service := createTestProjectUserServiceWithTimeout(mock, 30*time.Second)
-	err := service.Remove(ctx, orgID, projectID, userID)
+	err := service.Remove(ctx, WithOrg(orgID), WithProject(projectID), WithUser(userID))
 
 	if err == nil {
 		t.Fatal("expected deadline exceeded error")

@@ -36,13 +36,18 @@ type GetOrganizationResponse struct {
 // ============================================================================
 
 // organizationService handles organization operations for the v2beta1 API.
+//
+// It is scoped through org; each call may override the org field of the client's
+// default scope via the ScopeOption values passed to it.
 type organizationService struct {
-	api     api.RequestService
-	timeout time.Duration
-	logger  *slog.Logger
+	api          api.RequestService
+	timeout      time.Duration
+	logger       *slog.Logger
+	defaultScope requestScope
 }
 
-// List returns all organizations accessible to the authenticated user.
+// List returns all organizations accessible to the authenticated user. It requires
+// no scope.
 func (s *organizationService) List(ctx context.Context) (*ListOrganizationsResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
@@ -65,24 +70,27 @@ func (s *organizationService) List(ctx context.Context) (*ListOrganizationsRespo
 	return &result, nil
 }
 
-// Get retrieves details for a specific organization by ID.
-func (s *organizationService) Get(ctx context.Context, orgID string) (*GetOrganizationResponse, error) {
+// Get retrieves details for the organization selected by the scope options (with a
+// default org inherited from the client when unset).
+func (s *organizationService) Get(ctx context.Context, opts ...ScopeOption) (*GetOrganizationResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
+	sc := resolveScope(s.defaultScope, opts)
+
 	if err := utils.Validate(ctx, s.logger,
-		utils.OrganizationID(orgID),
+		utils.OrganizationID(sc.orgID),
 	); err != nil {
 		return nil, err
 	}
 
-	s.logger.DebugContext(ctx, "getting organization details", slog.String("orgID", orgID))
+	s.logger.DebugContext(ctx, "getting organization details", slog.String("orgID", sc.orgID))
 
-	path := fmt.Sprintf("organizations/%s", orgID)
+	path := fmt.Sprintf("organizations/%s", sc.orgID)
 
 	resp, err := s.api.Get(ctx, path)
 	if err != nil {
-		s.logger.ErrorContext(ctx, "failed to get organization", slog.String("orgID", orgID), slog.String("error", err.Error()))
+		s.logger.ErrorContext(ctx, "failed to get organization", slog.String("orgID", sc.orgID), slog.String("error", err.Error()))
 		return nil, err
 	}
 
@@ -92,6 +100,6 @@ func (s *organizationService) Get(ctx context.Context, orgID string) (*GetOrgani
 		return nil, err
 	}
 
-	s.logger.DebugContext(ctx, "organization retrieved successfully", slog.String("orgID", orgID), slog.String("name", result.Data.Name))
+	s.logger.DebugContext(ctx, "organization retrieved successfully", slog.String("orgID", sc.orgID), slog.String("name", result.Data.Name))
 	return &result, nil
 }

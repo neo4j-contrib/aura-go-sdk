@@ -64,30 +64,36 @@ type UpdateOrganizationUserRequest struct {
 // ============================================================================
 
 // organizationUserService handles organization user operations for the v2beta1 API.
+//
+// It is scoped through org(+user); each call may override individual fields of the
+// client's default scope via the ScopeOption values passed to it.
 type organizationUserService struct {
-	api     api.RequestService
-	timeout time.Duration
-	logger  *slog.Logger
+	api          api.RequestService
+	timeout      time.Duration
+	logger       *slog.Logger
+	defaultScope requestScope
 }
 
-// List returns all users within the given organization.
-func (s *organizationUserService) List(ctx context.Context, orgID string) (*ListOrganizationUsersResponse, error) {
+// List returns all users within the organization selected by the scope options.
+func (s *organizationUserService) List(ctx context.Context, opts ...ScopeOption) (*ListOrganizationUsersResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
+	sc := resolveScope(s.defaultScope, opts)
+
 	if err := utils.Validate(ctx, s.logger,
-		utils.OrganizationID(orgID),
+		utils.OrganizationID(sc.orgID),
 	); err != nil {
 		return nil, err
 	}
 
-	s.logger.DebugContext(ctx, "listing organization users", slog.String("orgID", orgID))
+	s.logger.DebugContext(ctx, "listing organization users", slog.String("orgID", sc.orgID))
 
-	path := utils.OrgUsersPath(orgID)
+	path := utils.OrgUsersPath(sc.orgID)
 
 	resp, err := s.api.Get(ctx, path)
 	if err != nil {
-		s.logger.ErrorContext(ctx, "failed to list organization users", slog.String("orgID", orgID), slog.String("error", err.Error()))
+		s.logger.ErrorContext(ctx, "failed to list organization users", slog.String("orgID", sc.orgID), slog.String("error", err.Error()))
 		return nil, err
 	}
 
@@ -97,29 +103,32 @@ func (s *organizationUserService) List(ctx context.Context, orgID string) (*List
 		return nil, err
 	}
 
-	s.logger.DebugContext(ctx, "organization users listed successfully", slog.String("orgID", orgID), slog.Int("count", len(result.Data)))
+	s.logger.DebugContext(ctx, "organization users listed successfully", slog.String("orgID", sc.orgID), slog.Int("count", len(result.Data)))
 	return &result, nil
 }
 
-// Get retrieves details for a specific user within the given organization.
-func (s *organizationUserService) Get(ctx context.Context, orgID, userID string) (*GetOrganizationUserResponse, error) {
+// Get retrieves details for the user selected by the scope options (including
+// WithUser).
+func (s *organizationUserService) Get(ctx context.Context, opts ...ScopeOption) (*GetOrganizationUserResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
+	sc := resolveScope(s.defaultScope, opts)
+
 	if err := utils.Validate(ctx, s.logger,
-		utils.OrganizationID(orgID),
-		utils.UserID(userID),
+		utils.OrganizationID(sc.orgID),
+		utils.UserID(sc.userID),
 	); err != nil {
 		return nil, err
 	}
 
-	s.logger.DebugContext(ctx, "getting organization user details", slog.String("orgID", orgID), slog.String("userID", userID))
+	s.logger.DebugContext(ctx, "getting organization user details", slog.String("orgID", sc.orgID), slog.String("userID", sc.userID))
 
-	path := utils.SingleOrgUserPath(orgID, userID)
+	path := utils.SingleOrgUserPath(sc.orgID, sc.userID)
 
 	resp, err := s.api.Get(ctx, path)
 	if err != nil {
-		s.logger.ErrorContext(ctx, "failed to get organization user", slog.String("orgID", orgID), slog.String("userID", userID), slog.String("error", err.Error()))
+		s.logger.ErrorContext(ctx, "failed to get organization user", slog.String("orgID", sc.orgID), slog.String("userID", sc.userID), slog.String("error", err.Error()))
 		return nil, err
 	}
 
@@ -129,23 +138,27 @@ func (s *organizationUserService) Get(ctx context.Context, orgID, userID string)
 		return nil, err
 	}
 
-	s.logger.DebugContext(ctx, "organization user retrieved successfully", slog.String("orgID", orgID), slog.String("userID", userID))
+	s.logger.DebugContext(ctx, "organization user retrieved successfully", slog.String("orgID", sc.orgID), slog.String("userID", sc.userID))
 	return &result, nil
 }
 
-// UpdateRole updates the organization roles of a specific user.
-func (s *organizationUserService) UpdateRole(ctx context.Context, orgID, userID string, req *UpdateOrganizationUserRequest) (*GetOrganizationUserResponse, error) {
+// UpdateRole updates the organization roles of the user selected by the scope
+// options (including WithUser). The request body precedes the trailing scope
+// options.
+func (s *organizationUserService) UpdateRole(ctx context.Context, req *UpdateOrganizationUserRequest, opts ...ScopeOption) (*GetOrganizationUserResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
+	sc := resolveScope(s.defaultScope, opts)
+
 	if err := utils.Validate(ctx, s.logger,
-		utils.OrganizationID(orgID),
-		utils.UserID(userID),
+		utils.OrganizationID(sc.orgID),
+		utils.UserID(sc.userID),
 	); err != nil {
 		return nil, err
 	}
 
-	s.logger.InfoContext(ctx, "updating organization user role", slog.String("orgID", orgID), slog.String("userID", userID))
+	s.logger.InfoContext(ctx, "updating organization user role", slog.String("orgID", sc.orgID), slog.String("userID", sc.userID))
 
 	body, err := json.Marshal(req)
 	if err != nil {
@@ -153,11 +166,11 @@ func (s *organizationUserService) UpdateRole(ctx context.Context, orgID, userID 
 		return nil, err
 	}
 
-	path := utils.SingleOrgUserPath(orgID, userID)
+	path := utils.SingleOrgUserPath(sc.orgID, sc.userID)
 
 	resp, err := s.api.Patch(ctx, path, string(body))
 	if err != nil {
-		s.logger.ErrorContext(ctx, "failed to update organization user role", slog.String("orgID", orgID), slog.String("userID", userID), slog.String("error", err.Error()))
+		s.logger.ErrorContext(ctx, "failed to update organization user role", slog.String("orgID", sc.orgID), slog.String("userID", sc.userID), slog.String("error", err.Error()))
 		return nil, err
 	}
 
@@ -167,32 +180,35 @@ func (s *organizationUserService) UpdateRole(ctx context.Context, orgID, userID 
 		return nil, err
 	}
 
-	s.logger.InfoContext(ctx, "organization user role updated successfully", slog.String("orgID", orgID), slog.String("userID", userID))
+	s.logger.InfoContext(ctx, "organization user role updated successfully", slog.String("orgID", sc.orgID), slog.String("userID", sc.userID))
 	return &result, nil
 }
 
-// Remove removes a user from the given organization. Returns nil on HTTP 204.
-func (s *organizationUserService) Remove(ctx context.Context, orgID, userID string) error {
+// Remove removes the user selected by the scope options (including WithUser) from
+// the organization. Returns nil on HTTP 204.
+func (s *organizationUserService) Remove(ctx context.Context, opts ...ScopeOption) error {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
+	sc := resolveScope(s.defaultScope, opts)
+
 	if err := utils.Validate(ctx, s.logger,
-		utils.OrganizationID(orgID),
-		utils.UserID(userID),
+		utils.OrganizationID(sc.orgID),
+		utils.UserID(sc.userID),
 	); err != nil {
 		return err
 	}
 
-	s.logger.InfoContext(ctx, "removing organization user", slog.String("orgID", orgID), slog.String("userID", userID))
+	s.logger.InfoContext(ctx, "removing organization user", slog.String("orgID", sc.orgID), slog.String("userID", sc.userID))
 
-	path := utils.SingleOrgUserPath(orgID, userID)
+	path := utils.SingleOrgUserPath(sc.orgID, sc.userID)
 
 	_, err := s.api.Delete(ctx, path)
 	if err != nil {
-		s.logger.ErrorContext(ctx, "failed to remove organization user", slog.String("orgID", orgID), slog.String("userID", userID), slog.String("error", err.Error()))
+		s.logger.ErrorContext(ctx, "failed to remove organization user", slog.String("orgID", sc.orgID), slog.String("userID", sc.userID), slog.String("error", err.Error()))
 		return err
 	}
 
-	s.logger.InfoContext(ctx, "organization user removed successfully", slog.String("orgID", orgID), slog.String("userID", userID))
+	s.logger.InfoContext(ctx, "organization user removed successfully", slog.String("orgID", sc.orgID), slog.String("userID", sc.userID))
 	return nil
 }

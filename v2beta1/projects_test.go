@@ -56,7 +56,7 @@ func TestProjectService_List_Success(t *testing.T) {
 	}
 
 	service := createTestProjectService(mock)
-	result, err := service.List(context.Background(), orgID)
+	result, err := service.List(context.Background(), WithOrg(orgID))
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -95,7 +95,7 @@ func TestProjectService_List_EmptyResult(t *testing.T) {
 	}
 
 	service := createTestProjectService(mock)
-	result, err := service.List(context.Background(), orgID)
+	result, err := service.List(context.Background(), WithOrg(orgID))
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -114,7 +114,7 @@ func TestProjectService_List_NotFound(t *testing.T) {
 	}
 
 	service := createTestProjectService(mock)
-	result, err := service.List(context.Background(), orgID)
+	result, err := service.List(context.Background(), WithOrg(orgID))
 
 	if err == nil {
 		t.Fatal("expected error, got nil")
@@ -141,7 +141,7 @@ func TestProjectService_List_AuthenticationError(t *testing.T) {
 	}
 
 	service := createTestProjectService(mock)
-	_, err := service.List(context.Background(), orgID)
+	_, err := service.List(context.Background(), WithOrg(orgID))
 
 	if err == nil {
 		t.Fatal("expected authentication error, got nil")
@@ -162,7 +162,7 @@ func TestProjectService_List_MissingOrgID(t *testing.T) {
 	mock := &mockAPIService{}
 
 	service := createTestProjectService(mock)
-	result, err := service.List(context.Background(), "")
+	result, err := service.List(context.Background(), WithOrg(""))
 
 	if err == nil {
 		t.Fatal("expected error for missing org ID, got nil")
@@ -191,7 +191,7 @@ func TestProjectService_List_ContextTimeout(t *testing.T) {
 	service := createTestProjectServiceWithTimeout(mock, 100*time.Millisecond)
 
 	start := time.Now()
-	_, err := service.List(context.Background(), orgID)
+	_, err := service.List(context.Background(), WithOrg(orgID))
 	elapsed := time.Since(start)
 
 	if err == nil {
@@ -221,7 +221,7 @@ func TestProjectService_List_QuickCancellation(t *testing.T) {
 
 	service := createTestProjectServiceWithTimeout(mock, 30*time.Second)
 
-	_, err := service.List(ctx, orgID)
+	_, err := service.List(ctx, WithOrg(orgID))
 
 	if err == nil {
 		t.Fatal("expected deadline exceeded error")

@@ -161,31 +161,38 @@ type DeleteInstanceResponse struct {
 // ============================================================================
 
 // instanceService handles instance operations for the v2beta1 API.
+//
+// It is scoped through org->project(+instance); each call may override individual
+// fields of the client's default scope via the ScopeOption values passed to it.
 type instanceService struct {
-	api     api.RequestService
-	timeout time.Duration
-	logger  *slog.Logger
+	api          api.RequestService
+	timeout      time.Duration
+	logger       *slog.Logger
+	defaultScope requestScope
 }
 
-// List returns all instances within the given organization and project.
-func (s *instanceService) List(ctx context.Context, orgID, projectID string) (*ListInstancesResponse, error) {
+// List returns all instances in the organization and project selected by the scope
+// options, inheriting any unset field from the client's default scope.
+func (s *instanceService) List(ctx context.Context, opts ...ScopeOption) (*ListInstancesResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
+	sc := resolveScope(s.defaultScope, opts)
+
 	if err := utils.Validate(ctx, s.logger,
-		utils.OrganizationID(orgID),
-		utils.ProjectID(projectID),
+		utils.OrganizationID(sc.orgID),
+		utils.ProjectID(sc.projectID),
 	); err != nil {
 		return nil, err
 	}
 
-	s.logger.DebugContext(ctx, "listing instances", slog.String("orgID", orgID), slog.String("projectID", projectID))
+	s.logger.DebugContext(ctx, "listing instances", slog.String("orgID", sc.orgID), slog.String("projectID", sc.projectID))
 
-	path := utils.InstancesPath(orgID, projectID)
+	path := utils.InstancesPath(sc.orgID, sc.projectID)
 
 	resp, err := s.api.Get(ctx, path)
 	if err != nil {
-		s.logger.ErrorContext(ctx, "failed to list instances", slog.String("orgID", orgID), slog.String("projectID", projectID), slog.String("error", err.Error()))
+		s.logger.ErrorContext(ctx, "failed to list instances", slog.String("orgID", sc.orgID), slog.String("projectID", sc.projectID), slog.String("error", err.Error()))
 		return nil, err
 	}
 
@@ -195,30 +202,32 @@ func (s *instanceService) List(ctx context.Context, orgID, projectID string) (*L
 		return nil, err
 	}
 
-	s.logger.DebugContext(ctx, "instances listed successfully", slog.String("orgID", orgID), slog.String("projectID", projectID), slog.Int("count", len(result.Data)))
+	s.logger.DebugContext(ctx, "instances listed successfully", slog.String("orgID", sc.orgID), slog.String("projectID", sc.projectID), slog.Int("count", len(result.Data)))
 	return &result, nil
 }
 
-// Get retrieves details for a specific instance by UUID.
-func (s *instanceService) Get(ctx context.Context, orgID, projectID, instanceID string) (*GetInstanceResponse, error) {
+// Get retrieves details for the instance selected by the scope options.
+func (s *instanceService) Get(ctx context.Context, opts ...ScopeOption) (*GetInstanceResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
+	sc := resolveScope(s.defaultScope, opts)
+
 	if err := utils.Validate(ctx, s.logger,
-		utils.OrganizationID(orgID),
-		utils.ProjectID(projectID),
-		utils.InstanceID(instanceID),
+		utils.OrganizationID(sc.orgID),
+		utils.ProjectID(sc.projectID),
+		utils.InstanceID(sc.instanceID),
 	); err != nil {
 		return nil, err
 	}
 
-	s.logger.DebugContext(ctx, "getting instance details", slog.String("orgID", orgID), slog.String("projectID", projectID), slog.String("instanceID", instanceID))
+	s.logger.DebugContext(ctx, "getting instance details", slog.String("orgID", sc.orgID), slog.String("projectID", sc.projectID), slog.String("instanceID", sc.instanceID))
 
-	path := utils.SingleInstancePath(orgID, projectID, instanceID)
+	path := utils.SingleInstancePath(sc.orgID, sc.projectID, sc.instanceID)
 
 	resp, err := s.api.Get(ctx, path)
 	if err != nil {
-		s.logger.ErrorContext(ctx, "failed to get instance", slog.String("instanceID", instanceID), slog.String("error", err.Error()))
+		s.logger.ErrorContext(ctx, "failed to get instance", slog.String("instanceID", sc.instanceID), slog.String("error", err.Error()))
 		return nil, err
 	}
 
@@ -228,12 +237,13 @@ func (s *instanceService) Get(ctx context.Context, orgID, projectID, instanceID 
 		return nil, err
 	}
 
-	s.logger.DebugContext(ctx, "instance retrieved successfully", slog.String("instanceID", instanceID))
+	s.logger.DebugContext(ctx, "instance retrieved successfully", slog.String("instanceID", sc.instanceID))
 	return &result, nil
 }
 
-// Create provisions a new instance within the given organization and project.
-func (s *instanceService) Create(ctx context.Context, orgID, projectID string, req *CreateInstanceRequest) (*CreateInstanceResponse, error) {
+// Create provisions a new instance in the organization and project selected by the
+// scope options. The request body precedes the trailing scope options.
+func (s *instanceService) Create(ctx context.Context, req *CreateInstanceRequest, opts ...ScopeOption) (*CreateInstanceResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -248,14 +258,16 @@ func (s *instanceService) Create(ctx context.Context, orgID, projectID string, r
 		return nil, err
 	}
 
+	sc := resolveScope(s.defaultScope, opts)
+
 	if err := utils.Validate(ctx, s.logger,
-		utils.OrganizationID(orgID),
-		utils.ProjectID(projectID),
+		utils.OrganizationID(sc.orgID),
+		utils.ProjectID(sc.projectID),
 	); err != nil {
 		return nil, err
 	}
 
-	s.logger.InfoContext(ctx, "creating instance", slog.String("orgID", orgID), slog.String("projectID", projectID), slog.String("name", req.Name))
+	s.logger.InfoContext(ctx, "creating instance", slog.String("orgID", sc.orgID), slog.String("projectID", sc.projectID), slog.String("name", req.Name))
 
 	body, err := json.Marshal(req)
 	if err != nil {
@@ -263,11 +275,11 @@ func (s *instanceService) Create(ctx context.Context, orgID, projectID string, r
 		return nil, err
 	}
 
-	path := utils.InstancesPath(orgID, projectID)
+	path := utils.InstancesPath(sc.orgID, sc.projectID)
 
 	resp, err := s.api.Post(ctx, path, string(body))
 	if err != nil {
-		s.logger.ErrorContext(ctx, "failed to create instance", slog.String("orgID", orgID), slog.String("projectID", projectID), slog.String("error", err.Error()))
+		s.logger.ErrorContext(ctx, "failed to create instance", slog.String("orgID", sc.orgID), slog.String("projectID", sc.projectID), slog.String("error", err.Error()))
 		return nil, err
 	}
 
@@ -281,8 +293,9 @@ func (s *instanceService) Create(ctx context.Context, orgID, projectID string, r
 	return &result, nil
 }
 
-// Update modifies a specific instance's configuration.
-func (s *instanceService) Update(ctx context.Context, orgID, projectID, instanceID string, req *UpdateInstanceRequest) (*GetInstanceResponse, error) {
+// Update modifies the configuration of the instance selected by the scope options.
+// The request body precedes the trailing scope options.
+func (s *instanceService) Update(ctx context.Context, req *UpdateInstanceRequest, opts ...ScopeOption) (*GetInstanceResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -297,15 +310,17 @@ func (s *instanceService) Update(ctx context.Context, orgID, projectID, instance
 		return nil, err
 	}
 
+	sc := resolveScope(s.defaultScope, opts)
+
 	if err := utils.Validate(ctx, s.logger,
-		utils.OrganizationID(orgID),
-		utils.ProjectID(projectID),
-		utils.InstanceID(instanceID),
+		utils.OrganizationID(sc.orgID),
+		utils.ProjectID(sc.projectID),
+		utils.InstanceID(sc.instanceID),
 	); err != nil {
 		return nil, err
 	}
 
-	s.logger.InfoContext(ctx, "updating instance", slog.String("orgID", orgID), slog.String("projectID", projectID), slog.String("instanceID", instanceID))
+	s.logger.InfoContext(ctx, "updating instance", slog.String("orgID", sc.orgID), slog.String("projectID", sc.projectID), slog.String("instanceID", sc.instanceID))
 
 	body, err := json.Marshal(req)
 	if err != nil {
@@ -313,11 +328,11 @@ func (s *instanceService) Update(ctx context.Context, orgID, projectID, instance
 		return nil, err
 	}
 
-	path := utils.SingleInstancePath(orgID, projectID, instanceID)
+	path := utils.SingleInstancePath(sc.orgID, sc.projectID, sc.instanceID)
 
 	resp, err := s.api.Patch(ctx, path, string(body))
 	if err != nil {
-		s.logger.ErrorContext(ctx, "failed to update instance", slog.String("instanceID", instanceID), slog.String("error", err.Error()))
+		s.logger.ErrorContext(ctx, "failed to update instance", slog.String("instanceID", sc.instanceID), slog.String("error", err.Error()))
 		return nil, err
 	}
 
@@ -327,35 +342,37 @@ func (s *instanceService) Update(ctx context.Context, orgID, projectID, instance
 		return nil, err
 	}
 
-	s.logger.InfoContext(ctx, "instance updated successfully", slog.String("instanceID", instanceID))
+	s.logger.InfoContext(ctx, "instance updated successfully", slog.String("instanceID", sc.instanceID))
 	return &result, nil
 }
 
-// Delete removes a specific instance.
-func (s *instanceService) Delete(ctx context.Context, orgID, projectID, instanceID string) (*DeleteInstanceResponse, error) {
+// Delete removes the instance selected by the scope options.
+func (s *instanceService) Delete(ctx context.Context, opts ...ScopeOption) (*DeleteInstanceResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
+	sc := resolveScope(s.defaultScope, opts)
+
 	if err := utils.Validate(ctx, s.logger,
-		utils.OrganizationID(orgID),
-		utils.ProjectID(projectID),
-		utils.InstanceID(instanceID),
+		utils.OrganizationID(sc.orgID),
+		utils.ProjectID(sc.projectID),
+		utils.InstanceID(sc.instanceID),
 	); err != nil {
 		return nil, err
 	}
 
-	s.logger.InfoContext(ctx, "deleting instance", slog.String("orgID", orgID), slog.String("projectID", projectID), slog.String("instanceID", instanceID))
+	s.logger.InfoContext(ctx, "deleting instance", slog.String("orgID", sc.orgID), slog.String("projectID", sc.projectID), slog.String("instanceID", sc.instanceID))
 
-	path := utils.SingleInstancePath(orgID, projectID, instanceID)
+	path := utils.SingleInstancePath(sc.orgID, sc.projectID, sc.instanceID)
 
 	resp, err := s.api.Delete(ctx, path)
 	if err != nil {
-		s.logger.ErrorContext(ctx, "failed to delete instance", slog.String("instanceID", instanceID), slog.String("error", err.Error()))
+		s.logger.ErrorContext(ctx, "failed to delete instance", slog.String("instanceID", sc.instanceID), slog.String("error", err.Error()))
 		return nil, err
 	}
 
 	if len(resp.Body) == 0 {
-		s.logger.InfoContext(ctx, "instance deleted successfully", slog.String("instanceID", instanceID))
+		s.logger.InfoContext(ctx, "instance deleted successfully", slog.String("instanceID", sc.instanceID))
 		return &DeleteInstanceResponse{}, nil
 	}
 
@@ -365,7 +382,7 @@ func (s *instanceService) Delete(ctx context.Context, orgID, projectID, instance
 		return nil, err
 	}
 
-	s.logger.InfoContext(ctx, "instance deleted successfully", slog.String("instanceID", instanceID))
+	s.logger.InfoContext(ctx, "instance deleted successfully", slog.String("instanceID", sc.instanceID))
 	return &result, nil
 }
 

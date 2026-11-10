@@ -39,7 +39,11 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 6*time.Second)
 	defer cancel()
 
-	databases, err := client.Databases.List(ctx, orgID, projectID, instanceID)
+	databases, err := client.Databases.List(ctx,
+		v2beta1.WithOrg(orgID),
+		v2beta1.WithProject(projectID),
+		v2beta1.WithInstance(instanceID),
+	)
 	if err != nil {
 		log.Fatalf("Failed to list databases: %v", err)
 	}
