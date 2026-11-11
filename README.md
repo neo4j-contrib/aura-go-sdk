@@ -757,7 +757,37 @@ if err != nil {
 defer client.Close()
 ```
 
-Every service call requires the caller to pass `orgID` and `projectID` explicitly. This ensures that the organization and project being acted on are always visible at the call site, preventing accidental operations in the wrong scope.
+Scope (organization → project → instance → database, plus the `backup`, `user`
+and `invite` leaves) is supplied per call as variadic `ScopeOption` values —
+`WithOrg`, `WithProject`, `WithInstance`, `WithDatabase`, `WithBackup`, `WithUser`
+and `WithInvite`. Each service validates only the portion of the scope its resource
+needs, so an org-level call ignores the lower fields.
+
+A scope can instead be set once on the client with `WithDefaultOrg`,
+`WithDefaultProject` or `WithDefaultInstance`, and any field left unset in a call
+inherits that default — which keeps repeat operations to a one-line call. A
+per-call option overrides the matching default, and when more than one option sets
+the same field the last one wins:
+
+```go
+// Inherited default scope:
+client, _ := v2beta1.NewClient(
+    v2beta1.WithCredentials("your-client-id", "your-client-secret"),
+    v2beta1.WithDefaultOrg(orgID),
+    v2beta1.WithDefaultProject(projectID),
+)
+
+databases, err := client.Databases.List(ctx) // org + project inherited from the default
+if err != nil {
+    log.Fatalf("Error: %v", err)
+}
+```
+
+The examples in the sections below pass scope explicitly on every call for
+clarity; swap a constant org/project/instance for a `WithDefault*` client option
+to drop the repeated argument. Operations that carry a request body take that body
+first, then the scope options — for example
+`client.Instances.Create(ctx, req, v2beta1.WithOrg(orgID), v2beta1.WithProject(projectID))`.
 
 ### List Organizations
 
@@ -779,7 +809,7 @@ for _, org := range orgs.Data {
 ```go
 ctx := context.Background()
 
-org, err := client.Organizations.Get(ctx, "your-org-uuid")
+org, err := client.Organizations.Get(ctx, v2beta1.WithOrg("your-org-uuid"))
 if err != nil {
     log.Fatalf("Error: %v", err)
 }
@@ -792,7 +822,7 @@ fmt.Printf("Organization: %s\n", org.Data.Name)
 ```go
 ctx := context.Background()
 
-projects, err := client.Projects.List(ctx, "your-org-uuid")
+projects, err := client.Projects.List(ctx, v2beta1.WithOrg("your-org-uuid"))
 if err != nil {
     log.Fatalf("Error: %v", err)
 }
@@ -811,7 +841,7 @@ for _, project := range projects.Data {
 ```go
 ctx := context.Background()
 
-instances, err := client.Instances.List(ctx, "your-org-uuid", "your-project-uuid")
+instances, err := client.Instances.List(ctx, v2beta1.WithOrg("your-org-uuid"), v2beta1.WithProject("your-project-uuid"))
 if err != nil {
     log.Fatalf("Error: %v", err)
 }
@@ -826,7 +856,7 @@ for _, instance := range instances.Data {
 ```go
 ctx := context.Background()
 
-instance, err := client.Instances.Get(ctx, "your-org-uuid", "your-project-uuid", "a1b2c3d4-e5f6-7890-abcd-ef1234567890")
+instance, err := client.Instances.Get(ctx, v2beta1.WithOrg("your-org-uuid"), v2beta1.WithProject("your-project-uuid"), v2beta1.WithInstance("a1b2c3d4-e5f6-7890-abcd-ef1234567890"))
 if err != nil {
     log.Fatalf("Error: %v", err)
 }
@@ -846,10 +876,9 @@ req := &v2beta1.CreateInstanceRequest{
     Region:        "europe-west1",
     Type:          "enterprise-db",
     Memory:        "8GB",
-    Version:       "5",
 }
 
-instance, err := client.Instances.Create(ctx, "your-org-uuid", "your-project-uuid", req)
+instance, err := client.Instances.Create(ctx, req, v2beta1.WithOrg("your-org-uuid"), v2beta1.WithProject("your-project-uuid"))
 if err != nil {
     log.Fatalf("Error: %v", err)
 }
@@ -868,7 +897,7 @@ req := &v2beta1.UpdateInstanceRequest{
     Memory: "16GB",
 }
 
-instance, err := client.Instances.Update(ctx, "your-org-uuid", "your-project-uuid", "a1b2c3d4-e5f6-7890-abcd-ef1234567890", req)
+instance, err := client.Instances.Update(ctx, req, v2beta1.WithOrg("your-org-uuid"), v2beta1.WithProject("your-project-uuid"), v2beta1.WithInstance("a1b2c3d4-e5f6-7890-abcd-ef1234567890"))
 if err != nil {
     log.Fatalf("Error: %v", err)
 }
@@ -881,7 +910,7 @@ fmt.Printf("Updated: %s memory: %s\n", instance.Data.Name, instance.Data.Memory)
 ```go
 ctx := context.Background()
 
-result, err := client.Instances.Delete(ctx, "your-org-uuid", "your-project-uuid", "a1b2c3d4-e5f6-7890-abcd-ef1234567890")
+result, err := client.Instances.Delete(ctx, v2beta1.WithOrg("your-org-uuid"), v2beta1.WithProject("your-project-uuid"), v2beta1.WithInstance("a1b2c3d4-e5f6-7890-abcd-ef1234567890"))
 if err != nil {
     log.Fatalf("Error: %v", err)
 }
@@ -900,7 +929,7 @@ fmt.Printf("Deleted instance: %s\n", result.Data.ID)
 ```go
 ctx := context.Background()
 
-databases, err := client.Databases.List(ctx, "your-org-uuid", "your-project-uuid", "abcdef01")
+databases, err := client.Databases.List(ctx, v2beta1.WithOrg("your-org-uuid"), v2beta1.WithProject("your-project-uuid"), v2beta1.WithInstance("abcdef01"))
 if err != nil {
     log.Fatalf("Error: %v", err)
 }
@@ -915,7 +944,7 @@ for _, db := range databases.Data {
 ```go
 ctx := context.Background()
 
-db, err := client.Databases.Get(ctx, "your-org-uuid", "your-project-uuid", "abcdef01", "12345678")
+db, err := client.Databases.Get(ctx, v2beta1.WithOrg("your-org-uuid"), v2beta1.WithProject("your-project-uuid"), v2beta1.WithInstance("abcdef01"), v2beta1.WithDatabase("12345678"))
 if err != nil {
     log.Fatalf("Error: %v", err)
 }
@@ -928,7 +957,7 @@ fmt.Printf("Database ID: %s\n", db.Data.ID)
 ```go
 ctx := context.Background()
 
-db, err := client.Databases.Create(ctx, "your-org-uuid", "your-project-uuid", "abcdef01")
+db, err := client.Databases.Create(ctx, v2beta1.WithOrg("your-org-uuid"), v2beta1.WithProject("your-project-uuid"), v2beta1.WithInstance("abcdef01"))
 if err != nil {
     log.Fatalf("Error: %v", err)
 }
@@ -942,7 +971,7 @@ fmt.Printf("Database created: %s\n", db.Data.ID)
 ctx := context.Background()
 
 // ⚠️ WARNING: This is irreversible!
-result, err := client.Databases.Delete(ctx, "your-org-uuid", "your-project-uuid", "abcdef01", "12345678")
+result, err := client.Databases.Delete(ctx, v2beta1.WithOrg("your-org-uuid"), v2beta1.WithProject("your-project-uuid"), v2beta1.WithInstance("abcdef01"), v2beta1.WithDatabase("12345678"))
 if err != nil {
     log.Fatalf("Error: %v", err)
 }
@@ -964,7 +993,7 @@ fmt.Printf("Deleted database: %s\n", result.Data.ID)
 ```go
 ctx := context.Background()
 
-backups, err := client.DatabaseBackups.List(ctx, "your-org-uuid", "your-project-uuid", "abcdef01", "12345678")
+backups, err := client.DatabaseBackups.List(ctx, v2beta1.WithOrg("your-org-uuid"), v2beta1.WithProject("your-project-uuid"), v2beta1.WithInstance("abcdef01"), v2beta1.WithDatabase("12345678"))
 if err != nil {
     log.Fatalf("Error: %v", err)
 }
@@ -979,7 +1008,7 @@ for _, backup := range backups.Data {
 ```go
 ctx := context.Background()
 
-backup, err := client.DatabaseBackups.Create(ctx, "your-org-uuid", "your-project-uuid", "abcdef01", "12345678")
+backup, err := client.DatabaseBackups.Create(ctx, v2beta1.WithOrg("your-org-uuid"), v2beta1.WithProject("your-project-uuid"), v2beta1.WithInstance("abcdef01"), v2beta1.WithDatabase("12345678"))
 if err != nil {
     log.Fatalf("Error: %v", err)
 }
@@ -992,7 +1021,7 @@ fmt.Printf("Backup created: %s status: %s\n", backup.Data.ID, backup.Data.Status
 ```go
 ctx := context.Background()
 
-backup, err := client.DatabaseBackups.Get(ctx, "your-org-uuid", "your-project-uuid", "abcdef01", "12345678", "backup-id")
+backup, err := client.DatabaseBackups.Get(ctx, v2beta1.WithOrg("your-org-uuid"), v2beta1.WithProject("your-project-uuid"), v2beta1.WithInstance("abcdef01"), v2beta1.WithDatabase("12345678"), v2beta1.WithBackup("backup-id"))
 if err != nil {
     log.Fatalf("Error: %v", err)
 }
@@ -1012,7 +1041,7 @@ fmt.Printf("Backup: %s status: %s exportable: %v\n",
 ```go
 ctx := context.Background()
 
-users, err := client.OrganizationUsers.List(ctx, "your-org-uuid")
+users, err := client.OrganizationUsers.List(ctx, v2beta1.WithOrg("your-org-uuid"))
 if err != nil {
     log.Fatalf("Error: %v", err)
 }
@@ -1027,7 +1056,7 @@ for _, user := range users.Data {
 ```go
 ctx := context.Background()
 
-user, err := client.OrganizationUsers.Get(ctx, "your-org-uuid", "a1b2c3d4-e5f6-7890-abcd-ef1234567890")
+user, err := client.OrganizationUsers.Get(ctx, v2beta1.WithOrg("your-org-uuid"), v2beta1.WithUser("a1b2c3d4-e5f6-7890-abcd-ef1234567890"))
 if err != nil {
     log.Fatalf("Error: %v", err)
 }
@@ -1047,7 +1076,7 @@ req := &v2beta1.UpdateOrganizationUserRequest{
     OrganizationRoles: []string{"organization-member"},
 }
 
-user, err := client.OrganizationUsers.UpdateRole(ctx, "your-org-uuid", "a1b2c3d4-e5f6-7890-abcd-ef1234567890", req)
+user, err := client.OrganizationUsers.UpdateRole(ctx, req, v2beta1.WithOrg("your-org-uuid"), v2beta1.WithUser("a1b2c3d4-e5f6-7890-abcd-ef1234567890"))
 if err != nil {
     log.Fatalf("Error: %v", err)
 }
@@ -1060,7 +1089,7 @@ fmt.Printf("Updated roles: %v\n", user.Data.OrganizationRoles)
 ```go
 ctx := context.Background()
 
-err := client.OrganizationUsers.Remove(ctx, "your-org-uuid", "a1b2c3d4-e5f6-7890-abcd-ef1234567890")
+err := client.OrganizationUsers.Remove(ctx, v2beta1.WithOrg("your-org-uuid"), v2beta1.WithUser("a1b2c3d4-e5f6-7890-abcd-ef1234567890"))
 if err != nil {
     log.Fatalf("Error: %v", err)
 }
@@ -1079,7 +1108,7 @@ fmt.Println("User removed from organization")
 ```go
 ctx := context.Background()
 
-invites, err := client.OrganizationInvites.List(ctx, "your-org-uuid")
+invites, err := client.OrganizationInvites.List(ctx, v2beta1.WithOrg("your-org-uuid"))
 if err != nil {
     log.Fatalf("Error: %v", err)
 }
@@ -1099,7 +1128,7 @@ req := &v2beta1.CreateOrganizationInviteRequest{
     Roles: []string{"organization-member"},
 }
 
-invite, err := client.OrganizationInvites.Create(ctx, "your-org-uuid", req)
+invite, err := client.OrganizationInvites.Create(ctx, req, v2beta1.WithOrg("your-org-uuid"))
 if err != nil {
     log.Fatalf("Error: %v", err)
 }
@@ -1123,7 +1152,7 @@ req := &v2beta1.CreateOrganizationInviteRequest{
     },
 }
 
-invite, err := client.OrganizationInvites.Create(ctx, "your-org-uuid", req)
+invite, err := client.OrganizationInvites.Create(ctx, req, v2beta1.WithOrg("your-org-uuid"))
 if err != nil {
     log.Fatalf("Error: %v", err)
 }
@@ -1136,7 +1165,7 @@ fmt.Printf("Invite sent to %s (ID: %s)\n", invite.Data.Email, invite.Data.ID)
 ```go
 ctx := context.Background()
 
-err := client.OrganizationInvites.Delete(ctx, "your-org-uuid", "a1b2c3d4-e5f6-7890-abcd-ef1234567890")
+err := client.OrganizationInvites.Delete(ctx, v2beta1.WithOrg("your-org-uuid"), v2beta1.WithInvite("a1b2c3d4-e5f6-7890-abcd-ef1234567890"))
 if err != nil {
     log.Fatalf("Error: %v", err)
 }
@@ -1155,7 +1184,7 @@ fmt.Println("Invite deleted")
 ```go
 ctx := context.Background()
 
-users, err := client.ProjectUsers.List(ctx, "your-org-uuid", "your-project-uuid")
+users, err := client.ProjectUsers.List(ctx, v2beta1.WithOrg("your-org-uuid"), v2beta1.WithProject("your-project-uuid"))
 if err != nil {
     log.Fatalf("Error: %v", err)
 }
@@ -1170,10 +1199,10 @@ for _, user := range users.Data {
 ```go
 ctx := context.Background()
 
-err := client.ProjectUsers.Add(ctx, "your-org-uuid", "your-project-uuid", &v2beta1.AddProjectUserRequest{
+err := client.ProjectUsers.Add(ctx, &v2beta1.AddProjectUserRequest{
     UserID:       "user-uuid",
     ProjectRoles: []string{"viewer"},
-})
+}, v2beta1.WithOrg("your-org-uuid"), v2beta1.WithProject("your-project-uuid"))
 if err != nil {
     log.Fatalf("Error: %v", err)
 }
@@ -1184,9 +1213,9 @@ if err != nil {
 ```go
 ctx := context.Background()
 
-user, err := client.ProjectUsers.UpdateRole(ctx, "your-org-uuid", "your-project-uuid", "user-uuid", &v2beta1.UpdateProjectUserRequest{
+user, err := client.ProjectUsers.UpdateRole(ctx, &v2beta1.UpdateProjectUserRequest{
     ProjectRoles: []string{"editor"},
-})
+}, v2beta1.WithOrg("your-org-uuid"), v2beta1.WithProject("your-project-uuid"), v2beta1.WithUser("user-uuid"))
 if err != nil {
     log.Fatalf("Error: %v", err)
 }
@@ -1199,7 +1228,7 @@ fmt.Printf("Updated roles: %v\n", user.Data.ProjectRoles)
 ```go
 ctx := context.Background()
 
-err := client.ProjectUsers.Remove(ctx, "your-org-uuid", "your-project-uuid", "user-uuid")
+err := client.ProjectUsers.Remove(ctx, v2beta1.WithOrg("your-org-uuid"), v2beta1.WithProject("your-project-uuid"), v2beta1.WithUser("user-uuid"))
 if err != nil {
     log.Fatalf("Error: %v", err)
 }
@@ -1214,7 +1243,7 @@ if err != nil {
 ```go
 ctx := context.Background()
 
-instance, err := client.Instances.Get(ctx, "your-org-uuid", "your-project-uuid", "instance-id")
+instance, err := client.Instances.Get(ctx, v2beta1.WithOrg("your-org-uuid"), v2beta1.WithProject("your-project-uuid"), v2beta1.WithInstance("instance-id"))
 if err != nil {
     log.Printf("Error: %v\n", err)
     return
@@ -1226,7 +1255,7 @@ if err != nil {
 ```go
 ctx := context.Background()
 
-instance, err := client.Instances.Get(ctx, "your-org-uuid", "your-project-uuid", "non-existent-id")
+instance, err := client.Instances.Get(ctx, v2beta1.WithOrg("your-org-uuid"), v2beta1.WithProject("your-project-uuid"), v2beta1.WithInstance("non-existent-id"))
 if err != nil {
     if apiErr, ok := err.(*aura.Error); ok {
         fmt.Printf("API Error %d: %s\n", apiErr.StatusCode, apiErr.Message)
@@ -1260,7 +1289,7 @@ if err != nil {
 ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 defer cancel()
 
-instances, err := client.Instances.List(ctx, "your-org-uuid", "your-project-uuid")
+instances, err := client.Instances.List(ctx, v2beta1.WithOrg("your-org-uuid"), v2beta1.WithProject("your-project-uuid"))
 if err != nil {
     switch ctx.Err() {
     case context.DeadlineExceeded:
