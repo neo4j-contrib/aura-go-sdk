@@ -972,3 +972,88 @@ func TestDatabaseGetBackup_QuickCancellation(t *testing.T) {
 		t.Errorf("expected context error, got: %v", err)
 	}
 }
+
+// ============================================================================
+// Default scope precedence tests (database backups)
+// ----------------------------------------------------------------------------
+// The backup service is the deepest on the spine (org->project->instance->database,
+// with WithBackup selecting a single backup). These prove the client default
+// supplies the spine when fields are left unset per call, that a per-call option
+// overrides its matching default, and that the last option for a field wins.
+// ============================================================================
+
+func createTestDatabaseBackupServiceWithDefaultScope(mock *mockAPIService, def requestScope) *databaseBackupService {
+	return &databaseBackupService{api: mock, timeout: 30 * time.Second, logger: testLogger(), defaultScope: def}
+}
+
+func TestDatabaseBackups_List_DefaultScope(t *testing.T) {
+	const (
+		orgID      = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		projectID  = "11111111-2222-3333-4444-555555555555"
+		instanceID = "abcdef01"
+		databaseID = "12345678"
+	)
+
+	mock := &mockAPIService{response: &api.Response{StatusCode: 200, Body: []byte(`{"data":[]}`)}}
+	service := createTestDatabaseBackupServiceWithDefaultScope(mock, requestScope{
+		orgID: orgID, projectID: projectID, instanceID: instanceID, databaseID: databaseID,
+	})
+
+	// No per-call options: the full spine is inherited from the default.
+	_, err := service.List(context.Background())
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	want := "organizations/" + orgID + "/projects/" + projectID + "/instances/" + instanceID + "/databases/" + databaseID + "/backups"
+	if mock.lastPath != want {
+		t.Errorf("expected default-scope path %q, got %q", want, mock.lastPath)
+	}
+}
+
+func TestDatabaseBackups_Get_PerCallOverride(t *testing.T) {
+	const (
+		org        = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		proj       = "11111111-2222-3333-4444-555555555555"
+		instanceID = "abcdef01"
+		databaseID = "12345678"
+		otherOrg   = "cccccccc-dddd-eeee-ffff-000011112222"
+		backupID   = "bbbbbbbb-cccc-dddd-eeee-ffffffffffff"
+	)
+
+	mock := &mockAPIService{response: &api.Response{StatusCode: 200, Body: []byte(`{"data":{"id":"bbbbbbbb-cccc-dddd-eeee-ffffffffffff"}}`)}}
+	service := createTestDatabaseBackupServiceWithDefaultScope(mock, requestScope{
+		orgID: org, projectID: proj, instanceID: instanceID, databaseID: databaseID,
+	})
+
+	// Spine is inherited; only the leaf backup and the org are supplied per call.
+	_, err := service.Get(context.Background(), WithOrg(otherOrg), WithBackup(backupID))
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	want := "organizations/" + otherOrg + "/projects/" + proj + "/instances/" + instanceID + "/databases/" + databaseID + "/backups/" + backupID
+	if mock.lastPath != want {
+		t.Errorf("expected overridden path %q, got %q", want, mock.lastPath)
+	}
+}
+
+func TestDatabaseBackups_List_LastOptionWins(t *testing.T) {
+	const (
+		orgA = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		orgB = "cccccccc-dddd-eeee-ffff-000011112222"
+		proj = "11111111-2222-3333-4444-555555555555"
+		inst = "abcdef01"
+		db   = "12345678"
+	)
+
+	mock := &mockAPIService{response: &api.Response{StatusCode: 200, Body: []byte(`{"data":[]}`)}}
+	service := createTestDatabaseBackupService(mock)
+
+	_, err := service.List(context.Background(), WithOrg(orgA), WithOrg(orgB), WithProject(proj), WithInstance(inst), WithDatabase(db))
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	want := "organizations/" + orgB + "/projects/" + proj + "/instances/" + inst + "/databases/" + db + "/backups"
+	if mock.lastPath != want {
+		t.Errorf("expected last-option-wins path %q, got %q", want, mock.lastPath)
+	}
+}

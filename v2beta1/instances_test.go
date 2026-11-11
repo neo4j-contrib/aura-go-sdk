@@ -1168,3 +1168,114 @@ func TestInstanceService_Delete_QuickCancellation(t *testing.T) {
 		t.Errorf("expected context error, got: %v", err)
 	}
 }
+
+// ============================================================================
+// Default scope precedence tests (instance)
+// ----------------------------------------------------------------------------
+// These prove the client-level default scope is used when a field is left
+// unset per call, that a per-call option overrides the matching default, and
+// that with several options for the same field the last one wins.
+// ============================================================================
+
+func createTestInstanceServiceWithDefaultScope(mock *mockAPIService, def requestScope) *instanceService {
+	return &instanceService{api: mock, timeout: 30 * time.Second, logger: testLogger(), defaultScope: def}
+}
+
+func TestInstanceService_List_DefaultScope(t *testing.T) {
+	const (
+		orgID     = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		projectID = "11111111-2222-3333-4444-555555555555"
+	)
+
+	mock := &mockAPIService{response: &api.Response{StatusCode: 200, Body: []byte(`{"data":[]}`)}}
+	service := createTestInstanceServiceWithDefaultScope(mock, requestScope{orgID: orgID, projectID: projectID})
+
+	// No per-call scope: the whole scope is inherited from the client default.
+	_, err := service.List(context.Background())
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	want := "organizations/" + orgID + "/projects/" + projectID + "/instances"
+	if mock.lastPath != want {
+		t.Errorf("expected default-scope path %q, got %q", want, mock.lastPath)
+	}
+}
+
+func TestInstanceService_Get_PerCallOverride(t *testing.T) {
+	const (
+		defOrg    = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		defProj   = "11111111-2222-3333-4444-555555555555"
+		defInst   = "abcdef01"
+		otherProj = "22222222-3333-4444-5555-666666666666"
+	)
+
+	mock := &mockAPIService{response: &api.Response{StatusCode: 200, Body: []byte(`{"data":{}}`)}}
+	service := createTestInstanceServiceWithDefaultScope(mock, requestScope{orgID: defOrg, projectID: defProj, instanceID: defInst})
+
+	// Only the project is overridden; org and instance still inherit the default.
+	_, err := service.Get(context.Background(), WithProject(otherProj))
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	want := "organizations/" + defOrg + "/projects/" + otherProj + "/instances/" + defInst
+	if mock.lastPath != want {
+		t.Errorf("expected overridden path %q, got %q", want, mock.lastPath)
+	}
+}
+
+func TestInstanceService_Create_DefaultScopeBodyFirst(t *testing.T) {
+	const (
+		orgID     = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		projectID = "11111111-2222-3333-4444-555555555555"
+	)
+
+	req := &CreateInstanceRequest{
+		Name:          "new-instance",
+		CloudProvider: "aws",
+		Region:        "us-east-1",
+		Type:          "enterprise-db",
+		Memory:        "4GB",
+	}
+
+	mock := &mockAPIService{response: &api.Response{StatusCode: 201, Body: []byte(`{"data":{"id":"abcdef01","name":"new-instance"}}`)}}
+	service := createTestInstanceServiceWithDefaultScope(mock, requestScope{orgID: orgID, projectID: projectID})
+
+	// Body is passed first; scope is inherited entirely from the default.
+	result, err := service.Create(context.Background(), req)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if mock.lastMethod != "POST" {
+		t.Errorf("expected POST method, got %s", mock.lastMethod)
+	}
+	want := "organizations/" + orgID + "/projects/" + projectID + "/instances"
+	if mock.lastPath != want {
+		t.Errorf("expected default-scope path %q, got %q", want, mock.lastPath)
+	}
+	if !strings.Contains(mock.lastBody, "new-instance") {
+		t.Errorf("expected request body to be sent, got %q", mock.lastBody)
+	}
+	if result.Data.ID != "abcdef01" {
+		t.Errorf("expected instance ID %q, got %q", "abcdef01", result.Data.ID)
+	}
+}
+
+func TestInstanceService_List_LastOptionWins(t *testing.T) {
+	const (
+		orgA = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		orgB = "cccccccc-dddd-eeee-ffff-000011112222"
+		proj = "11111111-2222-3333-4444-555555555555"
+	)
+
+	mock := &mockAPIService{response: &api.Response{StatusCode: 200, Body: []byte(`{"data":[]}`)}}
+	service := createTestInstanceService(mock)
+
+	_, err := service.List(context.Background(), WithOrg(orgA), WithOrg(orgB), WithProject(proj))
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	want := "organizations/" + orgB + "/projects/" + proj + "/instances"
+	if mock.lastPath != want {
+		t.Errorf("expected last-option-wins path %q, got %q", want, mock.lastPath)
+	}
+}

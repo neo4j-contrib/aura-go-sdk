@@ -230,3 +230,68 @@ func TestProjectService_List_QuickCancellation(t *testing.T) {
 		t.Errorf("expected context error, got: %v", err)
 	}
 }
+
+// ============================================================================
+// Default scope precedence tests (project)
+// ----------------------------------------------------------------------------
+// Projects list is scoped through org. These prove the client default org is used
+// when none is supplied per call, and that a per-call option overrides it.
+// ============================================================================
+
+func createTestProjectServiceWithDefaultScope(mock *mockAPIService, def requestScope) *projectService {
+	return &projectService{api: mock, timeout: 30 * time.Second, logger: testLogger(), defaultScope: def}
+}
+
+func TestProjects_List_DefaultScope(t *testing.T) {
+	const orgID = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+
+	mock := &mockAPIService{response: &api.Response{StatusCode: 200, Body: []byte(`{"data":[]}`)}}
+	service := createTestProjectServiceWithDefaultScope(mock, requestScope{orgID: orgID})
+
+	_, err := service.List(context.Background())
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	want := "organizations/" + orgID + "/projects"
+	if mock.lastPath != want {
+		t.Errorf("expected default-scope path %q, got %q", want, mock.lastPath)
+	}
+}
+
+func TestProjects_List_PerCallOverride(t *testing.T) {
+	const (
+		defaultOrg = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		otherOrg   = "cccccccc-dddd-eeee-ffff-000011112222"
+	)
+
+	mock := &mockAPIService{response: &api.Response{StatusCode: 200, Body: []byte(`{"data":[]}`)}}
+	service := createTestProjectServiceWithDefaultScope(mock, requestScope{orgID: defaultOrg})
+
+	_, err := service.List(context.Background(), WithOrg(otherOrg))
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	want := "organizations/" + otherOrg + "/projects"
+	if mock.lastPath != want {
+		t.Errorf("expected overridden path %q, got %q", want, mock.lastPath)
+	}
+}
+
+func TestProjects_List_LastOptionWins(t *testing.T) {
+	const (
+		orgA = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		orgB = "cccccccc-dddd-eeee-ffff-000011112222"
+	)
+
+	mock := &mockAPIService{response: &api.Response{StatusCode: 200, Body: []byte(`{"data":[]}`)}}
+	service := createTestProjectService(mock)
+
+	_, err := service.List(context.Background(), WithOrg(orgA), WithOrg(orgB))
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	want := "organizations/" + orgB + "/projects"
+	if mock.lastPath != want {
+		t.Errorf("expected last-option-wins path %q, got %q", want, mock.lastPath)
+	}
+}

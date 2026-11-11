@@ -890,3 +890,87 @@ func TestOrganizationUserService_Remove_InvalidUserID_ErrorMessage(t *testing.T)
 		t.Errorf("expected error to contain 'user ID', got: %v", err)
 	}
 }
+
+// ============================================================================
+// Default scope precedence tests (organization user)
+// ----------------------------------------------------------------------------
+// Scoped through org(+user). These prove the default org is inherited when left
+// unset, that a leaf user can be supplied per call for a single-user operation,
+// and that body-carrying operations take the request first with scope trailing.
+// ============================================================================
+
+func createTestOrganizationUserServiceWithDefaultScope(mock *mockAPIService, def requestScope) *organizationUserService {
+	return &organizationUserService{api: mock, timeout: 30 * time.Second, logger: testLogger(), defaultScope: def}
+}
+
+func TestOrganizationUserService_Get_DefaultScopeAndPerCallUser(t *testing.T) {
+	const (
+		orgID    = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		otherOrg = "cccccccc-dddd-eeee-ffff-000011112222"
+		userID   = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+	)
+
+	mock := &mockAPIService{response: &api.Response{StatusCode: 200, Body: []byte(`{"data":{"user_id":"a1b2c3d4-e5f6-7890-abcd-ef1234567890","organization_roles":["admin"]}}`)}}
+	service := createTestOrganizationUserServiceWithDefaultScope(mock, requestScope{orgID: orgID})
+
+	// Org is inherited; only the leaf user and a per-call org override are supplied.
+	result, err := service.Get(context.Background(), WithOrg(otherOrg), WithUser(userID))
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	want := "organizations/" + otherOrg + "/users/" + userID
+	if mock.lastPath != want {
+		t.Errorf("expected path %q, got %q", want, mock.lastPath)
+	}
+	if result.Data.UserID != userID {
+		t.Errorf("expected user ID %q, got %q", userID, result.Data.UserID)
+	}
+}
+
+func TestOrganizationUserService_UpdateRole_DefaultScopeBodyFirst(t *testing.T) {
+	const (
+		orgID    = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		otherOrg = "cccccccc-dddd-eeee-ffff-000011112222"
+		userID   = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+	)
+
+	req := &UpdateOrganizationUserRequest{OrganizationRoles: []string{"admin"}}
+	mock := &mockAPIService{response: &api.Response{StatusCode: 200, Body: []byte(`{"data":{"user_id":"a1b2c3d4-e5f6-7890-abcd-ef1234567890","organization_roles":["admin"]}}`)}}
+	service := createTestOrganizationUserServiceWithDefaultScope(mock, requestScope{orgID: orgID})
+
+	// Body first; the org is inherited and a per-call override + the leaf user
+	// trail behind the body.
+	_, err := service.UpdateRole(context.Background(), req, WithOrg(otherOrg), WithUser(userID))
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if mock.lastMethod != "PATCH" {
+		t.Errorf("expected PATCH method, got %s", mock.lastMethod)
+	}
+	want := "organizations/" + otherOrg + "/users/" + userID
+	if mock.lastPath != want {
+		t.Errorf("expected path %q, got %q", want, mock.lastPath)
+	}
+	if !strings.Contains(mock.lastBody, `["admin"]`) {
+		t.Errorf("expected request body to be sent, got %q", mock.lastBody)
+	}
+}
+
+func TestOrganizationUsers_List_LastOptionWins(t *testing.T) {
+	const (
+		orgA = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		orgB = "cccccccc-dddd-eeee-ffff-000011112222"
+	)
+
+	mock := &mockAPIService{response: &api.Response{StatusCode: 200, Body: []byte(`{"data":[]}`)}}
+	service := createTestOrganizationUserService(mock)
+
+	_, err := service.List(context.Background(), WithOrg(orgA), WithOrg(orgB))
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	want := "organizations/" + orgB + "/users"
+	if mock.lastPath != want {
+		t.Errorf("expected last-option-wins path %q, got %q", want, mock.lastPath)
+	}
+}

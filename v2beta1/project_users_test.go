@@ -1136,3 +1136,113 @@ func TestProjectUserService_Remove_QuickCancellation(t *testing.T) {
 		t.Errorf("expected context error, got: %v", err)
 	}
 }
+
+// ============================================================================
+// Default scope precedence tests (project user)
+// ----------------------------------------------------------------------------
+// Scoped through org->project(+user). Body-carrying operations carry the request
+// first and inherit org and project from the default; a leaf user is supplied per
+// call.
+// ============================================================================
+
+func createTestProjectUserServiceWithDefaultScope(mock *mockAPIService, def requestScope) *projectUserService {
+	return &projectUserService{api: mock, timeout: 30 * time.Second, logger: testLogger(), defaultScope: def}
+}
+
+func TestProjectUsers_List_PerCallOverride(t *testing.T) {
+	const (
+		orgID     = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		defProj   = "11111111-2222-3333-4444-555555555555"
+		otherProj = "22222222-3333-4444-5555-666666666666"
+	)
+
+	mock := &mockAPIService{response: &api.Response{StatusCode: 200, Body: []byte(`{"data":[]}`)}}
+	service := createTestProjectUserServiceWithDefaultScope(mock, requestScope{orgID: orgID, projectID: defProj})
+
+	// Project is overridden per call; organization still inherits the default.
+	_, err := service.List(context.Background(), WithProject(otherProj))
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	want := "organizations/" + orgID + "/projects/" + otherProj + "/users"
+	if mock.lastPath != want {
+		t.Errorf("expected overridden path %q, got %q", want, mock.lastPath)
+	}
+}
+
+func TestProjectUserService_UpdateRole_DefaultScopeBodyFirstAndPerCallUser(t *testing.T) {
+	const (
+		orgID    = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		otherOrg = "cccccccc-dddd-eeee-ffff-000011112222"
+		proj     = "11111111-2222-3333-4444-555555555555"
+		userID   = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+	)
+
+	req := &UpdateProjectUserRequest{ProjectRoles: []string{"editor"}}
+	mock := &mockAPIService{response: &api.Response{StatusCode: 200, Body: []byte(`{"data":{"id":"a1b2c3d4-e5f6-7890-abcd-ef1234567890","project_roles":["editor"]}}`)}}
+	service := createTestProjectUserServiceWithDefaultScope(mock, requestScope{orgID: orgID, projectID: proj})
+
+	// Body first; the project is inherited from the default, and a per-call
+	// override on org plus the leaf user trail behind the body.
+	_, err := service.UpdateRole(context.Background(), req, WithOrg(otherOrg), WithUser(userID))
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if mock.lastMethod != "PATCH" {
+		t.Errorf("expected PATCH method, got %s", mock.lastMethod)
+	}
+	want := "organizations/" + otherOrg + "/projects/" + proj + "/users/" + userID
+	if mock.lastPath != want {
+		t.Errorf("expected path %q, got %q", want, mock.lastPath)
+	}
+	if !strings.Contains(mock.lastBody, `["editor"]`) {
+		t.Errorf("expected request body to be sent, got %q", mock.lastBody)
+	}
+}
+
+func TestProjectUserService_Add_DefaultScopeBodyFirst(t *testing.T) {
+	const (
+		orgID = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		proj  = "11111111-2222-3333-4444-555555555555"
+	)
+
+	req := &AddProjectUserRequest{UserID: "a1b2c3d4-e5f6-7890-abcd-ef1234567890", ProjectRoles: []string{"viewer"}}
+	mock := &mockAPIService{response: &api.Response{StatusCode: 201, Body: nil}}
+	service := createTestProjectUserServiceWithDefaultScope(mock, requestScope{orgID: orgID, projectID: proj})
+
+	// Body first; scope inherited entirely from the default.
+	err := service.Add(context.Background(), req)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if mock.lastMethod != "POST" {
+		t.Errorf("expected POST method, got %s", mock.lastMethod)
+	}
+	want := "organizations/" + orgID + "/projects/" + proj + "/users"
+	if mock.lastPath != want {
+		t.Errorf("expected default-scope path %q, got %q", want, mock.lastPath)
+	}
+	if !strings.Contains(mock.lastBody, "viewer") {
+		t.Errorf("expected request body to be sent, got %q", mock.lastBody)
+	}
+}
+
+func TestProjectUsers_List_LastOptionWins(t *testing.T) {
+	const (
+		orgA = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		orgB = "cccccccc-dddd-eeee-ffff-000011112222"
+		proj = "11111111-2222-3333-4444-555555555555"
+	)
+
+	mock := &mockAPIService{response: &api.Response{StatusCode: 200, Body: []byte(`{"data":[]}`)}}
+	service := createTestProjectUserService(mock)
+
+	_, err := service.List(context.Background(), WithOrg(orgA), WithOrg(orgB), WithProject(proj))
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	want := "organizations/" + orgB + "/projects/" + proj + "/users"
+	if mock.lastPath != want {
+		t.Errorf("expected last-option-wins path %q, got %q", want, mock.lastPath)
+	}
+}
