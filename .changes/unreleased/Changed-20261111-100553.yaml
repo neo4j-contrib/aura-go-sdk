@@ -1,3 +1,0 @@
-kind: Changed
-body: 'v2beta1: the default User-Agent header sent by the v2beta1 client now carries a /v2beta1/ segment (e.g. aura-go-sdk/v2beta1/<version>) so server-side telemetry can distinguish v2beta1 requests from stable-v1 traffic when a consumer uses both sub-modules.'
-time: 2026-11-11T10:05:53.763298Z
