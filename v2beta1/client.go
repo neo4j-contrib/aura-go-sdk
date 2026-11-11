@@ -109,7 +109,7 @@ func defaultOptions() *options {
 			baseURL:         "https://api.neo4j.io",
 			apiTimeout:      120 * time.Second,
 			apiRetryMax:     3,
-			userAgent:       "aura-go-sdk/" + ClientVersion,
+			userAgent:       "aura-go-sdk/v2beta1/" + ClientVersion,
 			maxResponseSize: 10 * 1024 * 1024, // 10 MB
 		},
 		logger: slog.New(handler),
