@@ -54,30 +54,37 @@ type CreateOrganizationInviteRequest struct {
 // ============================================================================
 
 // organizationInviteService handles organization invite operations for the v2beta1 API.
+//
+// It is scoped through org(+invite); each call may override individual fields of
+// the client's default scope via the ScopeOption values passed to it.
 type organizationInviteService struct {
-	api     api.RequestService
-	timeout time.Duration
-	logger  *slog.Logger
+	api          api.RequestService
+	timeout      time.Duration
+	logger       *slog.Logger
+	defaultScope requestScope
 }
 
-// List returns all pending invites within the given organization.
-func (s *organizationInviteService) List(ctx context.Context, orgID string) (*ListOrganizationInvitesResponse, error) {
+// List returns all pending invites within the organization selected by the scope
+// options.
+func (s *organizationInviteService) List(ctx context.Context, opts ...ScopeOption) (*ListOrganizationInvitesResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
+	sc := resolveScope(s.defaultScope, opts)
+
 	if err := utils.Validate(ctx, s.logger,
-		utils.OrganizationID(orgID),
+		utils.OrganizationID(sc.orgID),
 	); err != nil {
 		return nil, err
 	}
 
-	s.logger.DebugContext(ctx, "listing organization invites", slog.String("orgID", orgID))
+	s.logger.DebugContext(ctx, "listing organization invites", slog.String("orgID", sc.orgID))
 
-	path := utils.OrgInvitesPath(orgID)
+	path := utils.OrgInvitesPath(sc.orgID)
 
 	resp, err := s.api.Get(ctx, path)
 	if err != nil {
-		s.logger.ErrorContext(ctx, "failed to list organization invites", slog.String("orgID", orgID), slog.String("error", err.Error()))
+		s.logger.ErrorContext(ctx, "failed to list organization invites", slog.String("orgID", sc.orgID), slog.String("error", err.Error()))
 		return nil, err
 	}
 
@@ -87,22 +94,25 @@ func (s *organizationInviteService) List(ctx context.Context, orgID string) (*Li
 		return nil, err
 	}
 
-	s.logger.DebugContext(ctx, "organization invites listed successfully", slog.String("orgID", orgID), slog.Int("count", len(result.Data)))
+	s.logger.DebugContext(ctx, "organization invites listed successfully", slog.String("orgID", sc.orgID), slog.Int("count", len(result.Data)))
 	return &result, nil
 }
 
-// Create sends an invite to the given email address to join the organization.
-func (s *organizationInviteService) Create(ctx context.Context, orgID string, req *CreateOrganizationInviteRequest) (*CreateOrganizationInviteResponse, error) {
+// Create sends an invite to join the organization selected by the scope options.
+// The request body precedes the trailing scope options.
+func (s *organizationInviteService) Create(ctx context.Context, req *CreateOrganizationInviteRequest, opts ...ScopeOption) (*CreateOrganizationInviteResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
+	sc := resolveScope(s.defaultScope, opts)
+
 	if err := utils.Validate(ctx, s.logger,
-		utils.OrganizationID(orgID),
+		utils.OrganizationID(sc.orgID),
 	); err != nil {
 		return nil, err
 	}
 
-	s.logger.InfoContext(ctx, "creating organization invite", slog.String("orgID", orgID))
+	s.logger.InfoContext(ctx, "creating organization invite", slog.String("orgID", sc.orgID))
 
 	body, err := json.Marshal(req)
 	if err != nil {
@@ -110,11 +120,11 @@ func (s *organizationInviteService) Create(ctx context.Context, orgID string, re
 		return nil, err
 	}
 
-	path := utils.OrgInvitesPath(orgID)
+	path := utils.OrgInvitesPath(sc.orgID)
 
 	resp, err := s.api.Post(ctx, path, string(body))
 	if err != nil {
-		s.logger.ErrorContext(ctx, "failed to create organization invite", slog.String("orgID", orgID), slog.String("error", err.Error()))
+		s.logger.ErrorContext(ctx, "failed to create organization invite", slog.String("orgID", sc.orgID), slog.String("error", err.Error()))
 		return nil, err
 	}
 
@@ -124,32 +134,35 @@ func (s *organizationInviteService) Create(ctx context.Context, orgID string, re
 		return nil, err
 	}
 
-	s.logger.InfoContext(ctx, "organization invite created successfully", slog.String("orgID", orgID))
+	s.logger.InfoContext(ctx, "organization invite created successfully", slog.String("orgID", sc.orgID))
 	return &result, nil
 }
 
-// Delete revokes an existing invite from the given organization. Returns nil on HTTP 204.
-func (s *organizationInviteService) Delete(ctx context.Context, orgID, inviteID string) error {
+// Delete revokes the invite selected by the scope options (including WithInvite)
+// from the organization. Returns nil on HTTP 204.
+func (s *organizationInviteService) Delete(ctx context.Context, opts ...ScopeOption) error {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
+	sc := resolveScope(s.defaultScope, opts)
+
 	if err := utils.Validate(ctx, s.logger,
-		utils.OrganizationID(orgID),
-		utils.InviteID(inviteID),
+		utils.OrganizationID(sc.orgID),
+		utils.InviteID(sc.inviteID),
 	); err != nil {
 		return err
 	}
 
-	s.logger.InfoContext(ctx, "deleting organization invite", slog.String("orgID", orgID), slog.String("inviteID", inviteID))
+	s.logger.InfoContext(ctx, "deleting organization invite", slog.String("orgID", sc.orgID), slog.String("inviteID", sc.inviteID))
 
-	path := utils.SingleInvitePath(orgID, inviteID)
+	path := utils.SingleInvitePath(sc.orgID, sc.inviteID)
 
 	_, err := s.api.Delete(ctx, path)
 	if err != nil {
-		s.logger.ErrorContext(ctx, "failed to delete organization invite", slog.String("orgID", orgID), slog.String("inviteID", inviteID), slog.String("error", err.Error()))
+		s.logger.ErrorContext(ctx, "failed to delete organization invite", slog.String("orgID", sc.orgID), slog.String("inviteID", sc.inviteID), slog.String("error", err.Error()))
 		return err
 	}
 
-	s.logger.InfoContext(ctx, "organization invite deleted successfully", slog.String("orgID", orgID), slog.String("inviteID", inviteID))
+	s.logger.InfoContext(ctx, "organization invite deleted successfully", slog.String("orgID", sc.orgID), slog.String("inviteID", sc.inviteID))
 	return nil
 }

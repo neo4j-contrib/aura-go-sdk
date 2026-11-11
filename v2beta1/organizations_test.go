@@ -216,7 +216,7 @@ func TestOrganizationService_Get_Success(t *testing.T) {
 	}
 
 	service := createTestOrganizationService(mock)
-	result, err := service.Get(context.Background(), orgID)
+	result, err := service.Get(context.Background(), WithOrg(orgID))
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -244,7 +244,7 @@ func TestOrganizationService_Get_NotFound(t *testing.T) {
 	}
 
 	service := createTestOrganizationService(mock)
-	result, err := service.Get(context.Background(), orgID)
+	result, err := service.Get(context.Background(), WithOrg(orgID))
 
 	if err == nil {
 		t.Fatal("expected error, got nil")
@@ -271,7 +271,7 @@ func TestOrganizationService_Get_AuthenticationError(t *testing.T) {
 	}
 
 	service := createTestOrganizationService(mock)
-	_, err := service.Get(context.Background(), orgID)
+	_, err := service.Get(context.Background(), WithOrg(orgID))
 
 	if err == nil {
 		t.Fatal("expected authentication error, got nil")
@@ -292,7 +292,7 @@ func TestOrganizationService_Get_EmptyOrgID(t *testing.T) {
 	mock := &mockAPIService{}
 
 	service := createTestOrganizationService(mock)
-	result, err := service.Get(context.Background(), "")
+	result, err := service.Get(context.Background(), WithOrg(""))
 
 	if err == nil {
 		t.Fatal("expected error for empty org ID, got nil")
@@ -325,7 +325,7 @@ func TestOrganizationService_Get_ContextTimeout(t *testing.T) {
 	}
 
 	start := time.Now()
-	_, err := service.Get(context.Background(), orgID)
+	_, err := service.Get(context.Background(), WithOrg(orgID))
 	elapsed := time.Since(start)
 
 	if err == nil {
@@ -359,12 +359,82 @@ func TestOrganizationService_Get_QuickCancellation(t *testing.T) {
 		logger:  testLogger(),
 	}
 
-	_, err := service.Get(ctx, orgID)
+	_, err := service.Get(ctx, WithOrg(orgID))
 
 	if err == nil {
 		t.Fatal("expected deadline exceeded error")
 	}
 	if !errors.Is(err, context.DeadlineExceeded) && !errors.Is(err, context.Canceled) {
 		t.Errorf("expected context error, got: %v", err)
+	}
+}
+
+// ============================================================================
+// Default scope precedence tests (organization)
+// ----------------------------------------------------------------------------
+// Organizations list needs no scope; Get is scoped through org. These prove the
+// client default org is used when none is supplied per call, and that a per-call
+// option overrides it (last one wins).
+// ============================================================================
+
+func createTestOrganizationServiceWithDefaultScope(mock *mockAPIService, def requestScope) *organizationService {
+	return &organizationService{api: mock, timeout: 30 * time.Second, logger: testLogger(), defaultScope: def}
+}
+
+func TestOrganizations_Get_DefaultScope(t *testing.T) {
+	const orgID = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+
+	mock := &mockAPIService{response: &api.Response{StatusCode: 200, Body: []byte(`{"data":{"id":"aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee","name":"acme"}}`)}}
+	service := createTestOrganizationServiceWithDefaultScope(mock, requestScope{orgID: orgID})
+
+	// No per-call scope: the org is inherited entirely from the default.
+	result, err := service.Get(context.Background())
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	want := "organizations/" + orgID
+	if mock.lastPath != want {
+		t.Errorf("expected default-scope path %q, got %q", want, mock.lastPath)
+	}
+	if result.Data.ID != orgID {
+		t.Errorf("expected org ID %q, got %q", orgID, result.Data.ID)
+	}
+}
+
+func TestOrganizations_Get_PerCallOverride(t *testing.T) {
+	const (
+		defaultOrg = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		otherOrg   = "cccccccc-dddd-eeee-ffff-000011112222"
+	)
+
+	mock := &mockAPIService{response: &api.Response{StatusCode: 200, Body: []byte(`{"data":{"id":"cccccccc-dddd-eeee-ffff-000011112222","name":"other"}}`)}}
+	service := createTestOrganizationServiceWithDefaultScope(mock, requestScope{orgID: defaultOrg})
+
+	_, err := service.Get(context.Background(), WithOrg(otherOrg))
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	want := "organizations/" + otherOrg
+	if mock.lastPath != want {
+		t.Errorf("expected overridden path %q, got %q", want, mock.lastPath)
+	}
+}
+
+func TestOrganizations_Get_LastOptionWins(t *testing.T) {
+	const (
+		orgA = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		orgB = "cccccccc-dddd-eeee-ffff-000011112222"
+	)
+
+	mock := &mockAPIService{response: &api.Response{StatusCode: 200, Body: []byte(`{"data":{"id":"cccccccc-dddd-eeee-ffff-000011112222","name":"other"}}`)}}
+	service := createTestOrganizationService(mock)
+
+	_, err := service.Get(context.Background(), WithOrg(orgA), WithOrg(orgB))
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	want := "organizations/" + orgB
+	if mock.lastPath != want {
+		t.Errorf("expected last-option-wins path %q, got %q", want, mock.lastPath)
 	}
 }

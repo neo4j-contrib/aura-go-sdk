@@ -3,7 +3,6 @@ package v2beta1
 import (
 	"context"
 	"encoding/json"
-
 	"log/slog"
 	"time"
 
@@ -31,30 +30,37 @@ type ListProjectsResponse struct {
 // ============================================================================
 
 // projectService handles project operations for the v2beta1 API.
+//
+// It is scoped through org; each call may override the org field of the client's
+// default scope via the ScopeOption values passed to it.
 type projectService struct {
-	api     api.RequestService
-	timeout time.Duration
-	logger  *slog.Logger
+	api          api.RequestService
+	timeout      time.Duration
+	logger       *slog.Logger
+	defaultScope requestScope
 }
 
-// List returns all projects within the given organization.
-func (s *projectService) List(ctx context.Context, orgID string) (*ListProjectsResponse, error) {
+// List returns all projects in the organization selected by the scope options
+// (with a default org inherited from the client when unset).
+func (s *projectService) List(ctx context.Context, opts ...ScopeOption) (*ListProjectsResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
+	sc := resolveScope(s.defaultScope, opts)
+
 	if err := utils.Validate(ctx, s.logger,
-		utils.OrganizationID(orgID),
+		utils.OrganizationID(sc.orgID),
 	); err != nil {
 		return nil, err
 	}
 
-	s.logger.DebugContext(ctx, "listing projects", slog.String("orgID", orgID))
+	s.logger.DebugContext(ctx, "listing projects", slog.String("orgID", sc.orgID))
 
-	path := utils.ProjectsPath(orgID)
+	path := utils.ProjectsPath(sc.orgID)
 
 	resp, err := s.api.Get(ctx, path)
 	if err != nil {
-		s.logger.ErrorContext(ctx, "failed to list projects", slog.String("orgID", orgID), slog.String("error", err.Error()))
+		s.logger.ErrorContext(ctx, "failed to list projects", slog.String("orgID", sc.orgID), slog.String("error", err.Error()))
 		return nil, err
 	}
 
@@ -64,6 +70,6 @@ func (s *projectService) List(ctx context.Context, orgID string) (*ListProjectsR
 		return nil, err
 	}
 
-	s.logger.DebugContext(ctx, "projects listed successfully", slog.String("orgID", orgID), slog.Int("count", len(result.Data)))
+	s.logger.DebugContext(ctx, "projects listed successfully", slog.String("orgID", sc.orgID), slog.Int("count", len(result.Data)))
 	return &result, nil
 }

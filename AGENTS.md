@@ -25,11 +25,12 @@ go fmt ./...
 ## Architecture
 
 - Package `aura` (root): public API surface — service types, client, options
+- Package `v2beta1`: beta sub-package of the **same** module (there is no `v2beta1/go.mod`) targeting the Aura v2beta1 API; its design lives in the "v2beta1 Design" section below. Import it as `v2beta1 "github.com/neo4j-contrib/aura-go-sdk/v2beta1"`
 - `internal/api`: HTTP request service abstraction
 - `internal/httpclient`: retryable HTTP client wrapping `retryablehttp`
-- `internal/utils`: validation helpers (ValidateInstanceID, ValidateTenantID, ValidateSnapshotID, etc.)
+- `internal/utils`: validation helpers (`ValidateInstanceID`, `ValidateTenantID`, `ValidateSnapshotID`, the `RequiredID` constructors + `Validate(ctx, logger, …)`, and the `*Path` builders used by `v2beta1`)
 - `internal/apisurface`: renders the exported API of a package (`aura`, `v2beta1`) to deterministic text for the golden-file contract test (see "API Surface Golden Test" below)
-- Each service (instanceService, tenantService, etc.) holds `api api.RequestService`, `timeout time.Duration`, `logger *slog.Logger`
+- Each `aura` service holds `api api.RequestService`, `timeout time.Duration`, `logger *slog.Logger`; each `v2beta1` service holds those plus a `defaultScope requestScope` field
 - Services apply `context.WithTimeout` on every method call; cancellation propagates through the HTTP layer
 
 ## Test Mocks
@@ -56,11 +57,152 @@ go fmt ./...
 - Rate limiting: 429 responses include `Retry-After`; the `retryablehttp` layer handles retries automatically
 - Spec: https://neo4j.com/docs/aura/api/specification/
 
+## v2beta1 Design
+
+This is the design contract for the beta `v2beta1` sub-package. Preserve it when adding or changing anything in `v2beta1/`.
+
+**Module & import.** `v2beta1/` is a *sub-package of the single module* `github.com/neo4j-contrib/aura-go-sdk` — there is no `v2beta1/go.mod`; it builds with the same `go build ./...`. Import it as `v2beta1 "github.com/neo4j-contrib/aura-go-sdk/v2beta1"`. The Architecture note that "a future v2 will be a separate module, not a path suffix" refers to a *stable major version*; `v2beta1` is the beta and currently lives as a sub-package.
+
+**Shared spine.** Every resource is reached through a fixed hierarchy —
+`organizations/{org}/projects/{project}/instances/{instance}/databases/{database}`,
+with `backups`, `users` and `invites` as leaves off that spine. Build paths with the
+helpers in `internal/utils/path_helpers.go` (`InstancesPath`, `SingleInstancePath`,
+`BackupsPath`, `ProjectUsersPath`, …); do **not** hand-concatenate.
+
+**Shared scoping — `v2beta1/scope.go`.** A single unexported
+`requestScope{orgID, projectID, instanceID, databaseID, backupID, userID, inviteID}`
+resolves the scope for every service. The public surface is:
+- per-call `ScopeOption`s: `WithOrg`, `WithProject`, `WithInstance`, `WithDatabase`,
+  `WithBackup`, `WithUser`, `WithInvite`
+- client-level defaults: `WithDefaultOrg`, `WithDefaultProject`, `WithDefaultInstance`
+  set one shared `defaultScope` that every service copies at construction (there is no
+  per-service default — it is client-wide).
+
+Each method resolves scope with `sc := resolveScope(s.defaultScope, opts)` and then
+validates **only the fields its resource needs** via
+`utils.Validate(ctx, s.logger, utils.OrganizationID(sc.orgID), …)` — an org-level
+operation ignores the lower spine/leaf fields. A field a leaf doesn't use is simply
+ignored.
+
+**Precedence rules (the contract).** In order: start from the client default scope;
+apply each option in slice order; **later options win** (`resolveScope` is
+last-option-wins). Concretely: an unset field inherits the default; a per-call option
+overrides its matching default; when an option is passed more than once, the last wins.
+This order is the behaviour the golden and behavioural tests lock in — do not change it.
+
+**Body-first.** Operations that carry a typed request body take the body *first*, with
+scope options trailing:
+`client.Instances.Create(ctx, req, v2beta1.WithOrg(org), v2beta1.WithProject(proj))`,
+and likewise `.Add(ctx, req, …)`, `.Update(ctx, req, …)`, `.UpdateRole(ctx, req, …)`.
+Keep body-first; scope options always trail the body.
+
+**The eight services** (`api`, `timeout`, `logger`, `defaultScope` are every
+service's fields), and the fields each operation validates in order:
+| Service | Operations and required scope |
+|---|---|
+| `organizationService` | `List` (none); `Get` → org |
+| `projectService` | `List` → org |
+| `instanceService` | `List`/`Create` → org, project; `Get`/`Update`/`Delete` → + instance |
+| `databaseService` | `List`/`Create` → org, project, instance; `Get`/`Delete` → + database |
+| `databaseBackupService` | `List`/`Create` → org, project, instance, database; `Get` → + backup |
+| `organizationUserService` | `List` → org; `Get`/`UpdateRole`/`Remove` → + user |
+| `organizationInviteService` | `List`/`Create` → org; `Delete` → + invite |
+| `projectUserService` | `List`/`Add` → org, project; `UpdateRole`/`Remove` → + user |
+
+**No nested "view layer".** Deliberately *not* provided: there is no
+`client.Instances(...).Databases(...)` hierarchical sub-client API. Scope is flat — one
+shared `ScopeOption` set per call — and that nested-builder design was explicitly dropped.
+Do not re-introduce it; add new scope via a new leaf `WithXxx` option + a matching
+field on `requestScope`, mirroring `WithBackup`/`WithUser`/`WithInvite`.
+
+**ID validation hints.** The `MissingMsg`s in `internal/utils/validate_id.go` are
+reworded to point callers at the real option names (e.g. *"provide it via the WithOrg
+call option or WithDefaultOrg client option"*). Keep that wording when adding a new id;
+the test matrices assert these substrings.
+
+**User-Agent telemetry.** The `v2beta1` client tags its default User-Agent with a
+`/v2beta1/` segment (i.e. `aura-go-sdk/v2beta1/<version>`) so server-side telemetry can tell
+`v1` from `v2` traffic when a consumer uses both. Preserve it unless the change is made in
+concert with the v1 root.
+
+**Changelog / breaking changes.** `v2beta1` is a **beta**, so interface changes — adding
+or renaming/removing methods, signature changes, any exported-surface delta (the golden
+test goes red) — are *expected* and recorded as changie kind **`Changed`** with the house
+prefix `v2beta1: <what changed>`; do **not** hedge a beta change with "breaking" wording.
+A wholly new type/service is `Added`; an interface-method addition is `Changed`.
+
+## v2beta1 Test conventions
+
+- Each service test file has a zero-default helper `createTest<X>Service(mock)` (default
+  scope is the zero value) **and** a precedence helper
+  `createTest<X>ServiceWithDefaultScope(mock *mockAPIService, def requestScope)` that sets
+  `defaultScope: def` — mirror `databases_test.go`.
+- In addition to the standard set (`_Success`, `_InvalidID`, `_NotFound`,
+  `_AuthenticationError`, and for Lists `_EmptyResult`; context tests use
+  `mockAPIServiceWithDelay` per "Test Mocks" above), every service should carry
+  behavioural precedence coverage: `_DefaultScope` (fully inherited, no options),
+  `_PerCallOverride` / `_DefaultScopeAndPerCall<Leaf>` (one field or the leaf supplied per
+  call, rest inherited), `_LastOptionWins` (the option passed twice, last wins), and a
+  body-first-with-default test where the operation carries a request.
+- Body assertions: for POST/PATCH unmarshal/inspect `mock.lastBody` to confirm the body was
+  serialised; these tests assert only path + method + body, never response field contents
+  unless the response shape is the point.
+
+## Adding a service / endpoint in v2beta1
+
+Mirror `instances.go` / `instances_test.go` (v2beta1 versions). In `v2beta1`, do **not**
+use the positional skeleton above; follow these instead:
+
+### Types — `<resource>.go` (same as v1, body-first noted for the doc comment)
+- Declare request/response types in the service file. For any new leaf id, reuse
+  `requestScope` + add a `WithXxx` constructor to `scope.go` and a field to `requestScope`;
+  do not invent a second scoping mechanism.
+
+### Service struct & methods — `<resource>.go`
+
+```go
+type fooService struct {
+    api          api.RequestService
+    timeout      time.Duration
+    logger       *slog.Logger
+    defaultScope requestScope
+}
+
+func (s *fooService) DoThing(ctx context.Context, req *DoThingRequest, opts ...ScopeOption) (*DoThingResponse, error) {
+    ctx, cancel := context.WithTimeout(ctx, s.timeout)
+    defer cancel()
+
+    if req == nil { /* reject nil body first */ return nil, errors.New("request must not be nil") }
+
+    sc := resolveScope(s.defaultScope, opts)   // default wins on unset fields
+    s.logger.DebugContext(ctx, "doing thing", slog.String("orgID", sc.orgID), slog.String("projectID", sc.projectID))
+
+    if err := utils.Validate(ctx, s.logger,        // validate ONLY the fields this op needs
+        utils.OrganizationID(sc.orgID),
+        utils.ProjectID(sc.projectID),
+    ); err != nil {
+        return nil, err
+    }
+
+    path := utils.FooPath(sc.orgID, sc.projectID, /* … leaf ids via their own params */)  // use the helper
+    body, err := json.Marshal(req)                 // marshal first; POST/Patch body before scope
+    /* … api.Post / Patch / Get / Delete … */
+}
+```
+
+- Body-carrying ops take the body first, options trailing the variadic — `ctx, req, opts...`.
+- Validate only the field set in the table above for the operation; `utils.Validate` stops at the first missing/malformed id and returns its reworded (`With*`-aware) hint.
+- Path via the `internal/utils` helper; logging levels as in v1 (`DebugContext` reads, `InfoContext` mutations).
+
+### Interface — `interfaces.go`, client wiring — `client.go`, tests, README, golden — exactly as the v1 steps 3–7, except the signature is `…, opts ...ScopeOption)` and any new client default is a `WithDefault*` Option writing to `o.config.defaultScope` (as `WithDefaultOrg/Project/Instance`).
+
 ## Known Inconsistencies
 
 - `AuraAPIClient.GraphAnalytics` field (public) vs `GDSSessionService` interface and `gdsSessionService` struct — the field was named before the service was formalised. Do not rename it unilaterally; it is a known breaking-change candidate for a future major version.
 
 ## Adding a New Endpoint
+
+> **Scope note:** this section describes the **stable v1 root** (`aura`) package, which uses *positional* `id string` parameters. Do **not** apply this skeleton in the `v2beta1` sub-package — it uses the shared `ScopeOption` model instead; follow "Adding a service / endpoint in v2beta1" below.
 
 Follow the pattern used by `instances.go` / `instances_test.go`. Every new resource or sub-action touches the same five files in the same order.
 

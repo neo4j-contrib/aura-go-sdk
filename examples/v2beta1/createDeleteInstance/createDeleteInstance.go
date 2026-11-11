@@ -23,7 +23,12 @@ func pollInstance(ctx context.Context, client *v2beta1.Client, orgID, projectID,
 		case <-ctxPolling.Done():
 			return errors.New("timed out waiting for instance status")
 		default:
-			result, err := client.Instances.Get(ctxPolling, orgID, projectID, instanceID)
+			result, err := client.Instances.Get(
+				ctxPolling,
+				v2beta1.WithOrg(orgID),
+				v2beta1.WithProject(projectID),
+				v2beta1.WithInstance(instanceID),
+			)
 			if err != nil {
 				return err
 			}
@@ -63,13 +68,21 @@ func main() {
 	ctx, cancelMain := context.WithTimeout(context.Background(), 15*time.Minute)
 	defer cancelMain()
 
-	instances, err := client.Instances.List(ctx, orgID, projectID)
+	instances, err := client.Instances.List(ctx,
+		v2beta1.WithOrg(orgID),
+		v2beta1.WithProject(projectID),
+	)
 	if err != nil {
 		log.Fatalf("Failed to list instances: %v", err)
 	}
 
 	for _, inst := range instances.Data {
-		details, err := client.Instances.Get(ctx, orgID, projectID, inst.ID)
+		details, err := client.Instances.Get(
+			ctx,
+			v2beta1.WithOrg(orgID),
+			v2beta1.WithProject(projectID),
+			v2beta1.WithInstance(inst.ID),
+		)
 		if err != nil {
 			log.Fatalf("Failed to get instance details for %s: %v", inst.ID, err)
 		}
@@ -78,13 +91,16 @@ func main() {
 		}
 	}
 
-	newInstance, err := client.Instances.Create(ctx, orgID, projectID, &v2beta1.CreateInstanceRequest{
+	newInstance, err := client.Instances.Create(ctx, &v2beta1.CreateInstanceRequest{
 		Name:          "auraClientV2beta1Example",
 		Type:          "free",
 		CloudProvider: "gcp",
 		Region:        "europe-west1",
 		Memory:        "1GB",
-	})
+	},
+		v2beta1.WithOrg(orgID),
+		v2beta1.WithProject(projectID),
+	)
 	if err != nil {
 		log.Fatalf("Failed to create instance: %v", err)
 	}
@@ -108,7 +124,12 @@ func main() {
 	fmt.Println("Will delete in two seconds...")
 	time.Sleep(2 * time.Second)
 
-	_, err = client.Instances.Delete(ctx, orgID, projectID, newInstance.Data.ID)
+	_, err = client.Instances.Delete(
+		ctx,
+		v2beta1.WithOrg(orgID),
+		v2beta1.WithProject(projectID),
+		v2beta1.WithInstance(newInstance.Data.ID),
+	)
 	if err != nil {
 		log.Fatalf("Failed to delete instance: %v", err)
 	}

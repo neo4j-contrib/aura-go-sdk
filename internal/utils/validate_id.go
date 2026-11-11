@@ -55,7 +55,7 @@ func OrganizationID(value string) RequiredID {
 		Name:       "organization ID",
 		Value:      value,
 		Format:     UUID,
-		MissingMsg: "organization ID is required: provide it via WithOrg call option or WithOrganization client option",
+		MissingMsg: "organization ID is required: provide it via the WithOrg call option or WithDefaultOrg client option",
 		InvalidMsg: "organization ID must be an hex string formatted as xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
 	}
 }
@@ -66,7 +66,7 @@ func ProjectID(value string) RequiredID {
 		Name:       "project ID",
 		Value:      value,
 		Format:     UUID,
-		MissingMsg: "project ID is required: provide it via WithProject call option or WithDefaultProject client option",
+		MissingMsg: "project ID is required: provide it via the WithProject call option or WithDefaultProject client option",
 		InvalidMsg: "project ID must be an hex string formatted as xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
 	}
 }
@@ -77,7 +77,7 @@ func InstanceID(value string) RequiredID {
 		Name:       "instance ID",
 		Value:      value,
 		Format:     ShortID,
-		MissingMsg: "instance ID is required: provide it via WithInstance call option",
+		MissingMsg: "instance ID is required: provide it via the WithInstance call option or WithDefaultInstance client option",
 		InvalidMsg: "instance ID must be an 8-character hex string formatted as xxxxxxxx",
 	}
 }
@@ -89,7 +89,7 @@ func DatabaseID(value string) RequiredID {
 		Value:      value,
 		Format:     ShortID,
 		MissingMsg: "database ID is required",
-		InvalidMsg: "datbase ID must be an 8-character hex string formatted as xxxxxxxx",
+		InvalidMsg: "database ID must be an 8-character hex string formatted as xxxxxxxx",
 	}
 }
 

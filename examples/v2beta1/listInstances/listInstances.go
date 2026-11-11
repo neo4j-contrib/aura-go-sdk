@@ -38,7 +38,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 6*time.Second)
 	defer cancel()
 
-	instances, err := client.Instances.List(ctx, orgID, projectID)
+	instances, err := client.Instances.List(ctx, v2beta1.WithOrg(orgID), v2beta1.WithProject(projectID))
 	if err != nil {
 		log.Fatalf("Failed to list instances: %v", err)
 	}

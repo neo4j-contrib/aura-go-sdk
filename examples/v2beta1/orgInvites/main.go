@@ -38,7 +38,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 6*time.Second)
 	defer cancel()
 
-	invites, err := client.OrganizationInvites.List(ctx, orgID)
+	invites, err := client.OrganizationInvites.List(ctx, v2beta1.WithOrg(orgID))
 	if err != nil {
 		log.Fatalf("Failed to list organization invites: %v", err)
 	}
@@ -51,10 +51,10 @@ func main() {
 
 	fmt.Println()
 
-	invite, err := client.OrganizationInvites.Create(ctx, orgID, &v2beta1.CreateOrganizationInviteRequest{
+	invite, err := client.OrganizationInvites.Create(ctx, &v2beta1.CreateOrganizationInviteRequest{
 		Email: inviteEmail,
 		Roles: []string{"organization:member"},
-	})
+	}, v2beta1.WithOrg(orgID))
 	if err != nil {
 		log.Fatalf("Failed to create organization invite: %v", err)
 	}

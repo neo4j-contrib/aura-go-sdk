@@ -83,6 +83,7 @@ type config struct {
 	userAgent       string
 	defaultHeaders  map[string]string
 	maxResponseSize int
+	defaultScope    requestScope
 }
 
 // Option is a functional option for configuring the Client.
@@ -108,7 +109,7 @@ func defaultOptions() *options {
 			baseURL:         "https://api.neo4j.io",
 			apiTimeout:      120 * time.Second,
 			apiRetryMax:     3,
-			userAgent:       "aura-go-sdk/" + ClientVersion,
+			userAgent:       "aura-go-sdk/v2beta1/" + ClientVersion,
 			maxResponseSize: 10 * 1024 * 1024, // 10 MB
 		},
 		logger: slog.New(handler),
@@ -264,7 +265,33 @@ func WithDefaultHeaders(headers map[string]string) Option {
 	}
 }
 
-// WithDefaultOrg sets the default organization ID used when no per-call WithOrg
+// WithDefaultOrg sets a default organization ID used by every operation when a
+// call does not supply one via WithOrg.
+func WithDefaultOrg(orgID string) Option {
+	return func(o *options) error {
+		o.config.defaultScope.orgID = orgID
+		return nil
+	}
+}
+
+// WithDefaultProject sets a default project ID used by every operation when a
+// call does not supply one via WithProject.
+func WithDefaultProject(projectID string) Option {
+	return func(o *options) error {
+		o.config.defaultScope.projectID = projectID
+		return nil
+	}
+}
+
+// WithDefaultInstance sets a default instance ID used by every operation when a
+// call does not supply one via WithInstance.
+func WithDefaultInstance(instanceID string) Option {
+	return func(o *options) error {
+		o.config.defaultScope.instanceID = instanceID
+		return nil
+	}
+}
+
 // ============================================================================
 // Constructor
 // ============================================================================
@@ -328,45 +355,53 @@ func NewClient(opts ...Option) (*Client, error) {
 	}
 
 	client.Organizations = &organizationService{
-		api:     apiSvc,
-		timeout: o.config.apiTimeout,
-		logger:  clientLogger.With(slog.String("service", "organizationService")),
+		api:          apiSvc,
+		timeout:      o.config.apiTimeout,
+		logger:       clientLogger.With(slog.String("service", "organizationService")),
+		defaultScope: o.config.defaultScope,
 	}
 	client.Projects = &projectService{
-		api:     apiSvc,
-		timeout: o.config.apiTimeout,
-		logger:  clientLogger.With(slog.String("service", "projectService")),
+		api:          apiSvc,
+		timeout:      o.config.apiTimeout,
+		logger:       clientLogger.With(slog.String("service", "projectService")),
+		defaultScope: o.config.defaultScope,
 	}
 	client.Instances = &instanceService{
-		api:     apiSvc,
-		timeout: o.config.apiTimeout,
-		logger:  clientLogger.With(slog.String("service", "instanceService")),
+		api:          apiSvc,
+		timeout:      o.config.apiTimeout,
+		logger:       clientLogger.With(slog.String("service", "instanceService")),
+		defaultScope: o.config.defaultScope,
 	}
 	client.Databases = &databaseService{
-		api:     apiSvc,
-		timeout: o.config.apiTimeout,
-		logger:  clientLogger.With(slog.String("service", "databaseService")),
+		api:          apiSvc,
+		timeout:      o.config.apiTimeout,
+		logger:       clientLogger.With(slog.String("service", "databaseService")),
+		defaultScope: o.config.defaultScope,
 	}
 
 	client.DatabaseBackups = &databaseBackupService{
-		api:     apiSvc,
-		timeout: o.config.apiTimeout,
-		logger:  clientLogger.With(slog.String("service", "databaseBackupService")),
+		api:          apiSvc,
+		timeout:      o.config.apiTimeout,
+		logger:       clientLogger.With(slog.String("service", "databaseBackupService")),
+		defaultScope: o.config.defaultScope,
 	}
 	client.OrganizationUsers = &organizationUserService{
-		api:     apiSvc,
-		timeout: o.config.apiTimeout,
-		logger:  clientLogger.With(slog.String("service", "organizationUserService")),
+		api:          apiSvc,
+		timeout:      o.config.apiTimeout,
+		logger:       clientLogger.With(slog.String("service", "organizationUserService")),
+		defaultScope: o.config.defaultScope,
 	}
 	client.OrganizationInvites = &organizationInviteService{
-		api:     apiSvc,
-		timeout: o.config.apiTimeout,
-		logger:  clientLogger.With(slog.String("service", "organizationInviteService")),
+		api:          apiSvc,
+		timeout:      o.config.apiTimeout,
+		logger:       clientLogger.With(slog.String("service", "organizationInviteService")),
+		defaultScope: o.config.defaultScope,
 	}
 	client.ProjectUsers = &projectUserService{
-		api:     apiSvc,
-		timeout: o.config.apiTimeout,
-		logger:  clientLogger.With(slog.String("service", "projectUserService")),
+		api:          apiSvc,
+		timeout:      o.config.apiTimeout,
+		logger:       clientLogger.With(slog.String("service", "projectUserService")),
+		defaultScope: o.config.defaultScope,
 	}
 	client.logger.Info("Aura v2beta1 API client initialized successfully",
 		slog.Int("services", 7),

@@ -50,7 +50,7 @@ func TestDatabaseListBackups_Success(t *testing.T) {
 	}
 
 	service := createTestDatabaseBackupService(mock)
-	result, err := service.List(context.Background(), orgID, projectID, instanceID, databaseID)
+	result, err := service.List(context.Background(), WithOrg(orgID), WithProject(projectID), WithInstance(instanceID), WithDatabase(databaseID))
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -93,7 +93,7 @@ func TestDatabaseListBackups_EmptyResult(t *testing.T) {
 	}
 
 	service := createTestDatabaseBackupService(mock)
-	result, err := service.List(context.Background(), orgID, projectID, instanceID, databaseID)
+	result, err := service.List(context.Background(), WithOrg(orgID), WithProject(projectID), WithInstance(instanceID), WithDatabase(databaseID))
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -124,7 +124,7 @@ func TestDatabaseListBackups_InvalidInstanceID(t *testing.T) {
 			mock := &mockAPIService{}
 			service := createTestDatabaseBackupService(mock)
 
-			result, err := service.List(context.Background(), orgID, projectID, tc.instanceID, databaseID)
+			result, err := service.List(context.Background(), WithOrg(orgID), WithProject(projectID), WithInstance(tc.instanceID), WithDatabase(databaseID))
 
 			if err == nil {
 				t.Fatal("expected error for invalid instance ID, got nil")
@@ -160,7 +160,7 @@ func TestDatabaseListBackups_InvalidDatabaseID(t *testing.T) {
 			mock := &mockAPIService{}
 			service := createTestDatabaseBackupService(mock)
 
-			result, err := service.List(context.Background(), orgID, projectID, instanceID, tc.databaseID)
+			result, err := service.List(context.Background(), WithOrg(orgID), WithProject(projectID), WithInstance(instanceID), WithDatabase(tc.databaseID))
 
 			if err == nil {
 				t.Fatal("expected error for invalid database ID, got nil")
@@ -185,7 +185,7 @@ func TestDatabaseListBackups_MissingOrgID(t *testing.T) {
 	mock := &mockAPIService{}
 	service := createTestDatabaseBackupService(mock)
 
-	result, err := service.List(context.Background(), "", projectID, instanceID, databaseID)
+	result, err := service.List(context.Background(), WithOrg(""), WithProject(projectID), WithInstance(instanceID), WithDatabase(databaseID))
 
 	if err == nil {
 		t.Fatal("expected error for missing org ID, got nil")
@@ -211,7 +211,7 @@ func TestDatabaseListBackups_MissingProjectID(t *testing.T) {
 	mock := &mockAPIService{}
 	service := createTestDatabaseBackupService(mock)
 
-	result, err := service.List(context.Background(), orgID, "", instanceID, databaseID)
+	result, err := service.List(context.Background(), WithOrg(orgID), WithProject(""), WithInstance(instanceID), WithDatabase(databaseID))
 
 	if err == nil {
 		t.Fatal("expected error for missing project ID, got nil")
@@ -240,7 +240,7 @@ func TestDatabaseListBackups_NotFound(t *testing.T) {
 	}
 
 	service := createTestDatabaseBackupService(mock)
-	result, err := service.List(context.Background(), orgID, projectID, instanceID, databaseID)
+	result, err := service.List(context.Background(), WithOrg(orgID), WithProject(projectID), WithInstance(instanceID), WithDatabase(databaseID))
 
 	if err == nil {
 		t.Fatal("expected error, got nil")
@@ -271,7 +271,7 @@ func TestDatabaseListBackups_AuthenticationError(t *testing.T) {
 	}
 
 	service := createTestDatabaseBackupService(mock)
-	_, err := service.List(context.Background(), orgID, projectID, instanceID, databaseID)
+	_, err := service.List(context.Background(), WithOrg(orgID), WithProject(projectID), WithInstance(instanceID), WithDatabase(databaseID))
 
 	if err == nil {
 		t.Fatal("expected authentication error, got nil")
@@ -303,7 +303,7 @@ func TestDatabaseListBackups_ContextTimeout(t *testing.T) {
 	service := createTestDatabaseBackupServiceWithTimeout(mock, 10*time.Millisecond)
 
 	start := time.Now()
-	_, err := service.List(context.Background(), orgID, projectID, instanceID, databaseID)
+	_, err := service.List(context.Background(), WithOrg(orgID), WithProject(projectID), WithInstance(instanceID), WithDatabase(databaseID))
 	elapsed := time.Since(start)
 
 	if err == nil {
@@ -336,7 +336,7 @@ func TestDatabaseListBackups_QuickCancellation(t *testing.T) {
 	}
 
 	service := createTestDatabaseBackupServiceWithTimeout(mock, 30*time.Second)
-	_, err := service.List(ctx, orgID, projectID, instanceID, databaseID)
+	_, err := service.List(ctx, WithOrg(orgID), WithProject(projectID), WithInstance(instanceID), WithDatabase(databaseID))
 
 	if err == nil {
 		t.Fatal("expected deadline exceeded error")
@@ -369,7 +369,7 @@ func TestDatabaseCreate_Success(t *testing.T) {
 	}
 
 	service := createTestDatabaseBackupService(mock)
-	result, err := service.Create(context.Background(), orgID, projectID, instanceID, databaseID)
+	result, err := service.Create(context.Background(), WithOrg(orgID), WithProject(projectID), WithInstance(instanceID), WithDatabase(databaseID))
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -410,7 +410,7 @@ func TestDatabaseCreate_InvalidInstanceID(t *testing.T) {
 			mock := &mockAPIService{}
 			service := createTestDatabaseBackupService(mock)
 
-			result, err := service.Create(context.Background(), orgID, projectID, tc.instanceID, databaseID)
+			result, err := service.Create(context.Background(), WithOrg(orgID), WithProject(projectID), WithInstance(tc.instanceID), WithDatabase(databaseID))
 
 			if err == nil {
 				t.Fatal("expected error for invalid instance ID, got nil")
@@ -446,7 +446,7 @@ func TestDatabaseCreate_InvalidDatabaseID(t *testing.T) {
 			mock := &mockAPIService{}
 			service := createTestDatabaseBackupService(mock)
 
-			result, err := service.Create(context.Background(), orgID, projectID, instanceID, tc.databaseID)
+			result, err := service.Create(context.Background(), WithOrg(orgID), WithProject(projectID), WithInstance(instanceID), WithDatabase(tc.databaseID))
 
 			if err == nil {
 				t.Fatal("expected error for invalid database ID, got nil")
@@ -471,7 +471,7 @@ func TestDatabaseCreate_MissingOrgID(t *testing.T) {
 	mock := &mockAPIService{}
 	service := createTestDatabaseBackupService(mock)
 
-	result, err := service.Create(context.Background(), "", projectID, instanceID, databaseID)
+	result, err := service.Create(context.Background(), WithOrg(""), WithProject(projectID), WithInstance(instanceID), WithDatabase(databaseID))
 
 	if err == nil {
 		t.Fatal("expected error for missing org ID, got nil")
@@ -497,7 +497,7 @@ func TestDatabaseCreate_MissingProjectID(t *testing.T) {
 	mock := &mockAPIService{}
 	service := createTestDatabaseBackupService(mock)
 
-	result, err := service.Create(context.Background(), orgID, "", instanceID, databaseID)
+	result, err := service.Create(context.Background(), WithOrg(orgID), WithProject(""), WithInstance(instanceID), WithDatabase(databaseID))
 
 	if err == nil {
 		t.Fatal("expected error for missing project ID, got nil")
@@ -526,7 +526,7 @@ func TestDatabaseCreate_NotFound(t *testing.T) {
 	}
 
 	service := createTestDatabaseBackupService(mock)
-	result, err := service.Create(context.Background(), orgID, projectID, instanceID, databaseID)
+	result, err := service.Create(context.Background(), WithOrg(orgID), WithProject(projectID), WithInstance(instanceID), WithDatabase(databaseID))
 
 	if err == nil {
 		t.Fatal("expected error, got nil")
@@ -557,7 +557,7 @@ func TestDatabaseCreate_AuthenticationError(t *testing.T) {
 	}
 
 	service := createTestDatabaseBackupService(mock)
-	_, err := service.Create(context.Background(), orgID, projectID, instanceID, databaseID)
+	_, err := service.Create(context.Background(), WithOrg(orgID), WithProject(projectID), WithInstance(instanceID), WithDatabase(databaseID))
 
 	if err == nil {
 		t.Fatal("expected authentication error, got nil")
@@ -589,7 +589,7 @@ func TestDatabaseCreate_ContextTimeout(t *testing.T) {
 	service := createTestDatabaseBackupServiceWithTimeout(mock, 10*time.Millisecond)
 
 	start := time.Now()
-	_, err := service.Create(context.Background(), orgID, projectID, instanceID, databaseID)
+	_, err := service.Create(context.Background(), WithOrg(orgID), WithProject(projectID), WithInstance(instanceID), WithDatabase(databaseID))
 	elapsed := time.Since(start)
 
 	if err == nil {
@@ -622,7 +622,7 @@ func TestDatabaseCreate_QuickCancellation(t *testing.T) {
 	}
 
 	service := createTestDatabaseBackupServiceWithTimeout(mock, 30*time.Second)
-	_, err := service.Create(ctx, orgID, projectID, instanceID, databaseID)
+	_, err := service.Create(ctx, WithOrg(orgID), WithProject(projectID), WithInstance(instanceID), WithDatabase(databaseID))
 
 	if err == nil {
 		t.Fatal("expected deadline exceeded error")
@@ -660,7 +660,7 @@ func TestDatabaseGetBackup_Success(t *testing.T) {
 	}
 
 	service := createTestDatabaseBackupService(mock)
-	result, err := service.Get(context.Background(), orgID, projectID, instanceID, databaseID, backupID)
+	result, err := service.Get(context.Background(), WithOrg(orgID), WithProject(projectID), WithInstance(instanceID), WithDatabase(databaseID), WithBackup(backupID))
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -706,7 +706,7 @@ func TestDatabaseGetBackup_InvalidInstanceID(t *testing.T) {
 			mock := &mockAPIService{}
 			service := createTestDatabaseBackupService(mock)
 
-			result, err := service.Get(context.Background(), orgID, projectID, tc.instanceID, databaseID, backupID)
+			result, err := service.Get(context.Background(), WithOrg(orgID), WithProject(projectID), WithInstance(tc.instanceID), WithDatabase(databaseID), WithBackup(backupID))
 
 			if err == nil {
 				t.Fatal("expected error for invalid instance ID, got nil")
@@ -744,7 +744,7 @@ func TestDatabaseGetBackup_InvalidDatabaseID(t *testing.T) {
 			mock := &mockAPIService{}
 			service := createTestDatabaseBackupService(mock)
 
-			result, err := service.Get(context.Background(), orgID, projectID, instanceID, tc.databaseID, backupID)
+			result, err := service.Get(context.Background(), WithOrg(orgID), WithProject(projectID), WithInstance(instanceID), WithDatabase(tc.databaseID), WithBackup(backupID))
 
 			if err == nil {
 				t.Fatal("expected error for invalid database ID, got nil")
@@ -781,7 +781,7 @@ func TestDatabaseGetBackup_InvalidBackupID(t *testing.T) {
 			mock := &mockAPIService{}
 			service := createTestDatabaseBackupService(mock)
 
-			result, err := service.Get(context.Background(), orgID, projectID, instanceID, databaseID, tc.backupID)
+			result, err := service.Get(context.Background(), WithOrg(orgID), WithProject(projectID), WithInstance(instanceID), WithDatabase(databaseID), WithBackup(tc.backupID))
 
 			if err == nil {
 				t.Fatal("expected error for invalid backup ID, got nil")
@@ -807,7 +807,7 @@ func TestDatabaseGetBackup_MissingOrgID(t *testing.T) {
 	mock := &mockAPIService{}
 	service := createTestDatabaseBackupService(mock)
 
-	result, err := service.Get(context.Background(), "", projectID, instanceID, databaseID, backupID)
+	result, err := service.Get(context.Background(), WithOrg(""), WithProject(projectID), WithInstance(instanceID), WithDatabase(databaseID), WithBackup(backupID))
 
 	if err == nil {
 		t.Fatal("expected error for missing org ID, got nil")
@@ -834,7 +834,7 @@ func TestDatabaseGetBackup_MissingProjectID(t *testing.T) {
 	mock := &mockAPIService{}
 	service := createTestDatabaseBackupService(mock)
 
-	result, err := service.Get(context.Background(), orgID, "", instanceID, databaseID, backupID)
+	result, err := service.Get(context.Background(), WithOrg(orgID), WithProject(""), WithInstance(instanceID), WithDatabase(databaseID), WithBackup(backupID))
 
 	if err == nil {
 		t.Fatal("expected error for missing project ID, got nil")
@@ -864,7 +864,7 @@ func TestDatabaseGetBackup_NotFound(t *testing.T) {
 	}
 
 	service := createTestDatabaseBackupService(mock)
-	result, err := service.Get(context.Background(), orgID, projectID, instanceID, databaseID, backupID)
+	result, err := service.Get(context.Background(), WithOrg(orgID), WithProject(projectID), WithInstance(instanceID), WithDatabase(databaseID), WithBackup(backupID))
 
 	if err == nil {
 		t.Fatal("expected error, got nil")
@@ -896,7 +896,7 @@ func TestDatabaseGetBackup_AuthenticationError(t *testing.T) {
 	}
 
 	service := createTestDatabaseBackupService(mock)
-	_, err := service.Get(context.Background(), orgID, projectID, instanceID, databaseID, backupID)
+	_, err := service.Get(context.Background(), WithOrg(orgID), WithProject(projectID), WithInstance(instanceID), WithDatabase(databaseID), WithBackup(backupID))
 
 	if err == nil {
 		t.Fatal("expected authentication error, got nil")
@@ -929,7 +929,7 @@ func TestDatabaseGetBackup_ContextTimeout(t *testing.T) {
 	service := createTestDatabaseBackupServiceWithTimeout(mock, 10*time.Millisecond)
 
 	start := time.Now()
-	_, err := service.Get(context.Background(), orgID, projectID, instanceID, databaseID, backupID)
+	_, err := service.Get(context.Background(), WithOrg(orgID), WithProject(projectID), WithInstance(instanceID), WithDatabase(databaseID), WithBackup(backupID))
 	elapsed := time.Since(start)
 
 	if err == nil {
@@ -963,12 +963,97 @@ func TestDatabaseGetBackup_QuickCancellation(t *testing.T) {
 	}
 
 	service := createTestDatabaseBackupServiceWithTimeout(mock, 30*time.Second)
-	_, err := service.Get(ctx, orgID, projectID, instanceID, databaseID, backupID)
+	_, err := service.Get(ctx, WithOrg(orgID), WithProject(projectID), WithInstance(instanceID), WithDatabase(databaseID), WithBackup(backupID))
 
 	if err == nil {
 		t.Fatal("expected deadline exceeded error")
 	}
 	if !errors.Is(err, context.DeadlineExceeded) && !errors.Is(err, context.Canceled) {
 		t.Errorf("expected context error, got: %v", err)
+	}
+}
+
+// ============================================================================
+// Default scope precedence tests (database backups)
+// ----------------------------------------------------------------------------
+// The backup service is the deepest on the spine (org->project->instance->database,
+// with WithBackup selecting a single backup). These prove the client default
+// supplies the spine when fields are left unset per call, that a per-call option
+// overrides its matching default, and that the last option for a field wins.
+// ============================================================================
+
+func createTestDatabaseBackupServiceWithDefaultScope(mock *mockAPIService, def requestScope) *databaseBackupService {
+	return &databaseBackupService{api: mock, timeout: 30 * time.Second, logger: testLogger(), defaultScope: def}
+}
+
+func TestDatabaseBackups_List_DefaultScope(t *testing.T) {
+	const (
+		orgID      = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		projectID  = "11111111-2222-3333-4444-555555555555"
+		instanceID = "abcdef01"
+		databaseID = "12345678"
+	)
+
+	mock := &mockAPIService{response: &api.Response{StatusCode: 200, Body: []byte(`{"data":[]}`)}}
+	service := createTestDatabaseBackupServiceWithDefaultScope(mock, requestScope{
+		orgID: orgID, projectID: projectID, instanceID: instanceID, databaseID: databaseID,
+	})
+
+	// No per-call options: the full spine is inherited from the default.
+	_, err := service.List(context.Background())
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	want := "organizations/" + orgID + "/projects/" + projectID + "/instances/" + instanceID + "/databases/" + databaseID + "/backups"
+	if mock.lastPath != want {
+		t.Errorf("expected default-scope path %q, got %q", want, mock.lastPath)
+	}
+}
+
+func TestDatabaseBackups_Get_PerCallOverride(t *testing.T) {
+	const (
+		org        = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		proj       = "11111111-2222-3333-4444-555555555555"
+		instanceID = "abcdef01"
+		databaseID = "12345678"
+		otherOrg   = "cccccccc-dddd-eeee-ffff-000011112222"
+		backupID   = "bbbbbbbb-cccc-dddd-eeee-ffffffffffff"
+	)
+
+	mock := &mockAPIService{response: &api.Response{StatusCode: 200, Body: []byte(`{"data":{"id":"bbbbbbbb-cccc-dddd-eeee-ffffffffffff"}}`)}}
+	service := createTestDatabaseBackupServiceWithDefaultScope(mock, requestScope{
+		orgID: org, projectID: proj, instanceID: instanceID, databaseID: databaseID,
+	})
+
+	// Spine is inherited; only the leaf backup and the org are supplied per call.
+	_, err := service.Get(context.Background(), WithOrg(otherOrg), WithBackup(backupID))
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	want := "organizations/" + otherOrg + "/projects/" + proj + "/instances/" + instanceID + "/databases/" + databaseID + "/backups/" + backupID
+	if mock.lastPath != want {
+		t.Errorf("expected overridden path %q, got %q", want, mock.lastPath)
+	}
+}
+
+func TestDatabaseBackups_List_LastOptionWins(t *testing.T) {
+	const (
+		orgA = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		orgB = "cccccccc-dddd-eeee-ffff-000011112222"
+		proj = "11111111-2222-3333-4444-555555555555"
+		inst = "abcdef01"
+		db   = "12345678"
+	)
+
+	mock := &mockAPIService{response: &api.Response{StatusCode: 200, Body: []byte(`{"data":[]}`)}}
+	service := createTestDatabaseBackupService(mock)
+
+	_, err := service.List(context.Background(), WithOrg(orgA), WithOrg(orgB), WithProject(proj), WithInstance(inst), WithDatabase(db))
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	want := "organizations/" + orgB + "/projects/" + proj + "/instances/" + inst + "/databases/" + db + "/backups"
+	if mock.lastPath != want {
+		t.Errorf("expected last-option-wins path %q, got %q", want, mock.lastPath)
 	}
 }

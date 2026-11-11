@@ -38,7 +38,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 6*time.Second)
 	defer cancel()
 
-	users, err := client.ProjectUsers.List(ctx, orgID, projectID)
+	users, err := client.ProjectUsers.List(ctx, v2beta1.WithOrg(orgID), v2beta1.WithProject(projectID))
 	if err != nil {
 		log.Fatalf("Failed to list project users: %v", err)
 	}
@@ -55,10 +55,10 @@ func main() {
 		return
 	}
 
-	err = client.ProjectUsers.Add(ctx, orgID, projectID, &v2beta1.AddProjectUserRequest{
+	err = client.ProjectUsers.Add(ctx, &v2beta1.AddProjectUserRequest{
 		UserID:       userIDToAdd,
 		ProjectRoles: []string{"viewer"},
-	})
+	}, v2beta1.WithOrg(orgID), v2beta1.WithProject(projectID))
 	if err != nil {
 		log.Fatalf("Failed to add user to project: %v", err)
 	}
