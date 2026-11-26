@@ -28,6 +28,10 @@ merge:
     - CLAUDE.md
     - go.mod
     - go.sum
+    - Makefile
+    - .golangci.yml
+    - .changie.yaml
+    - internal/httpclient/
   max_rounds:
     draft: 5
     ready: 5
