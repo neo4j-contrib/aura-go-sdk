@@ -364,3 +364,11 @@ Commit the resulting diff in `testdata/api_surface.golden` (or `v2beta1/testdata
 - A changie fragment in `.changes/unreleased/` is required for every user-visible change — run `changie new` and commit the generated YAML alongside your code
 - PRs that touch only docs, CI, or tests may add the `no-changelog` label to bypass the changelog check workflow
 - Required checks before review: `go test -race ./...`, `golangci-lint run`, `go build ./...` (includes `examples/`) — `go test -race ./...` includes `TestAPISurface`, so an unreviewed surface change fails CI rather than just the changelog check
+
+## Agent workflow
+
+- Config lives in `.swf/swf.yml`; read it instead of copying values here.
+- Ready flip: human. Merge mode: manual. Carve-out paths (always human-reviewed) are listed in the config.
+- Round budgets: 5 draft, 5 ready.
+- A full local stellar round is the mandatory gate before every push. `--quick` is a mid-work pre-filter only, never a substitute.
+- Tracker: Linear, team Devsurf, project "Aura GO SDK SWF". `LINEAR_API_KEY` carries its creator's full Linear access (Linear can't scope keys to a project). Owner and rotation interval: to be recorded by the key's creator.
