@@ -1,0 +1,74 @@
+# Rendered by swf-setup-repo when gates.merge_compiles is true.
+# Builds the tree that would land, not the PR head. CI on a PR builds its head
+# commit; the merge result is that head applied on top of the base as it is now.
+# The two differ whenever both touched the same file. A textually clean merge can
+# still fail to build, and nothing else catches it. Not path-filtered on purpose:
+# a docs-only merge can break the build too.
+#
+# LANGUAGE-SPECIFIC: the toolchain setup steps and the build command below come
+# from languages.md for the repo's language. Both are required.
+name: Merge compiles
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  merge-compiles:
+    name: Merge compiles (the tree that lands)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      # Full history: the merge needs its merge base.
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
+        with:
+          go-version-file: go.mod
+
+      - name: Build the merged tree
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: |
+          set -euo pipefail
+          # Base arrives as a ref, not a PR number, so a stacked PR is checked
+          # against the branch it actually merges into.
+          git fetch --no-tags origin "$BASE_REF"
+          BASE_SHA="$(git rev-parse FETCH_HEAD)"
+          # merge-tree decides the merge in object space. Exit 1 means conflict.
+          if ! TREE="$(git merge-tree --write-tree "$BASE_SHA" "$HEAD_SHA")"; then
+            echo "::error::The PR conflicts with $BASE_REF. Rebase it."
+            exit 1
+          fi
+          TREE="$(printf '%s\n' "$TREE" | head -n1)"
+          SCRATCH="$RUNNER_TEMP/merged"
+          mkdir -p "$SCRATCH"
+          git archive "$TREE" | tar -x -C "$SCRATCH"
+          cd "$SCRATCH"
+          go build ./... && go vet ./...
+
+  main-compiles:
+    # The same bar after the merge, so a merge that slipped past (web UI,
+    # cancelled run, stack cascade) turns the base branch red within minutes.
+    name: Main compiles
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
+        with:
+          go-version-file: go.mod
+
+      - name: Build the base branch
+        run: |
+          set -euo pipefail
+          go build ./... && go vet ./...

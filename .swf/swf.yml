@@ -1,0 +1,70 @@
+schema: swf-config/1
+
+repo:
+  slug: neo4j-contrib/aura-go-sdk
+  base_branch: main
+  language: go
+  push_remote: origin
+  pr_repo: neo4j-contrib/aura-go-sdk
+
+tracker:
+  kind: linear
+  team: Devsurf
+  project: Aura GO SDK SWF
+  pick_state: Agent Backlog
+  claim_state: In Progress
+  done_state: Done
+  review_label: Review Task
+
+merge:
+  ready_flip: human
+  mode: manual
+  carve_out:
+    - .github/
+    - .claude/
+    - .agents/
+    - .swf/
+    - AGENTS.md
+    - CLAUDE.md
+    - go.mod
+    - go.sum
+    - Makefile
+    - .golangci.yml
+    - .changie.yaml
+    - internal/httpclient/
+  max_rounds:
+    draft: 5
+    ready: 5
+
+gates:
+  local:
+    - go test -race ./... -timeout 120s
+    - go fmt ./...
+    - golangci-lint run
+  merge_compiles: true
+  merge_compile: go build ./... && go vet ./...
+
+review:
+  engine: stellar
+  security: false
+  model: fireworks-ai/accounts/fireworks/routers/glm-fast-latest
+
+tools:
+  gbuild: 0.13.1
+  stellar_review: 0.1.2
+  relate: 1.0.1
+  opencode: 2.3.0
+
+nightshift:
+  enabled: false
+  window: "03:00-07:00 Europe/Berlin"
+  model: fireworks-ai/accounts/fireworks/routers/glm-fast-latest
+  clusters_per_night: 1
+  merge: human
+  gates: []
+
+limits:
+  weekly_cost_eur: 1000
+  max_unplanned_interventions: 1
+
+card_record: true
