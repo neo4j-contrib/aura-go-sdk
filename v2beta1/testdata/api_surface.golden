@@ -106,6 +106,20 @@ type CreateOrganizationInviteResponse struct {
 }
 
 
+TYPE CreateProjectRequest
+type CreateProjectRequest struct {
+	Name             string   `json:"name"`
+	BillingAccountID string   `json:"billing_account_id,omitempty"`
+	SSOConfigIDs     []string `json:"sso_config_ids,omitempty"`
+}
+
+
+TYPE CreateProjectResponse
+type CreateProjectResponse struct {
+	Data Project `json:"data"`
+}
+
+
 TYPE DatabaseBackup
 type DatabaseBackup struct {
 	ID         string       `json:"id"`
@@ -430,6 +444,8 @@ type ProjectInviteEntry struct {
 TYPE ProjectService
 type ProjectService interface {
 	List(ctx context.Context, opts ...ScopeOption) (*ListProjectsResponse, error)
+
+	Create(ctx context.Context, req *CreateProjectRequest, opts ...ScopeOption) (*CreateProjectResponse, error)
 }
 
 

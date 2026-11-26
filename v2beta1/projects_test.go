@@ -295,3 +295,114 @@ func TestProjects_List_LastOptionWins(t *testing.T) {
 		t.Errorf("expected last-option-wins path %q, got %q", want, mock.lastPath)
 	}
 }
+
+// ============================================================================
+// projectService.Create tests
+// ============================================================================
+
+func TestProjectService_Create_Success(t *testing.T) {
+	orgID := "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+	req := &CreateProjectRequest{Name: "Operation Dark Koala", BillingAccountID: "b7c1e2d4-3f5a-4a6b-8c9d-0e1f2a3b4c5d", SSOConfigIDs: []string{"2f8d1c3e-6a4b-4e9f-b0c1-d2e3f4a5b6c7"}}
+	expected := CreateProjectResponse{Data: Project{ID: "9aa289f6-1ccf-57c8-bc90-a0c3cecc82ac", Name: "Operation Dark Koala"}}
+
+	body, _ := json.Marshal(expected)
+	mock := &mockAPIService{response: &api.Response{StatusCode: 200, Body: body}}
+
+	service := createTestProjectService(mock)
+	result, err := service.Create(context.Background(), req, WithOrg(orgID))
+
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if mock.lastMethod != "POST" {
+		t.Errorf("expected POST method, got %s", mock.lastMethod)
+	}
+	expectedPath := "organizations/" + orgID + "/projects"
+	if mock.lastPath != expectedPath {
+		t.Errorf("expected path '%s', got '%s'", expectedPath, mock.lastPath)
+	}
+	var sentReq CreateProjectRequest
+	if err := json.Unmarshal([]byte(mock.lastBody), &sentReq); err != nil {
+		t.Fatalf("failed to unmarshal sent body: %v", err)
+	}
+	if sentReq.Name != req.Name || sentReq.BillingAccountID != req.BillingAccountID {
+		t.Errorf("sent request mismatch: got %+v, want %+v", sentReq, *req)
+	}
+	if result.Data.ID != expected.Data.ID || result.Data.Name != expected.Data.Name {
+		t.Errorf("unexpected result: got %+v, want %+v", result.Data, expected.Data)
+	}
+}
+
+func TestProjectService_Create_NilRequest(t *testing.T) {
+	mock := &mockAPIService{}
+	service := createTestProjectService(mock)
+	_, err := service.Create(context.Background(), nil, WithOrg("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"))
+	if err == nil || !strings.Contains(err.Error(), "request must not be nil") {
+		t.Fatalf("expected nil request error, got %v", err)
+	}
+}
+
+func TestProjectService_Create_MissingOrgID(t *testing.T) {
+	mock := &mockAPIService{}
+	service := createTestProjectService(mock)
+	_, err := service.Create(context.Background(), &CreateProjectRequest{Name: "x"}, WithOrg(""))
+	if err == nil || !strings.Contains(err.Error(), "organization ID is required") {
+		t.Fatalf("expected missing org ID error, got %v", err)
+	}
+	if mock.lastPath != "" {
+		t.Errorf("expected no API call, got path %s", mock.lastPath)
+	}
+}
+
+func TestProjectService_Create_NotFound(t *testing.T) {
+	orgID := "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+	mock := &mockAPIService{err: &api.Error{StatusCode: 404, Message: "Not found"}}
+	service := createTestProjectService(mock)
+	_, err := service.Create(context.Background(), &CreateProjectRequest{Name: "x"}, WithOrg(orgID))
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	apiErr, ok := err.(*api.Error)
+	if !ok || !apiErr.IsNotFound() {
+		t.Errorf("expected NotFound error, got %v", err)
+	}
+}
+
+func TestProjectService_Create_AuthenticationError(t *testing.T) {
+	orgID := "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+	mock := &mockAPIService{err: &api.Error{StatusCode: 401, Message: "Unauthorized"}}
+	service := createTestProjectService(mock)
+	_, err := service.Create(context.Background(), &CreateProjectRequest{Name: "x"}, WithOrg(orgID))
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	apiErr, ok := err.(*api.Error)
+	if !ok || !apiErr.IsUnauthorized() {
+		t.Errorf("expected Unauthorized error, got %v", err)
+	}
+}
+
+func TestProjectService_Create_ContextTimeout(t *testing.T) {
+	orgID := "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+	mock := &mockAPIServiceWithDelay{response: &api.Response{StatusCode: 200, Body: []byte(`{"data":{"id":"1","name":"x"}}`)}, delay: 2 * time.Second}
+	service := createTestProjectServiceWithTimeout(mock, 100*time.Millisecond)
+	_, err := service.Create(context.Background(), &CreateProjectRequest{Name: "x"}, WithOrg(orgID))
+	if err == nil || !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("expected deadline exceeded, got %v", err)
+	}
+}
+
+func TestProjectService_Create_DefaultScope(t *testing.T) {
+	orgID := "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+	req := &CreateProjectRequest{Name: "Test"}
+	mock := &mockAPIService{response: &api.Response{StatusCode: 200, Body: []byte(`{"data":{"id":"1","name":"Test"}}`)}}
+	service := createTestProjectServiceWithDefaultScope(mock, requestScope{orgID: orgID})
+	_, err := service.Create(context.Background(), req)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	want := "organizations/" + orgID + "/projects"
+	if mock.lastPath != want {
+		t.Errorf("expected path %q, got %q", want, mock.lastPath)
+	}
+}
