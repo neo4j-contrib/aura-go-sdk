@@ -32,6 +32,8 @@ go fmt ./...
 - `internal/apisurface`: renders the exported API of a package (`aura`, `v2beta1`) to deterministic text for the golden-file contract test (see "API Surface Golden Test" below)
 - Each `aura` service holds `api api.RequestService`, `timeout time.Duration`, `logger *slog.Logger`; each `v2beta1` service holds those plus a `defaultScope requestScope` field
 - Services apply `context.WithTimeout` on every method call; cancellation propagates through the HTTP layer
+- README.md describes what this, provides a quickstart, build and contributing.
+- Documentation for v1 and v2beta1.md is in docs/v1.md and docs/v2beta1.md. Any changes to those APIs must be recorded in there and not in the README.md unless it changes the Quickstart 
 
 ## Test Mocks
 
@@ -130,6 +132,9 @@ or renaming/removing methods, signature changes, any exported-surface delta (the
 test goes red) — are *expected* and recorded as changie kind **`Changed`** with the house
 prefix `v2beta1: <what changed>`; do **not** hedge a beta change with "breaking" wording.
 A wholly new type/service is `Added`; an interface-method addition is `Changed`.
+
+***Documentation***
+User documentation for v2beta1.md is in  docs/v2beta1.md.  All changes to must be recorded there.  
 
 ## v2beta1 Test conventions
 
