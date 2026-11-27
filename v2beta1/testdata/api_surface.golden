@@ -250,6 +250,8 @@ type InstanceService interface {
 	Update(ctx context.Context, req *UpdateInstanceRequest, opts ...ScopeOption) (*GetInstanceResponse, error)
 
 	Delete(ctx context.Context, opts ...ScopeOption) (*DeleteInstanceResponse, error)
+
+	Restore(ctx context.Context, req *RestoreInstanceRequest, opts ...ScopeOption) (*RestoreInstanceResponse, error)
 }
 
 
@@ -478,6 +480,25 @@ type ProjectUserService interface {
 	UpdateRole(ctx context.Context, req *UpdateProjectUserRequest, opts ...ScopeOption) (*GetProjectUserResponse, error)
 
 	Remove(ctx context.Context, opts ...ScopeOption) error
+}
+
+
+TYPE RestoreInstanceData
+type RestoreInstanceData struct {
+	InstanceID string `json:"instance_id"`
+	RestoreID  string `json:"restore_id"`
+}
+
+
+TYPE RestoreInstanceRequest
+type RestoreInstanceRequest struct {
+	LatestBefore time.Time `json:"latest_before"`
+}
+
+
+TYPE RestoreInstanceResponse
+type RestoreInstanceResponse struct {
+	Data RestoreInstanceData `json:"data"`
 }
 
 

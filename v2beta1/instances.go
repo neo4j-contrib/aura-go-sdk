@@ -156,6 +156,22 @@ type DeleteInstanceResponse struct {
 	Data InstanceDetails `json:"data"`
 }
 
+// RestoreInstanceRequest holds the fields required to restore an instance.
+type RestoreInstanceRequest struct {
+	LatestBefore time.Time `json:"latest_before"`
+}
+
+// RestoreInstanceData holds the response data for an instance restore.
+type RestoreInstanceData struct {
+	InstanceID string `json:"instance_id"`
+	RestoreID  string `json:"restore_id"`
+}
+
+// RestoreInstanceResponse wraps the response from restoring an instance.
+type RestoreInstanceResponse struct {
+	Data RestoreInstanceData `json:"data"`
+}
+
 // ============================================================================
 // Service
 // ============================================================================
@@ -383,6 +399,51 @@ func (s *instanceService) Delete(ctx context.Context, opts ...ScopeOption) (*Del
 	}
 
 	s.logger.InfoContext(ctx, "instance deleted successfully", slog.String("instanceID", sc.instanceID))
+	return &result, nil
+}
+
+// Restore restores an instance to a restore point.
+func (s *instanceService) Restore(ctx context.Context, req *RestoreInstanceRequest, opts ...ScopeOption) (*RestoreInstanceResponse, error) {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	if req == nil {
+		return nil, errors.New("request must not be nil")
+	}
+
+	sc := resolveScope(s.defaultScope, opts)
+
+	if err := utils.Validate(ctx, s.logger,
+		utils.OrganizationID(sc.orgID),
+		utils.ProjectID(sc.projectID),
+		utils.InstanceID(sc.instanceID),
+	); err != nil {
+		return nil, err
+	}
+
+	s.logger.InfoContext(ctx, "restoring instance", slog.String("orgID", sc.orgID), slog.String("projectID", sc.projectID), slog.String("instanceID", sc.instanceID), slog.String("latest_before", req.LatestBefore.Format(time.RFC3339)))
+
+	body, err := json.Marshal(req)
+	if err != nil {
+		s.logger.ErrorContext(ctx, "failed to marshal restore instance request", slog.String("error", err.Error()))
+		return nil, err
+	}
+
+	path := utils.SingleInstancePath(sc.orgID, sc.projectID, sc.instanceID) + "/restore"
+
+	resp, err := s.api.Post(ctx, path, string(body))
+	if err != nil {
+		s.logger.ErrorContext(ctx, "failed to restore instance", slog.String("instanceID", sc.instanceID), slog.String("error", err.Error()))
+		return nil, err
+	}
+
+	var result RestoreInstanceResponse
+	if err := json.Unmarshal(resp.Body, &result); err != nil {
+		s.logger.ErrorContext(ctx, "failed to unmarshal restore instance response", slog.String("error", err.Error()))
+		return nil, err
+	}
+
+	s.logger.InfoContext(ctx, "instance restore scheduled", slog.String("instanceID", sc.instanceID), slog.String("restoreID", result.Data.RestoreID))
 	return &result, nil
 }
 
