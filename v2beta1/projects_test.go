@@ -406,3 +406,185 @@ func TestProjectService_Create_DefaultScope(t *testing.T) {
 		t.Errorf("expected path %q, got %q", want, mock.lastPath)
 	}
 }
+
+// ============================================================================
+// projectService.Get tests
+// ============================================================================
+
+func TestProjectService_Get_Success(t *testing.T) {
+	orgID := "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+	projectID := "11111111-2222-3333-4444-555555555555"
+	expected := GetProjectResponse{
+		Data: Project{ID: projectID, Name: "Operation Dark Koala"},
+	}
+	body, _ := json.Marshal(expected)
+	mock := &mockAPIService{
+		response: &api.Response{StatusCode: 200, Body: body},
+	}
+	service := createTestProjectService(mock)
+	result, err := service.Get(context.Background(), WithOrg(orgID), WithProject(projectID))
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if mock.lastMethod != "GET" {
+		t.Errorf("expected GET method, got %s", mock.lastMethod)
+	}
+	expectedPath := "organizations/" + orgID + "/projects/" + projectID
+	if mock.lastPath != expectedPath {
+		t.Errorf("expected path '%s', got '%s'", expectedPath, mock.lastPath)
+	}
+	if result.Data.ID != projectID || result.Data.Name != "Operation Dark Koala" {
+		t.Errorf("unexpected result: got %+v, want %+v", result.Data, expected.Data)
+	}
+}
+
+func TestProjectService_Get_InvalidID(t *testing.T) {
+	mock := &mockAPIService{}
+	service := createTestProjectService(mock)
+
+	// Missing org ID
+	_, err := service.Get(context.Background(), WithOrg(""), WithProject("11111111-2222-3333-4444-555555555555"))
+	if err == nil || !strings.Contains(err.Error(), "organization ID is required") {
+		t.Fatalf("expected missing org ID error, got %v", err)
+	}
+	if mock.lastPath != "" {
+		t.Errorf("expected no API call, got path %s", mock.lastPath)
+	}
+
+	// Missing project ID
+	_, err = service.Get(context.Background(), WithOrg("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"), WithProject(""))
+	if err == nil || !strings.Contains(err.Error(), "project ID is required") {
+		t.Fatalf("expected missing project ID error, got %v", err)
+	}
+	if mock.lastPath != "" {
+		t.Errorf("expected no API call, got path %s", mock.lastPath)
+	}
+}
+
+func TestProjectService_Get_NotFound(t *testing.T) {
+	orgID := "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+	projectID := "11111111-2222-3333-4444-555555555555"
+	mock := &mockAPIService{
+		err: &api.Error{StatusCode: 404, Message: "Not found"},
+	}
+	service := createTestProjectService(mock)
+	_, err := service.Get(context.Background(), WithOrg(orgID), WithProject(projectID))
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	apiErr, ok := err.(*api.Error)
+	if !ok || !apiErr.IsNotFound() {
+		t.Errorf("expected NotFound error, got %v", err)
+	}
+}
+
+func TestProjectService_Get_AuthenticationError(t *testing.T) {
+	orgID := "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+	projectID := "11111111-2222-3333-4444-555555555555"
+	mock := &mockAPIService{
+		err: &api.Error{StatusCode: 401, Message: "Unauthorized"},
+	}
+	service := createTestProjectService(mock)
+	_, err := service.Get(context.Background(), WithOrg(orgID), WithProject(projectID))
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	apiErr, ok := err.(*api.Error)
+	if !ok || !apiErr.IsUnauthorized() {
+		t.Errorf("expected Unauthorized error, got %v", err)
+	}
+}
+
+func TestProjectService_Get_ContextTimeout(t *testing.T) {
+	orgID := "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+	projectID := "11111111-2222-3333-4444-555555555555"
+	mock := &mockAPIServiceWithDelay{
+		response: &api.Response{StatusCode: 200, Body: []byte(`{"data":{"id":"1","name":"x"}}`)},
+		delay:    2 * time.Second,
+	}
+	service := createTestProjectServiceWithTimeout(mock, 100*time.Millisecond)
+	_, err := service.Get(context.Background(), WithOrg(orgID), WithProject(projectID))
+	if err == nil || !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("expected deadline exceeded, got %v", err)
+	}
+}
+
+func TestProjectService_Get_QuickCancellation(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Nanosecond)
+	defer cancel()
+	time.Sleep(10 * time.Millisecond)
+
+	orgID := "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+	projectID := "11111111-2222-3333-4444-555555555555"
+	mock := &mockAPIServiceWithDelay{
+		response: &api.Response{StatusCode: 200, Body: []byte(`{"data":{"id":"1","name":"x"}}`)},
+		delay:    0,
+	}
+	service := createTestProjectServiceWithTimeout(mock, 30*time.Second)
+	_, err := service.Get(ctx, WithOrg(orgID), WithProject(projectID))
+	if err == nil {
+		t.Fatal("expected deadline exceeded error")
+	}
+	if !errors.Is(err, context.DeadlineExceeded) && !errors.Is(err, context.Canceled) {
+		t.Errorf("expected context error, got %v", err)
+	}
+}
+
+// ============================================================================
+// Default scope precedence tests (project Get)
+// ============================================================================
+
+func TestProjectService_Get_DefaultScope(t *testing.T) {
+	const (
+		orgID     = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		projectID = "11111111-2222-3333-4444-555555555555"
+	)
+	mock := &mockAPIService{response: &api.Response{StatusCode: 200, Body: []byte(`{"data":{"id":"` + projectID + `","name":"x"}}`)}}
+	service := createTestProjectServiceWithDefaultScope(mock, requestScope{orgID: orgID, projectID: projectID})
+	_, err := service.Get(context.Background())
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	want := "organizations/" + orgID + "/projects/" + projectID
+	if mock.lastPath != want {
+		t.Errorf("expected default-scope path %q, got %q", want, mock.lastPath)
+	}
+}
+
+func TestProjectService_Get_PerCallOverride(t *testing.T) {
+	const (
+		defaultOrg     = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		defaultProject = "11111111-2222-3333-4444-555555555555"
+		otherOrg       = "cccccccc-dddd-eeee-ffff-000011112222"
+		otherProject   = "22222222-3333-4444-5555-666666666666"
+	)
+	mock := &mockAPIService{response: &api.Response{StatusCode: 200, Body: []byte(`{"data":{"id":"` + otherProject + `","name":"x"}}`)}}
+	service := createTestProjectServiceWithDefaultScope(mock, requestScope{orgID: defaultOrg, projectID: defaultProject})
+	_, err := service.Get(context.Background(), WithOrg(otherOrg), WithProject(otherProject))
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	want := "organizations/" + otherOrg + "/projects/" + otherProject
+	if mock.lastPath != want {
+		t.Errorf("expected overridden path %q, got %q", want, mock.lastPath)
+	}
+}
+
+func TestProjectService_Get_LastOptionWins(t *testing.T) {
+	const (
+		orgA  = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		orgB  = "cccccccc-dddd-eeee-ffff-000011112222"
+		projA = "11111111-2222-3333-4444-555555555555"
+		projB = "22222222-3333-4444-5555-666666666666"
+	)
+	mock := &mockAPIService{response: &api.Response{StatusCode: 200, Body: []byte(`{"data":{"id":"` + projB + `","name":"x"}}`)}}
+	service := createTestProjectService(mock)
+	_, err := service.Get(context.Background(), WithOrg(orgA), WithProject(projA), WithOrg(orgB), WithProject(projB))
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	want := "organizations/" + orgB + "/projects/" + projB
+	if mock.lastPath != want {
+		t.Errorf("expected last-option-wins path %q, got %q", want, mock.lastPath)
+	}
+}

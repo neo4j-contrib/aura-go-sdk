@@ -207,6 +207,12 @@ type GetOrganizationUserResponse struct {
 }
 
 
+TYPE GetProjectResponse
+type GetProjectResponse struct {
+	Data Project `json:"data"`
+}
+
+
 TYPE GetProjectUserResponse
 type GetProjectUserResponse struct {
 	Data ProjectUser `json:"data"`
@@ -444,6 +450,8 @@ type ProjectInviteEntry struct {
 TYPE ProjectService
 type ProjectService interface {
 	List(ctx context.Context, opts ...ScopeOption) (*ListProjectsResponse, error)
+
+	Get(ctx context.Context, opts ...ScopeOption) (*GetProjectResponse, error)
 
 	Create(ctx context.Context, req *CreateProjectRequest, opts ...ScopeOption) (*CreateProjectResponse, error)
 }

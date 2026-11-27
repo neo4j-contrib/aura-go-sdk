@@ -18,6 +18,8 @@ type ProjectService interface {
 	// List returns all projects within the organization selected by the scope
 	// options.
 	List(ctx context.Context, opts ...ScopeOption) (*ListProjectsResponse, error)
+	// Get retrieves details for a specific project selected by the scope options.
+	Get(ctx context.Context, opts ...ScopeOption) (*GetProjectResponse, error)
 	// Create creates a new project in the organization selected by the scope
 	// options; the request body precedes the options.
 	Create(ctx context.Context, req *CreateProjectRequest, opts ...ScopeOption) (*CreateProjectResponse, error)
