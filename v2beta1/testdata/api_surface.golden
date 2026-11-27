@@ -250,6 +250,8 @@ type InstanceService interface {
 	Update(ctx context.Context, req *UpdateInstanceRequest, opts ...ScopeOption) (*GetInstanceResponse, error)
 
 	Delete(ctx context.Context, opts ...ScopeOption) (*DeleteInstanceResponse, error)
+
+	Pause(ctx context.Context, opts ...ScopeOption) (*GetInstanceResponse, error)
 }
 
 
