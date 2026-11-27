@@ -1279,3 +1279,123 @@ func TestInstanceService_List_LastOptionWins(t *testing.T) {
 		t.Errorf("expected last-option-wins path %q, got %q", want, mock.lastPath)
 	}
 }
+
+// ============================================================================
+// instanceService.Restore tests
+// ============================================================================
+
+func TestInstanceService_Restore_Success(t *testing.T) {
+	orgID := "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+	projectID := "11111111-2222-3333-4444-555555555555"
+	instanceID := "abcdef01"
+	latestBefore := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+	req := &RestoreInstanceRequest{LatestBefore: latestBefore}
+	expected := RestoreInstanceResponse{Data: RestoreInstanceData{InstanceID: instanceID, RestoreID: "restore-123"}}
+	body, _ := json.Marshal(expected)
+	mock := &mockAPIService{response: &api.Response{StatusCode: 202, Body: body}}
+	service := createTestInstanceService(mock)
+	result, err := service.Restore(context.Background(), req, WithOrg(orgID), WithProject(projectID), WithInstance(instanceID))
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if mock.lastMethod != "POST" {
+		t.Errorf("expected POST method, got %s", mock.lastMethod)
+	}
+	wantPath := "organizations/" + orgID + "/projects/" + projectID + "/instances/" + instanceID + "/restore"
+	if mock.lastPath != wantPath {
+		t.Errorf("expected path %q, got %q", wantPath, mock.lastPath)
+	}
+	if result.Data.InstanceID != instanceID || result.Data.RestoreID != "restore-123" {
+		t.Errorf("unexpected result %+v", result)
+	}
+}
+
+func TestInstanceService_Restore_InvalidID(t *testing.T) {
+	mock := &mockAPIService{}
+	service := createTestInstanceService(mock)
+	req := &RestoreInstanceRequest{LatestBefore: time.Now()}
+	_, err := service.Restore(context.Background(), req, WithOrg(""), WithProject("11111111-2222-3333-4444-555555555555"), WithInstance("abcdef01"))
+	if err == nil || !strings.Contains(err.Error(), "organization ID is required") {
+		t.Fatalf("expected missing org ID error, got %v", err)
+	}
+}
+
+func TestInstanceService_Restore_NilRequest(t *testing.T) {
+	mock := &mockAPIService{}
+	service := createTestInstanceService(mock)
+	_, err := service.Restore(context.Background(), nil, WithOrg("a"), WithProject("b"), WithInstance("c"))
+	if err == nil || !strings.Contains(err.Error(), "request must not be nil") {
+		t.Fatalf("expected nil request error, got %v", err)
+	}
+}
+
+func TestInstanceService_Restore_NotFound(t *testing.T) {
+	orgID := "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+	projectID := "11111111-2222-3333-4444-555555555555"
+	instanceID := "abcdef01"
+	mock := &mockAPIService{err: &api.Error{StatusCode: 404, Message: "Not found"}}
+	service := createTestInstanceService(mock)
+	req := &RestoreInstanceRequest{LatestBefore: time.Now()}
+	_, err := service.Restore(context.Background(), req, WithOrg(orgID), WithProject(projectID), WithInstance(instanceID))
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	apiErr, ok := err.(*api.Error)
+	if !ok || !apiErr.IsNotFound() {
+		t.Errorf("expected NotFound error, got %v", err)
+	}
+}
+
+func TestInstanceService_Restore_ContextTimeout(t *testing.T) {
+	orgID := "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+	projectID := "11111111-2222-3333-4444-555555555555"
+	instanceID := "abcdef01"
+	mock := &mockAPIServiceWithDelay{response: &api.Response{StatusCode: 202, Body: []byte(`{"data":{"instance_id":"` + instanceID + `","restore_id":"r1"}}`)}, delay: 2 * time.Second}
+	service := createTestInstanceServiceWithTimeout(mock, 100*time.Millisecond)
+	req := &RestoreInstanceRequest{LatestBefore: time.Now()}
+	_, err := service.Restore(context.Background(), req, WithOrg(orgID), WithProject(projectID), WithInstance(instanceID))
+	if err == nil || !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("expected deadline exceeded, got %v", err)
+	}
+}
+
+func TestInstanceService_Restore_DefaultScope(t *testing.T) {
+	const (
+		orgID      = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		projectID  = "11111111-2222-3333-4444-555555555555"
+		instanceID = "abcdef01"
+	)
+	mock := &mockAPIService{response: &api.Response{StatusCode: 202, Body: []byte(`{"data":{"instance_id":"` + instanceID + `","restore_id":"r1"}}`)}}
+	service := createTestInstanceServiceWithDefaultScope(mock, requestScope{orgID: orgID, projectID: projectID, instanceID: instanceID})
+	req := &RestoreInstanceRequest{LatestBefore: time.Now()}
+	_, err := service.Restore(context.Background(), req)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	want := "organizations/" + orgID + "/projects/" + projectID + "/instances/" + instanceID + "/restore"
+	if mock.lastPath != want {
+		t.Errorf("expected default-scope path %q, got %q", want, mock.lastPath)
+	}
+}
+
+func TestInstanceService_Restore_LastOptionWins(t *testing.T) {
+	const (
+		orgA  = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		orgB  = "cccccccc-dddd-eeee-ffff-000011112222"
+		projA = "11111111-2222-3333-4444-555555555555"
+		projB = "22222222-3333-4444-5555-666666666666"
+		instA = "abcdef01"
+		instB = "fedcba01"
+	)
+	mock := &mockAPIService{response: &api.Response{StatusCode: 202, Body: []byte(`{"data":{"instance_id":"` + instB + `","restore_id":"r1"}}`)}}
+	service := createTestInstanceService(mock)
+	req := &RestoreInstanceRequest{LatestBefore: time.Now()}
+	_, err := service.Restore(context.Background(), req, WithOrg(orgA), WithProject(projA), WithInstance(instA), WithOrg(orgB), WithProject(projB), WithInstance(instB))
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	want := "organizations/" + orgB + "/projects/" + projB + "/instances/" + instB + "/restore"
+	if mock.lastPath != want {
+		t.Errorf("expected last-option-wins path %q, got %q", want, mock.lastPath)
+	}
+}
