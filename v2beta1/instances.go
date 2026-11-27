@@ -386,6 +386,41 @@ func (s *instanceService) Delete(ctx context.Context, opts ...ScopeOption) (*Del
 	return &result, nil
 }
 
+// Pause sets the instance to paused state.
+func (s *instanceService) Pause(ctx context.Context, opts ...ScopeOption) (*GetInstanceResponse, error) {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	sc := resolveScope(s.defaultScope, opts)
+
+	if err := utils.Validate(ctx, s.logger,
+		utils.OrganizationID(sc.orgID),
+		utils.ProjectID(sc.projectID),
+		utils.InstanceID(sc.instanceID),
+	); err != nil {
+		return nil, err
+	}
+
+	s.logger.InfoContext(ctx, "pausing instance", slog.String("orgID", sc.orgID), slog.String("projectID", sc.projectID), slog.String("instanceID", sc.instanceID))
+
+	path := utils.SingleInstancePath(sc.orgID, sc.projectID, sc.instanceID) + "/pause"
+
+	resp, err := s.api.Post(ctx, path, "")
+	if err != nil {
+		s.logger.ErrorContext(ctx, "failed to pause instance", slog.String("instanceID", sc.instanceID), slog.String("error", err.Error()))
+		return nil, err
+	}
+
+	var result GetInstanceResponse
+	if err := json.Unmarshal(resp.Body, &result); err != nil {
+		s.logger.ErrorContext(ctx, "failed to unmarshal pause instance response", slog.String("error", err.Error()))
+		return nil, err
+	}
+
+	s.logger.InfoContext(ctx, "instance pause scheduled", slog.String("instanceID", sc.instanceID))
+	return &result, nil
+}
+
 // validateCreateInstanceRequest checks that all required fields are present.
 func validateCreateInstanceRequest(req *CreateInstanceRequest) error {
 	if req.Name == "" {
