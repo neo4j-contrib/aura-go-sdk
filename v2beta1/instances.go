@@ -108,6 +108,34 @@ type GetInstanceResponse struct {
 	Data InstanceDetails `json:"data"`
 }
 
+// RestorePointBackup holds backup metadata for a restore point.
+type RestorePointBackup struct {
+	CreatedAt string `json:"created_at"`
+	ID        string `json:"id,omitempty"`
+}
+
+// RestorePointSystemDatabase holds the system database restore point entry.
+type RestorePointSystemDatabase struct {
+	Backup *RestorePointBackup `json:"backup"`
+}
+
+// RestorePointUserDatabase holds a user database restore point entry.
+type RestorePointUserDatabase struct {
+	DatabaseID string              `json:"database_id"`
+	Backup     *RestorePointBackup `json:"backup"`
+}
+
+// InstanceRestorePoint represents the restore point for an instance.
+type InstanceRestorePoint struct {
+	SystemDatabase RestorePointSystemDatabase `json:"system_database"`
+	UserDatabases  []RestorePointUserDatabase `json:"user_databases"`
+}
+
+// GetRestorePointResponse wraps the restore point returned by the API.
+type GetRestorePointResponse struct {
+	Data InstanceRestorePoint `json:"data"`
+}
+
 // CreateInstanceRequest holds the fields required to provision a new instance.
 type CreateInstanceRequest struct {
 	Name           string             `json:"name"`
@@ -383,6 +411,43 @@ func (s *instanceService) Delete(ctx context.Context, opts ...ScopeOption) (*Del
 	}
 
 	s.logger.InfoContext(ctx, "instance deleted successfully", slog.String("instanceID", sc.instanceID))
+	return &result, nil
+}
+
+// GetRestorePoint retrieves the restore point for an instance at or before the given time.
+func (s *instanceService) GetRestorePoint(ctx context.Context, latestBefore time.Time, opts ...ScopeOption) (*GetRestorePointResponse, error) {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	sc := resolveScope(s.defaultScope, opts)
+
+	if err := utils.Validate(ctx, s.logger,
+		utils.OrganizationID(sc.orgID),
+		utils.ProjectID(sc.projectID),
+		utils.InstanceID(sc.instanceID),
+	); err != nil {
+		return nil, err
+	}
+
+	s.logger.DebugContext(ctx, "getting restore point", slog.String("orgID", sc.orgID), slog.String("projectID", sc.projectID), slog.String("instanceID", sc.instanceID), slog.String("latest_before", latestBefore.Format(time.RFC3339)))
+
+	path := utils.SingleInstancePath(sc.orgID, sc.projectID, sc.instanceID) + "/restore-point"
+	query := "?latest_before=" + latestBefore.Format(time.RFC3339)
+	fullPath := path + query
+
+	resp, err := s.api.Get(ctx, fullPath)
+	if err != nil {
+		s.logger.ErrorContext(ctx, "failed to get restore point", slog.String("instanceID", sc.instanceID), slog.String("error", err.Error()))
+		return nil, err
+	}
+
+	var result GetRestorePointResponse
+	if err := json.Unmarshal(resp.Body, &result); err != nil {
+		s.logger.ErrorContext(ctx, "failed to unmarshal restore point response", slog.String("error", err.Error()))
+		return nil, err
+	}
+
+	s.logger.DebugContext(ctx, "restore point retrieved successfully", slog.String("instanceID", sc.instanceID))
 	return &result, nil
 }
 

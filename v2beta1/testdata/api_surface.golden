@@ -219,6 +219,12 @@ type GetProjectUserResponse struct {
 }
 
 
+TYPE GetRestorePointResponse
+type GetRestorePointResponse struct {
+	Data InstanceRestorePoint `json:"data"`
+}
+
+
 TYPE GraphAnalyticsMode
 type GraphAnalyticsMode string
 
@@ -239,6 +245,13 @@ type InstanceDetails struct {
 }
 
 
+TYPE InstanceRestorePoint
+type InstanceRestorePoint struct {
+	SystemDatabase RestorePointSystemDatabase `json:"system_database"`
+	UserDatabases  []RestorePointUserDatabase `json:"user_databases"`
+}
+
+
 TYPE InstanceService
 type InstanceService interface {
 	List(ctx context.Context, opts ...ScopeOption) (*ListInstancesResponse, error)
@@ -250,6 +263,8 @@ type InstanceService interface {
 	Update(ctx context.Context, req *UpdateInstanceRequest, opts ...ScopeOption) (*GetInstanceResponse, error)
 
 	Delete(ctx context.Context, opts ...ScopeOption) (*DeleteInstanceResponse, error)
+
+	GetRestorePoint(ctx context.Context, latestBefore time.Time, opts ...ScopeOption) (*GetRestorePointResponse, error)
 
 	Resume(ctx context.Context, opts ...ScopeOption) (*GetInstanceResponse, error)
 }
@@ -458,8 +473,6 @@ type ProjectService interface {
 	Create(ctx context.Context, req *CreateProjectRequest, opts ...ScopeOption) (*CreateProjectResponse, error)
 
 	Update(ctx context.Context, req *UpdateProjectRequest, opts ...ScopeOption) (*GetProjectResponse, error)
-
-	Delete(ctx context.Context, opts ...ScopeOption) error
 }
 
 
@@ -480,6 +493,26 @@ type ProjectUserService interface {
 	UpdateRole(ctx context.Context, req *UpdateProjectUserRequest, opts ...ScopeOption) (*GetProjectUserResponse, error)
 
 	Remove(ctx context.Context, opts ...ScopeOption) error
+}
+
+
+TYPE RestorePointBackup
+type RestorePointBackup struct {
+	CreatedAt string `json:"created_at"`
+	ID        string `json:"id,omitempty"`
+}
+
+
+TYPE RestorePointSystemDatabase
+type RestorePointSystemDatabase struct {
+	Backup *RestorePointBackup `json:"backup"`
+}
+
+
+TYPE RestorePointUserDatabase
+type RestorePointUserDatabase struct {
+	DatabaseID string              `json:"database_id"`
+	Backup     *RestorePointBackup `json:"backup"`
 }
 
 
