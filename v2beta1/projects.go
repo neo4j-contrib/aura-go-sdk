@@ -38,6 +38,11 @@ type CreateProjectResponse struct {
 	Data Project `json:"data"`
 }
 
+// GetProjectResponse wraps the project returned by the API.
+type GetProjectResponse struct {
+	Data Project `json:"data"`
+}
+
 // ============================================================================
 // Service
 // ============================================================================
@@ -128,5 +133,39 @@ func (s *projectService) Create(ctx context.Context, req *CreateProjectRequest, 
 	}
 
 	s.logger.InfoContext(ctx, "project created successfully", slog.String("orgID", sc.orgID), slog.String("projectID", result.Data.ID))
+	return &result, nil
+}
+
+// Get returns details for a specific project selected by the scope options.
+func (s *projectService) Get(ctx context.Context, opts ...ScopeOption) (*GetProjectResponse, error) {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	sc := resolveScope(s.defaultScope, opts)
+
+	if err := utils.Validate(ctx, s.logger,
+		utils.OrganizationID(sc.orgID),
+		utils.ProjectID(sc.projectID),
+	); err != nil {
+		return nil, err
+	}
+
+	s.logger.DebugContext(ctx, "getting project", slog.String("orgID", sc.orgID), slog.String("projectID", sc.projectID))
+
+	path := utils.SingleProjectPath(sc.orgID, sc.projectID)
+
+	resp, err := s.api.Get(ctx, path)
+	if err != nil {
+		s.logger.ErrorContext(ctx, "failed to get project", slog.String("orgID", sc.orgID), slog.String("projectID", sc.projectID), slog.String("error", err.Error()))
+		return nil, err
+	}
+
+	var result GetProjectResponse
+	if err := json.Unmarshal(resp.Body, &result); err != nil {
+		s.logger.ErrorContext(ctx, "failed to unmarshal project response", slog.String("error", err.Error()))
+		return nil, err
+	}
+
+	s.logger.DebugContext(ctx, "project retrieved successfully", slog.String("orgID", sc.orgID), slog.String("projectID", sc.projectID))
 	return &result, nil
 }
