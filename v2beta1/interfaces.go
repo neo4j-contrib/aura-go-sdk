@@ -1,6 +1,9 @@
 package v2beta1
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 // OrganizationService defines operations for managing Aura organizations.
 type OrganizationService interface {
@@ -26,8 +29,6 @@ type ProjectService interface {
 	// Update modifies a specific project selected by the scope options; the
 	// request body precedes the options.
 	Update(ctx context.Context, req *UpdateProjectRequest, opts ...ScopeOption) (*GetProjectResponse, error)
-	// Delete removes a specific project selected by the scope options.
-	Delete(ctx context.Context, opts ...ScopeOption) error
 }
 
 // InstanceService defines operations for managing Aura instances within a project.
@@ -45,6 +46,8 @@ type InstanceService interface {
 	Update(ctx context.Context, req *UpdateInstanceRequest, opts ...ScopeOption) (*GetInstanceResponse, error)
 	// Delete removes a specific instance selected by the scope options.
 	Delete(ctx context.Context, opts ...ScopeOption) (*DeleteInstanceResponse, error)
+	// GetRestorePoint retrieves the restore point for an instance at or before the given time.
+	GetRestorePoint(ctx context.Context, latestBefore time.Time, opts ...ScopeOption) (*GetRestorePointResponse, error)
 	// Resume resumes a paused instance selected by the scope options.
 	Resume(ctx context.Context, opts ...ScopeOption) (*GetInstanceResponse, error)
 }
