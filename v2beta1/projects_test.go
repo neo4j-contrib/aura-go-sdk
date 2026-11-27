@@ -588,3 +588,156 @@ func TestProjectService_Get_LastOptionWins(t *testing.T) {
 		t.Errorf("expected last-option-wins path %q, got %q", want, mock.lastPath)
 	}
 }
+
+// ============================================================================
+// projectService.Update tests
+// ============================================================================
+
+func TestProjectService_Update_Success(t *testing.T) {
+	orgID := "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+	projectID := "11111111-2222-3333-4444-555555555555"
+	req := &UpdateProjectRequest{Name: "New Name"}
+	expected := GetProjectResponse{
+		Data: Project{ID: projectID, Name: "New Name"},
+	}
+	body, _ := json.Marshal(expected)
+	mock := &mockAPIService{
+		response: &api.Response{StatusCode: 200, Body: body},
+	}
+	service := createTestProjectService(mock)
+	result, err := service.Update(context.Background(), req, WithOrg(orgID), WithProject(projectID))
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if mock.lastMethod != "PATCH" {
+		t.Errorf("expected PATCH method, got %s", mock.lastMethod)
+	}
+	expectedPath := "organizations/" + orgID + "/projects/" + projectID
+	if mock.lastPath != expectedPath {
+		t.Errorf("expected path '%s', got '%s'", expectedPath, mock.lastPath)
+	}
+	var sentReq UpdateProjectRequest
+	if err := json.Unmarshal([]byte(mock.lastBody), &sentReq); err != nil {
+		t.Fatalf("failed to unmarshal sent body: %v", err)
+	}
+	if sentReq.Name != req.Name {
+		t.Errorf("sent request mismatch: got %+v, want %+v", sentReq, *req)
+	}
+	if result.Data.ID != projectID || result.Data.Name != "New Name" {
+		t.Errorf("unexpected result: got %+v, want %+v", result.Data, expected.Data)
+	}
+}
+
+func TestProjectService_Update_NilRequest(t *testing.T) {
+	mock := &mockAPIService{}
+	service := createTestProjectService(mock)
+	_, err := service.Update(context.Background(), nil, WithOrg("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"), WithProject("11111111-2222-3333-4444-555555555555"))
+	if err == nil || !strings.Contains(err.Error(), "request must not be nil") {
+		t.Fatalf("expected nil request error, got %v", err)
+	}
+}
+
+func TestProjectService_Update_InvalidID(t *testing.T) {
+	mock := &mockAPIService{}
+	service := createTestProjectService(mock)
+
+	_, err := service.Update(context.Background(), &UpdateProjectRequest{Name: "x"}, WithOrg(""), WithProject("11111111-2222-3333-4444-555555555555"))
+	if err == nil || !strings.Contains(err.Error(), "organization ID is required") {
+		t.Fatalf("expected missing org ID error, got %v", err)
+	}
+	if mock.lastPath != "" {
+		t.Errorf("expected no API call, got path %s", mock.lastPath)
+	}
+
+	_, err = service.Update(context.Background(), &UpdateProjectRequest{Name: "x"}, WithOrg("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"), WithProject(""))
+	if err == nil || !strings.Contains(err.Error(), "project ID is required") {
+		t.Fatalf("expected missing project ID error, got %v", err)
+	}
+	if mock.lastPath != "" {
+		t.Errorf("expected no API call, got path %s", mock.lastPath)
+	}
+}
+
+func TestProjectService_Update_NotFound(t *testing.T) {
+	orgID := "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+	projectID := "11111111-2222-3333-4444-555555555555"
+	mock := &mockAPIService{
+		err: &api.Error{StatusCode: 404, Message: "Not found"},
+	}
+	service := createTestProjectService(mock)
+	_, err := service.Update(context.Background(), &UpdateProjectRequest{Name: "x"}, WithOrg(orgID), WithProject(projectID))
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	apiErr, ok := err.(*api.Error)
+	if !ok || !apiErr.IsNotFound() {
+		t.Errorf("expected NotFound error, got %v", err)
+	}
+}
+
+func TestProjectService_Update_AuthenticationError(t *testing.T) {
+	orgID := "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+	projectID := "11111111-2222-3333-4444-555555555555"
+	mock := &mockAPIService{
+		err: &api.Error{StatusCode: 401, Message: "Unauthorized"},
+	}
+	service := createTestProjectService(mock)
+	_, err := service.Update(context.Background(), &UpdateProjectRequest{Name: "x"}, WithOrg(orgID), WithProject(projectID))
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	apiErr, ok := err.(*api.Error)
+	if !ok || !apiErr.IsUnauthorized() {
+		t.Errorf("expected Unauthorized error, got %v", err)
+	}
+}
+
+func TestProjectService_Update_ContextTimeout(t *testing.T) {
+	orgID := "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+	projectID := "11111111-2222-3333-4444-555555555555"
+	mock := &mockAPIServiceWithDelay{
+		response: &api.Response{StatusCode: 200, Body: []byte(`{"data":{"id":"1","name":"x"}}`)},
+		delay:    2 * time.Second,
+	}
+	service := createTestProjectServiceWithTimeout(mock, 100*time.Millisecond)
+	_, err := service.Update(context.Background(), &UpdateProjectRequest{Name: "x"}, WithOrg(orgID), WithProject(projectID))
+	if err == nil || !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("expected deadline exceeded, got %v", err)
+	}
+}
+
+func TestProjectService_Update_DefaultScope(t *testing.T) {
+	const (
+		orgID     = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		projectID = "11111111-2222-3333-4444-555555555555"
+	)
+	mock := &mockAPIService{response: &api.Response{StatusCode: 200, Body: []byte(`{"data":{"id":"` + projectID + `","name":"x"}}`)}}
+	service := createTestProjectServiceWithDefaultScope(mock, requestScope{orgID: orgID, projectID: projectID})
+	_, err := service.Update(context.Background(), &UpdateProjectRequest{Name: "New"})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	want := "organizations/" + orgID + "/projects/" + projectID
+	if mock.lastPath != want {
+		t.Errorf("expected default-scope path %q, got %q", want, mock.lastPath)
+	}
+}
+
+func TestProjectService_Update_LastOptionWins(t *testing.T) {
+	const (
+		orgA  = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		orgB  = "cccccccc-dddd-eeee-ffff-000011112222"
+		projA = "11111111-2222-3333-4444-555555555555"
+		projB = "22222222-3333-4444-5555-666666666666"
+	)
+	mock := &mockAPIService{response: &api.Response{StatusCode: 200, Body: []byte(`{"data":{"id":"` + projB + `","name":"x"}}`)}}
+	service := createTestProjectService(mock)
+	_, err := service.Update(context.Background(), &UpdateProjectRequest{Name: "x"}, WithOrg(orgA), WithProject(projA), WithOrg(orgB), WithProject(projB))
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	want := "organizations/" + orgB + "/projects/" + projB
+	if mock.lastPath != want {
+		t.Errorf("expected last-option-wins path %q, got %q", want, mock.lastPath)
+	}
+}

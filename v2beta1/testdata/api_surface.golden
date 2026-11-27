@@ -454,6 +454,8 @@ type ProjectService interface {
 	Get(ctx context.Context, opts ...ScopeOption) (*GetProjectResponse, error)
 
 	Create(ctx context.Context, req *CreateProjectRequest, opts ...ScopeOption) (*CreateProjectResponse, error)
+
+	Update(ctx context.Context, req *UpdateProjectRequest, opts ...ScopeOption) (*GetProjectResponse, error)
 }
 
 
@@ -505,6 +507,12 @@ type UpdateInstanceRequest struct {
 TYPE UpdateOrganizationUserRequest
 type UpdateOrganizationUserRequest struct {
 	OrganizationRoles []string `json:"organization_roles"`
+}
+
+
+TYPE UpdateProjectRequest
+type UpdateProjectRequest struct {
+	Name string `json:"name"`
 }
 
 

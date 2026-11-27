@@ -23,6 +23,9 @@ type ProjectService interface {
 	// Create creates a new project in the organization selected by the scope
 	// options; the request body precedes the options.
 	Create(ctx context.Context, req *CreateProjectRequest, opts ...ScopeOption) (*CreateProjectResponse, error)
+	// Update modifies a specific project selected by the scope options; the
+	// request body precedes the options.
+	Update(ctx context.Context, req *UpdateProjectRequest, opts ...ScopeOption) (*GetProjectResponse, error)
 }
 
 // InstanceService defines operations for managing Aura instances within a project.

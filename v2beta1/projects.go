@@ -38,6 +38,11 @@ type CreateProjectResponse struct {
 	Data Project `json:"data"`
 }
 
+// UpdateProjectRequest holds the fields to update a project.
+type UpdateProjectRequest struct {
+	Name string `json:"name"`
+}
+
 // GetProjectResponse wraps the project returned by the API.
 type GetProjectResponse struct {
 	Data Project `json:"data"`
@@ -167,5 +172,49 @@ func (s *projectService) Get(ctx context.Context, opts ...ScopeOption) (*GetProj
 	}
 
 	s.logger.DebugContext(ctx, "project retrieved successfully", slog.String("orgID", sc.orgID), slog.String("projectID", sc.projectID))
+	return &result, nil
+}
+
+// Update updates a specific project selected by the scope options.
+func (s *projectService) Update(ctx context.Context, req *UpdateProjectRequest, opts ...ScopeOption) (*GetProjectResponse, error) {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	if req == nil {
+		return nil, errors.New("request must not be nil")
+	}
+
+	sc := resolveScope(s.defaultScope, opts)
+
+	if err := utils.Validate(ctx, s.logger,
+		utils.OrganizationID(sc.orgID),
+		utils.ProjectID(sc.projectID),
+	); err != nil {
+		return nil, err
+	}
+
+	s.logger.InfoContext(ctx, "updating project", slog.String("orgID", sc.orgID), slog.String("projectID", sc.projectID), slog.String("name", req.Name))
+
+	path := utils.SingleProjectPath(sc.orgID, sc.projectID)
+
+	body, err := json.Marshal(req)
+	if err != nil {
+		s.logger.ErrorContext(ctx, "failed to marshal update project request", slog.String("error", err.Error()))
+		return nil, err
+	}
+
+	resp, err := s.api.Patch(ctx, path, string(body))
+	if err != nil {
+		s.logger.ErrorContext(ctx, "failed to update project", slog.String("orgID", sc.orgID), slog.String("projectID", sc.projectID), slog.String("error", err.Error()))
+		return nil, err
+	}
+
+	var result GetProjectResponse
+	if err := json.Unmarshal(resp.Body, &result); err != nil {
+		s.logger.ErrorContext(ctx, "failed to unmarshal project response", slog.String("error", err.Error()))
+		return nil, err
+	}
+
+	s.logger.InfoContext(ctx, "project updated successfully", slog.String("orgID", sc.orgID), slog.String("projectID", sc.projectID))
 	return &result, nil
 }
