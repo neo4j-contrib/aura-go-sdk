@@ -169,6 +169,10 @@ type DeleteInstanceResponse struct {
 }
 
 
+TYPE DeleteProjectResponse
+type DeleteProjectResponse struct{}
+
+
 TYPE Error
 type Error = api.Error
 
@@ -456,6 +460,8 @@ type ProjectService interface {
 	Create(ctx context.Context, req *CreateProjectRequest, opts ...ScopeOption) (*CreateProjectResponse, error)
 
 	Update(ctx context.Context, req *UpdateProjectRequest, opts ...ScopeOption) (*GetProjectResponse, error)
+
+	Delete(ctx context.Context, opts ...ScopeOption) (*DeleteProjectResponse, error)
 }
 
 
