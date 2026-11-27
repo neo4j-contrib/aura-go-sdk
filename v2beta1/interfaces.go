@@ -45,6 +45,8 @@ type InstanceService interface {
 	Update(ctx context.Context, req *UpdateInstanceRequest, opts ...ScopeOption) (*GetInstanceResponse, error)
 	// Delete removes a specific instance selected by the scope options.
 	Delete(ctx context.Context, opts ...ScopeOption) (*DeleteInstanceResponse, error)
+	// Resume resumes a paused instance selected by the scope options.
+	Resume(ctx context.Context, opts ...ScopeOption) (*GetInstanceResponse, error)
 }
 
 // DatabaseService defines operations for managing Aura databases.
