@@ -1279,3 +1279,107 @@ func TestInstanceService_List_LastOptionWins(t *testing.T) {
 		t.Errorf("expected last-option-wins path %q, got %q", want, mock.lastPath)
 	}
 }
+
+// ============================================================================
+// instanceService.Resume tests
+// ============================================================================
+
+func TestInstanceService_Resume_Success(t *testing.T) {
+	orgID := "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+	projectID := "11111111-2222-3333-4444-555555555555"
+	instanceID := "abcdef01"
+	expected := GetInstanceResponse{Data: InstanceDetails{ID: instanceID, Name: "test"}}
+	body, _ := json.Marshal(expected)
+	mock := &mockAPIService{response: &api.Response{StatusCode: 200, Body: body}}
+	service := createTestInstanceService(mock)
+	result, err := service.Resume(context.Background(), WithOrg(orgID), WithProject(projectID), WithInstance(instanceID))
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if mock.lastMethod != "POST" {
+		t.Errorf("expected POST method, got %s", mock.lastMethod)
+	}
+	wantPath := "organizations/" + orgID + "/projects/" + projectID + "/instances/" + instanceID + "/resume"
+	if mock.lastPath != wantPath {
+		t.Errorf("expected path %q, got %q", wantPath, mock.lastPath)
+	}
+	if result.Data.ID != instanceID {
+		t.Errorf("expected instance ID %q, got %q", instanceID, result.Data.ID)
+	}
+}
+
+func TestInstanceService_Resume_InvalidID(t *testing.T) {
+	mock := &mockAPIService{}
+	service := createTestInstanceService(mock)
+	_, err := service.Resume(context.Background(), WithOrg(""), WithProject("11111111-2222-3333-4444-555555555555"), WithInstance("abcdef01"))
+	if err == nil || !strings.Contains(err.Error(), "organization ID is required") {
+		t.Fatalf("expected missing org ID error, got %v", err)
+	}
+}
+
+func TestInstanceService_Resume_NotFound(t *testing.T) {
+	orgID := "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+	projectID := "11111111-2222-3333-4444-555555555555"
+	instanceID := "abcdef01"
+	mock := &mockAPIService{err: &api.Error{StatusCode: 404, Message: "Not found"}}
+	service := createTestInstanceService(mock)
+	_, err := service.Resume(context.Background(), WithOrg(orgID), WithProject(projectID), WithInstance(instanceID))
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	apiErr, ok := err.(*api.Error)
+	if !ok || !apiErr.IsNotFound() {
+		t.Errorf("expected NotFound error, got %v", err)
+	}
+}
+
+func TestInstanceService_Resume_ContextTimeout(t *testing.T) {
+	orgID := "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+	projectID := "11111111-2222-3333-4444-555555555555"
+	instanceID := "abcdef01"
+	mock := &mockAPIServiceWithDelay{response: &api.Response{StatusCode: 200, Body: []byte(`{"data":{}}`)}, delay: 2 * time.Second}
+	service := createTestInstanceServiceWithTimeout(mock, 100*time.Millisecond)
+	_, err := service.Resume(context.Background(), WithOrg(orgID), WithProject(projectID), WithInstance(instanceID))
+	if err == nil || !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("expected deadline exceeded, got %v", err)
+	}
+}
+
+func TestInstanceService_Resume_DefaultScope(t *testing.T) {
+	const (
+		orgID      = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		projectID  = "11111111-2222-3333-4444-555555555555"
+		instanceID = "abcdef01"
+	)
+	mock := &mockAPIService{response: &api.Response{StatusCode: 200, Body: []byte(`{"data":{}}`)}}
+	service := createTestInstanceServiceWithDefaultScope(mock, requestScope{orgID: orgID, projectID: projectID, instanceID: instanceID})
+	_, err := service.Resume(context.Background())
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	want := "organizations/" + orgID + "/projects/" + projectID + "/instances/" + instanceID + "/resume"
+	if mock.lastPath != want {
+		t.Errorf("expected default-scope path %q, got %q", want, mock.lastPath)
+	}
+}
+
+func TestInstanceService_Resume_LastOptionWins(t *testing.T) {
+	const (
+		orgA  = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+		orgB  = "cccccccc-dddd-eeee-ffff-000011112222"
+		projA = "11111111-2222-3333-4444-555555555555"
+		projB = "22222222-3333-4444-5555-666666666666"
+		instA = "abcdef01"
+		instB = "fedcba01"
+	)
+	mock := &mockAPIService{response: &api.Response{StatusCode: 200, Body: []byte(`{"data":{}}`)}}
+	service := createTestInstanceService(mock)
+	_, err := service.Resume(context.Background(), WithOrg(orgA), WithProject(projA), WithInstance(instA), WithOrg(orgB), WithProject(projB), WithInstance(instB))
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	want := "organizations/" + orgB + "/projects/" + projB + "/instances/" + instB + "/resume"
+	if mock.lastPath != want {
+		t.Errorf("expected last-option-wins path %q, got %q", want, mock.lastPath)
+	}
+}
