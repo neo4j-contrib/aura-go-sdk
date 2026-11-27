@@ -48,9 +48,6 @@ type GetProjectResponse struct {
 	Data Project `json:"data"`
 }
 
-// DeleteProjectResponse wraps the response returned when a project is deleted.
-type DeleteProjectResponse struct{}
-
 // ============================================================================
 // Service
 // ============================================================================
@@ -223,7 +220,7 @@ func (s *projectService) Update(ctx context.Context, req *UpdateProjectRequest, 
 }
 
 // Delete removes a specific project selected by the scope options.
-func (s *projectService) Delete(ctx context.Context, opts ...ScopeOption) (*DeleteProjectResponse, error) {
+func (s *projectService) Delete(ctx context.Context, opts ...ScopeOption) error {
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
@@ -233,30 +230,19 @@ func (s *projectService) Delete(ctx context.Context, opts ...ScopeOption) (*Dele
 		utils.OrganizationID(sc.orgID),
 		utils.ProjectID(sc.projectID),
 	); err != nil {
-		return nil, err
+		return err
 	}
 
 	s.logger.InfoContext(ctx, "deleting project", slog.String("orgID", sc.orgID), slog.String("projectID", sc.projectID))
 
 	path := utils.SingleProjectPath(sc.orgID, sc.projectID)
 
-	resp, err := s.api.Delete(ctx, path)
+	_, err := s.api.Delete(ctx, path)
 	if err != nil {
 		s.logger.ErrorContext(ctx, "failed to delete project", slog.String("orgID", sc.orgID), slog.String("projectID", sc.projectID), slog.String("error", err.Error()))
-		return nil, err
-	}
-
-	if len(resp.Body) == 0 {
-		s.logger.InfoContext(ctx, "project deleted successfully", slog.String("orgID", sc.orgID), slog.String("projectID", sc.projectID))
-		return &DeleteProjectResponse{}, nil
-	}
-
-	var result DeleteProjectResponse
-	if err := json.Unmarshal(resp.Body, &result); err != nil {
-		s.logger.ErrorContext(ctx, "failed to unmarshal delete project response", slog.String("error", err.Error()))
-		return nil, err
+		return err
 	}
 
 	s.logger.InfoContext(ctx, "project deleted successfully", slog.String("orgID", sc.orgID), slog.String("projectID", sc.projectID))
-	return &result, nil
+	return nil
 }

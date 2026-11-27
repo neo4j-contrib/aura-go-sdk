@@ -27,7 +27,7 @@ type ProjectService interface {
 	// request body precedes the options.
 	Update(ctx context.Context, req *UpdateProjectRequest, opts ...ScopeOption) (*GetProjectResponse, error)
 	// Delete removes a specific project selected by the scope options.
-	Delete(ctx context.Context, opts ...ScopeOption) (*DeleteProjectResponse, error)
+	Delete(ctx context.Context, opts ...ScopeOption) error
 }
 
 // InstanceService defines operations for managing Aura instances within a project.

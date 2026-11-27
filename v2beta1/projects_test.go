@@ -753,7 +753,7 @@ func TestProjectService_Delete_Success(t *testing.T) {
 		response: &api.Response{StatusCode: 202, Body: []byte{}},
 	}
 	service := createTestProjectService(mock)
-	_, err := service.Delete(context.Background(), WithOrg(orgID), WithProject(projectID))
+	err := service.Delete(context.Background(), WithOrg(orgID), WithProject(projectID))
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -770,7 +770,7 @@ func TestProjectService_Delete_InvalidID(t *testing.T) {
 	mock := &mockAPIService{}
 	service := createTestProjectService(mock)
 
-	_, err := service.Delete(context.Background(), WithOrg(""), WithProject("11111111-2222-3333-4444-555555555555"))
+	err := service.Delete(context.Background(), WithOrg(""), WithProject("11111111-2222-3333-4444-555555555555"))
 	if err == nil || !strings.Contains(err.Error(), "organization ID is required") {
 		t.Fatalf("expected missing org ID error, got %v", err)
 	}
@@ -778,7 +778,7 @@ func TestProjectService_Delete_InvalidID(t *testing.T) {
 		t.Errorf("expected no API call, got path %s", mock.lastPath)
 	}
 
-	_, err = service.Delete(context.Background(), WithOrg("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"), WithProject(""))
+	err = service.Delete(context.Background(), WithOrg("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"), WithProject(""))
 	if err == nil || !strings.Contains(err.Error(), "project ID is required") {
 		t.Fatalf("expected missing project ID error, got %v", err)
 	}
@@ -794,7 +794,7 @@ func TestProjectService_Delete_NotFound(t *testing.T) {
 		err: &api.Error{StatusCode: 404, Message: "Not found"},
 	}
 	service := createTestProjectService(mock)
-	_, err := service.Delete(context.Background(), WithOrg(orgID), WithProject(projectID))
+	err := service.Delete(context.Background(), WithOrg(orgID), WithProject(projectID))
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -811,7 +811,7 @@ func TestProjectService_Delete_AuthenticationError(t *testing.T) {
 		err: &api.Error{StatusCode: 401, Message: "Unauthorized"},
 	}
 	service := createTestProjectService(mock)
-	_, err := service.Delete(context.Background(), WithOrg(orgID), WithProject(projectID))
+	err := service.Delete(context.Background(), WithOrg(orgID), WithProject(projectID))
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -829,7 +829,7 @@ func TestProjectService_Delete_ContextTimeout(t *testing.T) {
 		delay:    2 * time.Second,
 	}
 	service := createTestProjectServiceWithTimeout(mock, 100*time.Millisecond)
-	_, err := service.Delete(context.Background(), WithOrg(orgID), WithProject(projectID))
+	err := service.Delete(context.Background(), WithOrg(orgID), WithProject(projectID))
 	if err == nil || !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatalf("expected deadline exceeded, got %v", err)
 	}
@@ -842,7 +842,7 @@ func TestProjectService_Delete_DefaultScope(t *testing.T) {
 	)
 	mock := &mockAPIService{response: &api.Response{StatusCode: 202, Body: []byte{}}}
 	service := createTestProjectServiceWithDefaultScope(mock, requestScope{orgID: orgID, projectID: projectID})
-	_, err := service.Delete(context.Background())
+	err := service.Delete(context.Background())
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -861,7 +861,7 @@ func TestProjectService_Delete_LastOptionWins(t *testing.T) {
 	)
 	mock := &mockAPIService{response: &api.Response{StatusCode: 202, Body: []byte{}}}
 	service := createTestProjectService(mock)
-	_, err := service.Delete(context.Background(), WithOrg(orgA), WithProject(projA), WithOrg(orgB), WithProject(projB))
+	err := service.Delete(context.Background(), WithOrg(orgA), WithProject(projA), WithOrg(orgB), WithProject(projB))
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
