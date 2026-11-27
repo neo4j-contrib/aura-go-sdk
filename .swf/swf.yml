@@ -9,7 +9,7 @@ repo:
 
 tracker:
   kind: linear
-  team: Devsurf
+  team: asdk
   project: Aura GO SDK SWF
   pick_state: Agent Backlog
   claim_state: In Progress
